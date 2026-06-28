@@ -21,6 +21,16 @@ export const site = {
     'A patronage initiative: fund a team of maintainers to keep open source alive — with reserved capacity and real SLAs.',
   email: 'opensource@managed-code.com',
   parentSite: 'https://www.managed-code.com',
+  legal: {
+    terms: {
+      label: 'Terms of Use',
+      url: 'https://www.managed-code.com/terms-of-use',
+    },
+    privacy: {
+      label: 'Privacy Policy',
+      url: 'https://www.managed-code.com/privacy-policy',
+    },
+  },
   github: 'https://github.com/managedcode',
   githubOrg: 'managedcode',
   repo: 'https://github.com/managedcode/Mission',
@@ -33,6 +43,15 @@ export const site = {
   recaptchaApiUrl: 'https://www.google.com/recaptcha/api.js',
   recaptchaSiteKey: import.meta.env.PUBLIC_RECAPTCHA_SITE_KEY || defaultRecaptchaSiteKey,
   recaptchaAction: 'mission_patronage',
+  analytics: {
+    googleTagId: 'G-C60885YHMC',
+    clarityProjectId: 'xea2h4iji8',
+  },
+} as const;
+
+export const miniGame = {
+  controlsHintHtml:
+    '←/→ or A/D move&nbsp;·&nbsp;Space/↑/W or JUMP leap&nbsp;·&nbsp;Hold jump for a higher leap&nbsp;·&nbsp;Esc quits',
 } as const;
 
 // Absolute-to-home anchors so the shared header/footer nav also works from

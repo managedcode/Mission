@@ -960,6 +960,34 @@ body::after {
   font-size: clamp(0.5rem, 0.42rem + 0.4vw, 0.7rem);
   color: var(--tier-gold);
 }
+.mgame__star {
+  display: inline-block;
+  inline-size: 1em;
+  block-size: 1em;
+  flex: none;
+  vertical-align: -0.14em;
+  background: currentColor;
+  clip-path: polygon(
+    50% 0,
+    61% 35%,
+    98% 35%,
+    68% 56%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 56%,
+    2% 35%,
+    39% 35%
+  );
+}
+.mgame__hud .mgame__star {
+  inline-size: 1.18em;
+  block-size: 1.18em;
+  margin-inline-end: -0.12em;
+}
+.mgame__msg-text .mgame__star {
+  margin-inline: 0.15em;
+}
 .mgame__sep {
   color: var(--fg-faint);
 }

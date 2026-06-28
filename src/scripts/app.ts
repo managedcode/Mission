@@ -6,6 +6,13 @@ import { createMascotGame } from './game';
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+declare global {
+  interface Window {
+    clarity?: (...args: unknown[]) => void;
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
 /* ---------- Scroll reveal ---------- */
 function initReveal() {
   const items = document.querySelectorAll<HTMLElement>('[data-reveal]');
@@ -235,6 +242,109 @@ function initScrollProgress() {
   update();
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', update, { passive: true });
+}
+
+/* ---------- Analytics: once-per-section scroll events ---------- */
+let analyticsScrollCleanup: (() => void) | undefined;
+
+function normalizeAnalyticsId(value: string) {
+  return (
+    value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '') || 'section'
+  );
+}
+
+function getSectionId(el: HTMLElement, index: number) {
+  const labelledBy = el.getAttribute('aria-labelledby') ?? '';
+  const sectionClass = Array.from(el.classList).find(
+    (cls) => cls !== 'section' && cls !== 'invert' && cls !== 'grain'
+  );
+  const raw =
+    el.id || labelledBy.replace(/-(heading|h)$/i, '') || sectionClass || `section-${index + 1}`;
+  return normalizeAnalyticsId(raw);
+}
+
+function getSectionName(el: HTMLElement, fallback: string) {
+  const labelledBy = el.getAttribute('aria-labelledby');
+  const heading =
+    (labelledBy ? document.getElementById(labelledBy) : null) ??
+    el.querySelector<HTMLElement>('h1, h2, h3');
+  return heading?.textContent?.replace(/\s+/g, ' ').trim() || fallback;
+}
+
+function initAnalyticsScrollTracking() {
+  analyticsScrollCleanup?.();
+  analyticsScrollCleanup = undefined;
+
+  if (document.documentElement.dataset.analytics !== 'production') return;
+  if (navigator.webdriver) return;
+
+  const sections = Array.from(document.querySelectorAll<HTMLElement>('main > section')).map(
+    (el, index) => {
+      const id = getSectionId(el, index);
+      return {
+        el,
+        id,
+        name: getSectionName(el, id),
+      };
+    }
+  );
+  if (sections.length === 0) return;
+
+  const seen = new Set<string>();
+  const track = (section: (typeof sections)[number]) => {
+    if (seen.has(section.id)) return;
+    seen.add(section.id);
+
+    const payload = {
+      section_id: section.id,
+      section_name: section.name,
+      page_path: window.location.pathname,
+      page_title: document.title,
+    };
+
+    window.gtag?.('event', 'section_scroll', payload);
+    window.clarity?.('event', `section_scroll_${section.id}`);
+  };
+
+  const findActiveSection = () => {
+    const probeY = window.scrollY + window.innerHeight * 0.48;
+    let current = sections[0];
+
+    for (const section of sections) {
+      const rect = section.el.getBoundingClientRect();
+      const top = rect.top + window.scrollY;
+      const bottom = top + Math.max(rect.height, 1);
+
+      if (probeY >= top && probeY < bottom) return section;
+      if (top <= probeY) current = section;
+    }
+
+    return current;
+  };
+
+  let ticking = false;
+  const update = () => {
+    ticking = false;
+    track(findActiveSection());
+  };
+  const requestUpdate = () => {
+    if (!ticking) {
+      ticking = true;
+      requestAnimationFrame(update);
+    }
+  };
+
+  requestUpdate();
+  window.addEventListener('scroll', requestUpdate, { passive: true });
+  window.addEventListener('resize', requestUpdate, { passive: true });
+  analyticsScrollCleanup = () => {
+    window.removeEventListener('scroll', requestUpdate);
+    window.removeEventListener('resize', requestUpdate);
+  };
 }
 
 /* ---------- Konami easter egg ---------- */
@@ -681,6 +791,7 @@ function init() {
   initTerminal();
   initHeader();
   initScrollProgress();
+  initAnalyticsScrollTracking();
   initMagnetic();
   initKonami();
   initSound();

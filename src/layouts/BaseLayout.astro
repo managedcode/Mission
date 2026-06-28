@@ -54,10 +54,49 @@ const baseGraph: Record<string, unknown>[] = [
 
 const graph = [...baseGraph, ...jsonLd];
 const structuredData = { '@context': 'https://schema.org', '@graph': graph };
+const analyticsEnabled = import.meta.env.PROD;
+const googleTagId = site.analytics.googleTagId;
+const clarityProjectId = site.analytics.clarityProjectId;
+const analyticsBootstrap = `
+(() => {
+  if (navigator.webdriver) return;
+
+  const googleTagId = ${JSON.stringify(googleTagId)};
+  const clarityProjectId = ${JSON.stringify(clarityProjectId)};
+
+  window.dataLayer = window.dataLayer || [];
+  window.gtag =
+    window.gtag ||
+    function gtag() {
+      window.dataLayer.push(arguments);
+    };
+
+  const googleTag = document.createElement('script');
+  googleTag.async = true;
+  googleTag.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(googleTagId);
+  document.head.appendChild(googleTag);
+
+  window.gtag('js', new Date());
+  window.gtag('config', googleTagId);
+
+  (function(c, l, a, r, i, t, y) {
+    c[a] =
+      c[a] ||
+      function clarity() {
+        (c[a].q = c[a].q || []).push(arguments);
+      };
+    t = l.createElement(r);
+    t.async = 1;
+    t.src = 'https://www.clarity.ms/tag/' + i;
+    y = l.getElementsByTagName(r)[0];
+    y.parentNode.insertBefore(t, y);
+  })(window, document, 'clarity', 'script', clarityProjectId);
+})();
+`.trim();
 ---
 
 <!doctype html>
-<html lang={site.locale}>
+<html lang={site.locale} data-analytics={analyticsEnabled ? 'production' : undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -127,6 +166,7 @@ const structuredData = { '@context': 'https://schema.org', '@graph': graph };
     </script>
 
     <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />
+    {analyticsEnabled && <script is:inline set:html={analyticsBootstrap} />}
   </head>
   <body>
     <!--

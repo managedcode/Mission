@@ -271,6 +271,17 @@ test.describe('Mobile viewport coverage', () => {
 });
 
 test.describe('Mission Run mini-game', () => {
+  type MissionRunState = {
+    y: number;
+    w: number;
+    h: number;
+    lives: number;
+    onGround: boolean;
+    state: string;
+    jumpHeld: boolean;
+    projectScale: number;
+  };
+
   test('holding Space extends one jump without auto-jumping on landing', async ({ page }) => {
     test.skip(!test.info().project.name.startsWith('desktop'), 'keyboard-only game path');
 
@@ -282,7 +293,7 @@ test.describe('Mission Run mini-game', () => {
       page.evaluate(() => {
         const state = (
           window as Window & {
-            __mgame?: () => { y: number; onGround: boolean; state: string; jumpHeld: boolean };
+            __mgame?: () => MissionRunState;
           }
         ).__mgame?.();
         return state ?? null;
@@ -345,6 +356,61 @@ test.describe('Mission Run mini-game', () => {
     await page.evaluate(() => {
       window.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true }));
     });
+  });
+
+  test('NEW PROJECT IDEA doubles the maintainer; contact shrinks before losing a life', async ({
+    page,
+  }) => {
+    test.skip(!test.info().project.name.startsWith('desktop'), 'keyboard-only game path');
+
+    await page.goto('/');
+    await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
+    await page.locator('[data-mascot]').click({ force: true });
+
+    const readGame = () =>
+      page.evaluate(() => {
+        const state = (
+          window as Window & {
+            __mgame?: () => MissionRunState;
+          }
+        ).__mgame?.();
+        return state ?? null;
+      });
+
+    await expect.poll(async () => (await readGame())?.onGround, { timeout: 3000 }).toBe(true);
+
+    const before = await readGame();
+    expect(before?.projectScale).toBe(1);
+
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __mgameDropNewProject?: () => void;
+        }
+      ).__mgameDropNewProject?.();
+    });
+
+    await expect.poll(async () => (await readGame())?.projectScale, { timeout: 1000 }).toBe(2);
+
+    const after = await readGame();
+    expect(after?.w).toBe((before?.w ?? 0) * 2);
+    expect(after?.h).toBe((before?.h ?? 0) * 2);
+    expect(after?.lives).toBe(before?.lives);
+
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __mgameSpawnExpense?: () => void;
+        }
+      ).__mgameSpawnExpense?.();
+    });
+
+    await expect.poll(async () => (await readGame())?.projectScale, { timeout: 1000 }).toBe(1);
+
+    const afterContact = await readGame();
+    expect(afterContact?.w).toBe(before?.w);
+    expect(afterContact?.h).toBe(before?.h);
+    expect(afterContact?.lives).toBe(before?.lives);
   });
 });
 
