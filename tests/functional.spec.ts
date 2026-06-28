@@ -357,13 +357,15 @@ test.describe('FAQ disclosure', () => {
 });
 
 test.describe('Patronage tiers', () => {
-  test('four salary-grade plans; Mid featured with badge; CTAs lead to the apply form', async ({
+  test('three salary-grade plans; Mid featured with badge; CTAs lead to the apply form', async ({
     page,
   }) => {
     await page.goto('/');
 
     const plans = page.locator('#patronage .tiers__plan');
-    await expect(plans).toHaveCount(4);
+    await expect(plans).toHaveCount(3);
+    // Trainee was retired — only Junior / Mid / Senior remain.
+    await expect(page.locator('#patronage [data-plan="trainee"]')).toHaveCount(0);
 
     const featured = page.locator('#patronage [data-plan="mid"]');
     await expect(featured).toHaveCount(1);
@@ -373,9 +375,12 @@ test.describe('Patronage tiers', () => {
     await expect(badge).toBeVisible();
     await expect(badge).toHaveText(/\S/);
 
+    // Each plan visualizes its reserved capacity as a pixel meter.
+    await expect(page.locator('#patronage .plan__meter-bar')).toHaveCount(3);
+
     // Every plan CTA leads to the in-page application form.
     const ctas = page.locator('#patronage .plan__cta');
-    await expect(ctas).toHaveCount(4);
+    await expect(ctas).toHaveCount(3);
     const ctaCount = await ctas.count();
     for (let i = 0; i < ctaCount; i++) {
       await expect(ctas.nth(i)).toHaveAttribute('href', /#apply$/);

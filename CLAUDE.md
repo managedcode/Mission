@@ -17,8 +17,11 @@ founders (~born 1985–1990). Aiming for Awwwards-grade polish. **All copy is En
 - **Concept:** "Patrons of the digital commons" — Renaissance patronage × tasteful 8-bit pixel-craft, clean
   & editorial. Light + dark themes.
 - **Model:** it's a **subscription to a team of maintainers, not buying a developer**. There is **NO fixed
-  price** — patrons fund a maintainer at a developer **grade** (Trainee / Junior / Mid ★ / Senior ≈ that
-  engineer's salary), each with maintainer-hours (~6/20/50/120/mo) + a response window (72/24/8/4 h). The **only** dollar
+  price** — patrons fund a maintainer at a developer **grade** (three grades: Junior / Mid ★ / Senior ≈ that
+  engineer's salary), each with maintainer-hours (~10–15/25–40/45–60/mo) + a response window (24/8/4 h).
+  Each tier card visualizes its capacity as a pixel meter (`meterFill`/`meterTotal` in `site.ts`) and its SLA
+  as a "clock" chip (`window`). The old **Trainee** grade was dropped 2026-06 (4 cards read as cramped) — do
+  NOT reintroduce it. The **only** dollar
   figure on the page is the launch **funding goal: $32,768/mo, $8k committed** (the $32,768 goal is a
   2¹⁵ dev Easter egg — keep that exact power of two; committed is shown as **$8k**, deliberately _not_
   $8,192, which reads as too-obviously-fake; `funding` in `site.ts`,

@@ -990,9 +990,61 @@ body::after {
   background: #0a1410;
   border: var(--border-px) solid var(--fg);
 }
+/* on-screen touch controls — only shown on a coarse pointer while playing */
+.mgame__touch {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 1;
+  display: none;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 0.6rem;
+  padding: clamp(0.5rem, 2.5vw, 1rem);
+  pointer-events: none;
+  touch-action: none;
+}
+.mgame[data-touch='true'][data-playing='true'] .mgame__touch {
+  display: flex;
+}
+.mgame__pad {
+  display: flex;
+  gap: 0.55rem;
+}
+.mgame__tbtn {
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  display: grid;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--fg);
+  background: color-mix(in srgb, var(--bg-raised) 66%, transparent);
+  border: var(--border-px) solid var(--fg);
+  opacity: 0.8;
+}
+.mgame__tbtn--jump {
+  width: 4.4rem;
+  height: 4.4rem;
+  font-size: 0.62rem;
+  color: #23100a;
+  background: color-mix(in srgb, var(--accent) 82%, transparent);
+}
+.mgame__tbtn[data-on='true'] {
+  opacity: 1;
+  background: var(--accent-2);
+  color: #23100a;
+  transform: translateY(1px);
+}
 .mgame__msg {
   position: absolute;
   inset: 0;
+  z-index: 2;
   display: grid;
   place-items: center;
   gap: 0.9rem;

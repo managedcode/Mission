@@ -1,13 +1,22 @@
 /* =================================================================
-   RENT RUN — a Super-Mario-style platformer for maintainers.
-   Survive the month in a Mario world: bump ? blocks for GitHub ★,
-   knock out a power-flower, find the secret 1-UP, and get past the whole
-   bestiary — goombas, shell-kicking turtles, fliers, pipe piranhas
-   AND your bills (RENT · GAS · LOAN) — to reach the castle and keep
-   the commons alive. Launched by clicking the corner mascot.
+   RENT RUN — a savagely on-the-nose platformer about being an open-source
+   maintainer. You ship for $0 while two armies come for you: the BILLS that
+   keep charging anyway (RENT · POWER · WATER · GAS · NET · GYM · ME TIME) and
+   the ENTITLED ISSUES / dead PRs / "URGENT!!" DMs / dependency 0-DAYs ("ETA?",
+   "+1", "UNPAID", "WONTFIX", "REVIEW?", "CVE"). Bump ? blocks for GitHub ★
+   (worth $0), grab the COFFEE (caffeine = invincibility), and find the secret
+   NEW PROJECT IDEA — another life = another project you'll start, never finishing this.
 
-   Lazy + self-contained: the DOM/canvas is built only on first
-   launch(), never on load, so it can't surface in screenshots/tests.
+   Reach the castle and you win, obviously: its doors warm up and fireworks go up
+   — because the castle is ManagedCode, the one place that pays you to maintain the
+   stuff you've done for free — but first you JUMP the fire-spitting LAYOFF dragon
+   (the meme boss) like Bowser. COFFEE = temporary invincibility; the secret block
+   drops a NEW PROJECT IDEA (another one you'll start instead of finishing this one).
+
+   Plays with keyboard (← → + space) or on-screen touch buttons on phones.
+   Launched by clicking the corner mascot. Lazy + self-contained: the
+   DOM/canvas is built only on first launch(), never on load, so it can't
+   surface in screenshots/tests.
    ================================================================= */
 
 type Game = { launch: () => void };
@@ -45,7 +54,6 @@ export function createMascotGame(): Game {
     [74, 8, 1],
     [75, 7, 1],
     [76, 6, 1],
-    [84, 5, 2],
   ];
   const PIPES: Array<[number, number]> = [
     [24, 2],
@@ -61,29 +69,44 @@ export function createMascotGame(): Game {
     [40, 3, 'power'],
     [53, 5, 'coin'],
     [57, 3, 'hidden'],
-    [85, 4, 'coin'],
+    [80, 4, 'coin'],
   ];
-  // enemies: [type, tileX, label?, tone?]
-  // everything that pulls a maintainer away from the commons: the bugs & trolls
-  // (goombas/turtles/flies) plus the month's real-life pressures, spelled out on
-  // the paper "bills" — rent, the loan, the day job, family, the cloud invoice.
+  // enemies: [type, tileX, label?, tone?] — EVERYTHING wears a label so a dev reads
+  // it at a glance. Two armies maul an open-source maintainer:
+  //  · the BILLS (paper, ground walkers) — the real life that keeps charging while
+  //    you ship for $0: RENT · POWER · WATER · GAS · NET · GYM · ME TIME.
+  //  · the ENTITLED ISSUES (goombas), DEAD PRs (turtles → kickable shells), an
+  //    URGENT!! DM (fly) and 0-DAYs erupting from your dependency pipes (piranhas):
+  //    "ETA?", "+1", "UNPAID", "WONTFIX", "REVIEW?", "CVE". All free, all yours.
   const ENEMIES_DEF: Array<[string, number, string?, BillTone?]> = [
-    ['goomba', 14],
-    ['bill', 21, 'RENT', 'rent'],
-    ['turtle', 29],
-    ['bill', 36, 'LOAN', 'loan'],
-    ['goomba', 43],
-    ['bill', 50, 'WORK', 'work'],
-    ['fly', 55],
-    ['bill', 63, 'FAMILY', 'family'],
-    ['turtle', 72],
-    ['bill', 76, 'CLOUD', 'util'],
-    ['goomba', 82],
+    ['goomba', 12, 'ETA?', 'issue'],
+    ['bill', 18, 'RENT', 'rent'],
+    ['goomba', 22, '+1', 'issue'],
+    ['turtle', 29, 'BAD PR', 'pr'],
+    ['bill', 34, 'POWER', 'power'],
+    ['goomba', 40, 'UNPAID', 'donate'],
+    ['bill', 47, 'WATER', 'water'],
+    ['turtle', 50, 'REVIEW?', 'pr'],
+    ['fly', 53, 'URGENT', 'urgent'],
+    ['bill', 56, 'GAS', 'gas'],
+    ['bill', 67, 'NET', 'net'],
+    ['goomba', 72, 'WONTFIX', 'issue'],
+    ['bill', 76, 'GYM', 'gym'],
+    ['bill', 82, 'ME TIME', 'metime'],
   ];
+  // background signposts = the open-source career arc, dead obvious: you ship OSS,
+  // you're still paid $0, you're drowning (SOS) — then the LAYOFF dragon, then the
+  // one castle that actually pays.
   const SIGNS: Array<[number, string]> = [
-    [18 * TILE, 'C#'],
-    [50 * TILE, '.NET'],
-    [82 * TILE, 'OSS'],
+    [9 * TILE, 'OSS'],
+    [38 * TILE, 'STILL $0'],
+    [81 * TILE, 'SOS'],
+  ];
+  // the 0-day/CVE/deps panic that erupts from each dependency pipe (by pipe order)
+  const PIPE_TAGS: Array<[string, BillTone]> = [
+    ['CVE', 'cve'],
+    ['0-DAY', 'cve'],
+    ['DEPS', 'cve'],
   ];
   const START = { x: 2 * TILE, y: 6 * TILE };
   const CASTLE_X = 87 * TILE;
@@ -145,6 +168,18 @@ export function createMascotGame(): Game {
     gpt: '#10a37f',
     work: '#8a6cff',
     family: '#e85d9b',
+    // the bills that keep charging while you maintain for free
+    power: '#f2c200',
+    water: '#27a3e0',
+    gas: '#e0662b',
+    gym: '#9b59b6',
+    metime: '#16c79a',
+    // the open-source torments (entitled issues, dead PRs, security panics)
+    issue: '#7c8896',
+    pr: '#a06cff',
+    urgent: '#e0473a',
+    donate: '#2ea043',
+    cve: '#d7263d',
     goomba: '#9c5a24',
     goombaD: '#5a3414',
     shell: '#2fbf5a',
@@ -165,7 +200,17 @@ export function createMascotGame(): Game {
     | 'claude'
     | 'gpt'
     | 'work'
-    | 'family';
+    | 'family'
+    | 'power'
+    | 'water'
+    | 'gas'
+    | 'gym'
+    | 'metime'
+    | 'issue'
+    | 'pr'
+    | 'urgent'
+    | 'donate'
+    | 'cve';
   const billTone = (key: BillTone) => C[key];
 
   // ---- 3×5 pixel font ----
@@ -175,7 +220,7 @@ export function createMascotGame(): Game {
     E: ['111', '100', '110', '100', '111'],
     G: ['111', '100', '101', '101', '111'],
     L: ['100', '100', '100', '100', '111'],
-    N: ['101', '111', '111', '101', '101'],
+    N: ['101', '111', '101', '101', '101'],
     O: ['111', '101', '101', '101', '111'],
     P: ['110', '101', '110', '100', '100'],
     R: ['110', '101', '110', '101', '101'],
@@ -189,11 +234,32 @@ export function createMascotGame(): Game {
     F: ['111', '100', '110', '100', '100'],
     K: ['101', '110', '100', '110', '101'],
     Y: ['101', '101', '010', '010', '010'],
+    B: ['110', '101', '110', '101', '110'],
+    H: ['101', '101', '111', '101', '101'],
+    J: ['111', '001', '001', '101', '010'],
+    Q: ['111', '101', '101', '111', '001'],
+    V: ['101', '101', '101', '101', '010'],
+    X: ['101', '101', '010', '101', '101'],
+    Z: ['111', '001', '010', '100', '111'],
+    '0': ['111', '101', '101', '101', '111'],
     '1': ['010', '110', '010', '010', '111'],
+    '2': ['111', '001', '111', '100', '111'],
     '3': ['111', '001', '111', '001', '111'],
+    '4': ['101', '101', '111', '001', '001'],
+    '5': ['111', '100', '111', '001', '111'],
+    '6': ['111', '100', '111', '101', '111'],
+    '7': ['111', '001', '010', '010', '010'],
+    '8': ['111', '101', '111', '101', '111'],
+    '9': ['111', '101', '111', '001', '111'],
     '#': ['101', '111', '101', '111', '101'],
     '.': ['000', '000', '000', '000', '010'],
     '+': ['000', '010', '111', '010', '000'],
+    '-': ['000', '000', '111', '000', '000'],
+    '?': ['111', '001', '011', '000', '010'],
+    '!': ['010', '010', '010', '000', '010'],
+    '/': ['001', '001', '010', '100', '100'],
+    ':': ['000', '010', '000', '010', '000'],
+    $: ['010', '111', '110', '011', '111'],
   };
 
   // ---- State ----
@@ -220,7 +286,11 @@ export function createMascotGame(): Game {
   let jumpBuf = 0;
   let coyote = 0;
   const JUMP_BUF = 8;
-  const touchBtns: HTMLElement[] = [];
+  // jumpHeld is true while ANY jump source is held; jumpSrc counts them so two
+  // jump keys (or a key + the touch button) don't cut each other's leap short.
+  const jumpSrc = new Set<string>();
+  // each touch button registers a reset() that drops its held pointers + highlight.
+  const touchResets: Array<() => void> = [];
   function setLeft(on: boolean) {
     if (on === leftHeld) return;
     leftHeld = on;
@@ -235,18 +305,22 @@ export function createMascotGame(): Game {
     if (leftHeld && rightHeld) return dirLast;
     return leftHeld ? -1 : rightHeld ? 1 : 0;
   }
-  // Buffer a jump only on a fresh press (rising edge). Auto-repeat keydowns and a
-  // held button never re-trigger — so a held jump extends one leap, never bunny-hops.
-  function jumpPress() {
-    if (jumpHeld) return;
+  // Buffer a jump only on the rising edge from no source held. Auto-repeat
+  // keydowns (allowBuffer=false) and additional held sources never re-trigger —
+  // so a held jump extends one leap, never bunny-hops, and releasing one of
+  // several held jump inputs won't clip the rise while another is still down.
+  function jumpDown(src: string, allowBuffer: boolean) {
+    const wasEmpty = jumpSrc.size === 0;
+    jumpSrc.add(src);
     jumpHeld = true;
-    jumpBuf = JUMP_BUF;
+    if (wasEmpty && allowBuffer) jumpBuf = JUMP_BUF;
   }
-  function jumpRelease() {
-    jumpHeld = false;
+  function jumpUp(src: string) {
+    if (!jumpSrc.delete(src)) return;
+    if (jumpSrc.size === 0) jumpHeld = false;
   }
   function syncTouchButtons() {
-    for (const b of touchBtns) b.dataset.on = 'false';
+    for (const r of touchResets) r();
   }
   const player = {
     x: START.x,
@@ -298,8 +372,24 @@ export function createMascotGame(): Game {
   type BlockStar = { x: number; y: number; vx: number; vy: number; life: number };
   let blockStars: BlockStar[] = [];
   type Pickup = { x: number; y: number; vx: number; vy: number; got: boolean };
-  let oneups: Pickup[] = []; // GitHub "new project" 1-ups dropped by secret blocks
+  let oneups: Pickup[] = []; // "NEW PROJECT IDEA" 1-ups dropped by secret blocks
   let enterT = 0; // castle-entry timer for the ending scene
+  // --- the LAYOFF dragon: the meme mini-boss guarding the gate. Spits fire; you
+  // jump it like Bowser to reach the job. (COFFEE lets you blow straight through.)
+  type Boss = {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    t: number;
+    dir: number;
+    mouth: number;
+    dead: number;
+  };
+  let boss: Boss | null = null;
+  type Fireball = { x: number; y: number; vx: number; vy: number; life: number };
+  let fireballs: Fireball[] = [];
+  const BOSS_X = 84 * TILE; // paces in front of the castle gate (castle @87)
   // --- victory celebration: a raised flag + fireworks over the ManagedCode HQ ---
   type Spark = { x: number; y: number; vx: number; vy: number; life: number; color: string };
   type Rocket = { x: number; y: number; vy: number; color: string };
@@ -307,7 +397,6 @@ export function createMascotGame(): Game {
   let rockets: Rocket[] = [];
   let celebrate = false; // spawning fireworks (true from castle-entry through the win)
   let fwTick = 0;
-  let winFlag = 0; // 0..1 — how far the brand flag has risen up the keep
   const FW_COLORS = [C.starHi, C.star, C.bodyHi, C.grassHi, C.mobile, C.rent, C.family, C.cream];
 
   function clearInput() {
@@ -317,6 +406,7 @@ export function createMascotGame(): Game {
     jumpHeld = false;
     jumpBuf = 0;
     coyote = 0;
+    jumpSrc.clear();
     syncTouchButtons();
   }
   function setPlaying(on: boolean) {
@@ -347,6 +437,8 @@ export function createMascotGame(): Game {
           baseY: GROUND_TOP - 34,
           dead: 0,
           t: (tx * 7) % 60,
+          label,
+          tone,
         });
       else
         enemies.push({
@@ -363,8 +455,10 @@ export function createMascotGame(): Game {
           tone,
         });
     }
-    for (const [px, ph] of PIPES) {
+    for (let i = 0; i < PIPES.length; i++) {
+      const [px, ph] = PIPES[i];
       const top = (GROUND_ROW - ph) * TILE;
+      const [label, tone] = PIPE_TAGS[i % PIPE_TAGS.length];
       enemies.push({
         type: 'piranha',
         x: px * TILE + 4,
@@ -375,6 +469,8 @@ export function createMascotGame(): Game {
         baseY: top,
         dead: 0,
         t: (px * 11) % 120,
+        label,
+        tone,
       });
     }
   }
@@ -406,32 +502,33 @@ export function createMascotGame(): Game {
     rockets = [];
     celebrate = false;
     fwTick = 0;
-    winFlag = 0;
+    boss = { x: BOSS_X, y: GROUND_TOP - 18, w: 22, h: 18, t: 0, dir: -1, mouth: 0, dead: 0 };
+    fireballs = [];
     setPlaying(true);
     updateHud();
     hideMsg();
   }
   // ---- Fireworks ----
   function spawnRocket() {
-    const x = camX + 36 + Math.random() * (VIEW_W - 72);
+    const x = camX + 32 + Math.random() * (VIEW_W - 64);
     rockets.push({
       x,
       y: VIEW_H - 8,
-      vy: -(2.3 + Math.random() * 1.0),
+      vy: -(3.1 + Math.random() * 0.8), // arcs up into the open sky over the keep
       color: FW_COLORS[Math.floor(Math.random() * FW_COLORS.length)],
     });
   }
   function explodeRocket(x: number, y: number, color: string) {
-    const n = 16;
+    const n = 18;
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2;
-      const sp = 0.7 + Math.random() * 0.9;
+      const sp = 0.9 + Math.random() * 1.0;
       sparks.push({
         x,
         y,
         vx: Math.cos(a) * sp,
-        vy: Math.sin(a) * sp - 0.3,
-        life: 30 + Math.floor(Math.random() * 18),
+        vy: Math.sin(a) * sp - 0.4,
+        life: 34 + Math.floor(Math.random() * 18),
         color,
       });
     }
@@ -467,12 +564,15 @@ export function createMascotGame(): Game {
     );
   }
   function popPowerFlower(tx: number, ty: number) {
+    // the power-up is COFFEE — the maintainer's only fuel (temporary invincibility)
     flowers.push({ x: tx * TILE + 3, y: ty * TILE - 4, got: false, emerge: 16 });
-    addParticle(tx * TILE - 10, ty * TILE - 4, 'POWER', C.starHi);
+    addParticle(tx * TILE - 10, ty * TILE - 4, 'COFFEE', C.starHi);
   }
   function popNewProject(tx: number, ty: number) {
+    // NOT a 1-UP / level-up / life-up — it's a NEW PROJECT idea. The shiny new repo
+    // you'll start instead of finishing this one. The maintainer's true weakness.
     oneups.push({ x: tx * TILE + 1, y: ty * TILE - 14, vx: 0.8, vy: -2.4, got: false });
-    addParticle(tx * TILE - 8, ty * TILE - 4, 'NEW', C.life);
+    addParticle(tx * TILE - 20, ty * TILE - 4, 'NEW PROJECT IDEA', C.life);
   }
   function bumpBlock(q: Q) {
     q.used = true;
@@ -509,9 +609,8 @@ export function createMascotGame(): Game {
     player.vx = -player.face * 3;
   }
   function updateEnding() {
-    // Mario-style castle entry: the maintainer walks into the gate, then fades in,
-    // while the ManagedCode flag climbs the keep and fireworks go up.
-    if (winFlag < 1) winFlag = Math.min(1, winFlag + 0.025);
+    // Mario-style castle entry: the maintainer walks into the (now warmly lit) gate
+    // and fades in, while fireworks go up over the ManagedCode HQ.
     const doorX = CASTLE_X + CASTLE_W / 2 - player.w / 2;
     if (player.x < doorX - 1) {
       player.x += 1.4;
@@ -532,7 +631,7 @@ export function createMascotGame(): Game {
     setPlaying(false);
     // celebrate stays true → the fireworks keep bursting behind the win card.
     showMsg(
-      `YOU'RE FUNDED ✓   ★ ${stars}\nthe castle is ManagedCode — you get paid\nto keep open source alive now.\nput a real maintainer on the payroll →`,
+      `YOU'RE FUNDED ✓   ★ ${stars}\nthe castle is ManagedCode — they pay you to\nmaintain the stuff you shipped free for years.\nyour ★ GitHub stars are still worth $0 →`,
       true
     );
   }
@@ -541,7 +640,11 @@ export function createMascotGame(): Game {
     state = 'over';
     setPlaying(false);
     celebrate = false;
-    showMsg(`EVICTED  ·  ★ ${stars}\nthe month's bills won this time`, false);
+    fireballs = []; // don't leave hazards frozen behind the translucent lose card
+    showMsg(
+      `BURNED OUT   ★ ${stars}\nyou archived the repo. somewhere a Fortune 500\nstill ships it in prod — for free.`,
+      false
+    );
   }
 
   function collide(axis: 'x' | 'y') {
@@ -752,7 +855,7 @@ export function createMascotGame(): Game {
       if (!f.got && ov(player.x, player.y, player.w, player.h, f.x, f.y, 10, 12)) {
         f.got = true;
         player.power = 420;
-        addParticle(f.x - 4, f.y - 4, 'STAR', C.starHi);
+        addParticle(f.x - 8, f.y - 4, 'CAFFEINE', C.starHi);
       }
 
     for (const u of oneups) {
@@ -776,7 +879,7 @@ export function createMascotGame(): Game {
       if (ov(player.x, player.y, player.w, player.h, u.x, u.y, 14, 14)) {
         u.got = true;
         lives += 1;
-        addParticle(u.x, u.y - 4, '1UP', C.life);
+        addParticle(u.x - 20, u.y - 4, 'NEW PROJECT IDEA', C.life);
         updateHud();
       }
     }
@@ -785,14 +888,57 @@ export function createMascotGame(): Game {
     for (const e of enemies)
       if (!e.dead && ov(player.x, player.y, player.w, player.h, e.x, e.y, e.w, e.h)) hitEnemy(e);
 
+    updateBoss();
+
     if (player.x + player.w >= CASTLE_X + 18) {
       state = 'ending';
       enterT = 0;
       celebrate = true;
+      if (boss) boss.dead = 1; // the layoff loses; you got the job
+      fireballs = [];
       clearInput();
       setPlaying(false);
     }
     camX = Math.max(0, Math.min(WORLD_W - VIEW_W, player.x + player.w / 2 - VIEW_W / 2));
+  }
+
+  function updateBoss() {
+    // (only runs in 'play'; the win + game-over paths clear fireballs so none freeze)
+    for (const f of fireballs) {
+      f.x += f.vx;
+      f.y += f.vy;
+      f.vy += 0.06;
+      if (f.y > GROUND_TOP - 5) {
+        f.y = GROUND_TOP - 5;
+        f.vy = -2.4; // bounce like a Bowser fireball
+      }
+      f.life--;
+    }
+    fireballs = fireballs.filter((f) => f.life > 0 && f.x > camX - 24);
+    if (!boss || boss.dead || state !== 'play') return;
+    boss.t++;
+    // a slow menace pacing a couple tiles in front of the gate
+    boss.x += boss.dir * 0.35;
+    if (boss.x < BOSS_X - 18) boss.dir = 1;
+    else if (boss.x > BOSS_X + 10) boss.dir = -1;
+    if (boss.mouth > 0) boss.mouth--;
+    // only breathe fire once the player is in range, so the approach is fair
+    const near = player.x > boss.x - 150;
+    if (near && boss.t % 95 === 0) {
+      boss.mouth = 26;
+      fireballs.push({ x: boss.x - 2, y: boss.y + 5, vx: -2.1, vy: -1.4, life: 170 });
+    }
+    // contact: COFFEE blows straight through (and topples the layoff); else you're hit
+    if (ov(player.x, player.y, player.w, player.h, boss.x, boss.y, boss.w, boss.h)) {
+      if (player.power > 0) {
+        boss.dead = 1;
+        stars += 5;
+        addParticle(boss.x, boss.y - 6, 'LAID OFF', C.starHi);
+        updateHud();
+      } else hurt();
+    }
+    for (const f of fireballs)
+      if (ov(player.x, player.y, player.w, player.h, f.x, f.y, 5, 5)) hurt();
   }
 
   // ---- Render ----
@@ -850,13 +996,18 @@ export function createMascotGame(): Game {
     drawPixelMask(x + 1, y + 1, question, '#7a5a16');
     drawPixelMask(x, y, question, C.starHi);
   }
+  // the power-up is a COFFEE mug (caffeine = the maintainer's invincibility)
   function drawFlower(x: number, y: number) {
-    block(x + 4, y + 6, 2, 6, C.body);
-    block(x + 2, y + 1, 6, 2, C.rent);
-    block(x, y + 3, 2, 3, C.rent);
-    block(x + 8, y + 3, 2, 3, C.rent);
-    block(x + 2, y + 6, 6, 2, C.rent);
-    block(x + 3, y + 3, 4, 3, C.star);
+    const steam = Math.floor(tick / 10) % 2;
+    block(x + 2 + steam, y - 4, 1, 2, C.cloud); // steam wisps
+    block(x + 6 - steam, y - 5, 1, 2, C.cloud);
+    block(x + 1, y, 8, 9, C.cream); // mug body
+    block(x + 1, y, 8, 2, '#6b4a2c'); // coffee rim
+    block(x + 2, y + 1, 6, 2, '#3a2412'); // coffee dark
+    block(x + 1, y + 8, 8, 1, '#cdbfa8'); // base shade
+    block(x + 9, y + 2, 2, 4, C.cream); // handle
+    block(x + 10, y + 3, 1, 2, '#cdbfa8');
+    drawTag(x + 5, y - 16, 'COFFEE', 'metime');
   }
   function drawGithub(x: number, y: number) {
     // a white octocat-ish "new project" 1-up
@@ -869,6 +1020,7 @@ export function createMascotGame(): Game {
     block(x + 4, y + 10, 6, 3, C.cream);
     block(x + 6, y + 12, 2, 2, C.cream); // body + tail
     block(x + 3, y + 13, 8, 1, C.bodyHi); // green "new project" base
+    drawTag(x + 7, y - 12, 'NEW PROJECT IDEA', 'donate');
   }
   function drawQBlock(q: Q) {
     const x = q.tx * TILE;
@@ -894,6 +1046,15 @@ export function createMascotGame(): Game {
     block(x - 2, top, 2 * TILE + 4, 2, C.pipeHi);
     block(x + 3, top + 3, 2 * TILE - 6, 2, C.pipeD);
   }
+  // a little nameplate above any enemy — this is what makes each one legible
+  function drawTag(cx: number, topY: number, label: string, tone: BillTone) {
+    const t = billTone(tone);
+    const lw = textW(label, 1);
+    const tx = Math.round(cx - lw / 2);
+    block(tx - 2, topY, lw + 4, 8, C.sign);
+    block(tx - 2, topY, lw + 4, 1, t);
+    text(label, tx, topY + 1, 1, C.starHi);
+  }
   function drawEnemy(e: Enemy) {
     const x = e.x;
     const y = e.y;
@@ -907,11 +1068,6 @@ export function createMascotGame(): Game {
       block(x + 3, y + 8, 6, 1, t);
       block(x + (wob ? 0 : 2), y + 10, 3, 2, C.ink);
       block(x + (wob ? 9 : 7), y + 10, 3, 2, C.ink);
-      const lw = textW(e.label || '', 1);
-      const tagX = x + 6 - lw / 2;
-      block(tagX - 2, y - 10, lw + 4, 8, C.sign);
-      block(tagX - 2, y - 10, lw + 4, 1, t);
-      text(e.label || '', tagX, y - 9, 1, C.starHi);
     } else if (e.type === 'goomba') {
       block(x + 1, y, 10, 7, C.goomba);
       block(x, y + 3, 12, 4, C.goomba);
@@ -960,19 +1116,63 @@ export function createMascotGame(): Game {
     block(bx + CASTLE_W - 16, top + 16, 6, 9, C.doorDark);
     block(bx + CASTLE_W / 2 - 10, GROUND_TOP - 28, 20, 28, C.doorDark);
     block(bx + CASTLE_W / 2 - 7, GROUND_TOP - 24, 14, 24, '#160f06');
-    // brand flagpole on the keep — the ManagedCode flag climbs it on victory
-    const poleX = bx + CASTLE_W / 2 - 1;
-    const poleBase = top - 8;
-    const poleTop = poleBase - 26;
-    block(poleX, poleTop, 2, poleBase - poleTop, C.stoneHi);
-    block(poleX, poleTop - 2, 2, 2, C.starHi); // finial
-    const flagH = 9;
-    const flagW = 16;
-    const fy = poleBase - flagH - winFlag * (poleBase - flagH - poleTop);
-    block(poleX + 2, fy, flagW, flagH, C.rent);
-    block(poleX + 2, fy, flagW, 1, C.starHi);
-    block(poleX + 2, fy + flagH - 1, flagW, 1, '#8a2f12');
-    text('MC', poleX + 5, fy + 2, 1, C.cream);
+    // the doorway warms up as you're hired (no flag — fireworks carry the win)
+    if (celebrate) {
+      block(bx + CASTLE_W / 2 - 6, GROUND_TOP - 23, 12, 22, C.rent);
+      block(bx + CASTLE_W / 2 - 4, GROUND_TOP - 20, 8, 18, C.starHi);
+    }
+  }
+
+  // The LAYOFF dragon — a squat, scaly, left-facing meme boss with a big red banner.
+  function drawBoss() {
+    if (!boss || boss.dead) return;
+    const x = boss.x;
+    const y = boss.y;
+    // back spikes
+    block(x + 11, y + 1, 2, 3, C.pir);
+    block(x + 15, y, 2, 4, C.pir);
+    block(x + 18, y + 2, 2, 3, C.pir);
+    // body + tail
+    block(x + 7, y + 4, 13, 11, C.shellD);
+    block(x + 8, y + 4, 11, 2, C.shell);
+    block(x + 19, y + 9, 3, 4, C.shellD); // tail stub
+    // head (faces left, toward the player)
+    block(x, y + 5, 9, 9, C.shell);
+    block(x, y + 4, 7, 2, C.shellD); // brow
+    block(x + 4, y + 1, 2, 4, C.cream); // horn
+    block(x + 1, y + 7, 2, 2, C.starHi); // eye white
+    block(x + 1, y + 7, 1, 2, C.pir); // angry red pupil
+    // mouth: open + glowing when charging fire, a hard line otherwise
+    if (boss.mouth > 0) {
+      block(x - 3, y + 9, 5, 4, C.pir);
+      block(x - 3, y + 10, 3, 2, C.starHi);
+    } else {
+      block(x, y + 11, 5, 1, C.ink);
+    }
+    // legs
+    const step = Math.floor(boss.t / 10) % 2;
+    block(x + 9, y + 15, 3, 3, C.shellD);
+    block(x + 14 + (step ? 1 : 0), y + 15, 3, 3, C.shellD);
+    // stylized banner so there is zero doubt what this is
+    const flick = Math.floor(boss.t / 8) % 2 === 0;
+    drawBossLabel(x + boss.w / 2, y - 17, 'LAYOFF', flick);
+  }
+  function drawBossLabel(cx: number, topY: number, label: string, flick: boolean) {
+    const s = 2;
+    const lw = label.length * 4 * s - s;
+    const tx = Math.round(cx - lw / 2);
+    block(tx - 3, topY - 2, lw + 6, 5 * s + 4, C.sign);
+    block(tx - 3, topY - 2, lw + 6, 2, C.pir);
+    block(tx - 3, topY + 5 * s + 1, lw + 6, 1, C.pirD);
+    text(label, tx, topY, s, flick ? C.starHi : C.pir);
+  }
+  function drawFireballs() {
+    for (const f of fireballs) {
+      const fl = Math.floor(f.life / 3) % 2;
+      block(f.x, f.y, 5, 5, C.pirD);
+      block(f.x, f.y + (fl ? 0 : 1), 5, 4, C.pir);
+      block(f.x + 1, f.y + 1, 3, 2, fl ? C.starHi : '#ffb24a');
+    }
   }
 
   function drawWorld() {
@@ -1049,6 +1249,24 @@ export function createMascotGame(): Game {
     for (const f of flowers) if (!f.got) drawFlower(f.x, f.y);
     for (const u of oneups) if (!u.got) drawGithub(u.x, u.y);
     for (const e of enemies) if (!e.dead && e.type !== 'piranha') drawEnemy(e);
+    // nameplates last (over pipes & sprites), stacked upward so two tags can never
+    // overlap when walkers cross in a corridor — every foe stays readable at a glance
+    const placedTags: Array<{ l: number; r: number; lvl: number }> = [];
+    for (const e of [...enemies].sort((a, b) => a.x - b.x)) {
+      if (e.dead || !e.label) continue;
+      const lw = textW(e.label, 1);
+      const l = Math.round(e.x + e.w / 2 - lw / 2) - 2;
+      const r = l + lw + 4;
+      let lvl = 0;
+      while (placedTags.some((p) => p.lvl === lvl && l < p.r && r > p.l)) lvl++;
+      placedTags.push({ l, r, lvl });
+      drawTag(e.x + e.w / 2, e.y - 10 - lvl * 9, e.label, e.tone || 'rent');
+    }
+
+    // the boss + its banner sit above the regular nameplates (it dominates), under
+    // the player (you leap over it)
+    drawBoss();
+    drawFireballs();
 
     drawPlayer();
 
@@ -1152,6 +1370,10 @@ export function createMascotGame(): Game {
   const isRightKey = (k: string) => k === 'ArrowRight' || k === 'd' || k === 'D';
   const isJumpKey = (k: string) =>
     k === ' ' || k === 'Spacebar' || k === 'ArrowUp' || k === 'w' || k === 'W';
+  // collapse the synonyms so a single physical jump key is one source, but Space,
+  // ArrowUp and W remain distinct sources (each refcounts independently).
+  const jumpKeyId = (k: string) =>
+    k === ' ' || k === 'Spacebar' ? 'k:space' : k === 'ArrowUp' ? 'k:up' : 'k:w';
   function onKeyDown(e: KeyboardEvent) {
     if (!running) return;
     const k = e.key;
@@ -1162,9 +1384,8 @@ export function createMascotGame(): Game {
       if (state === 'play') setRight(true);
       e.preventDefault();
     } else if (isJumpKey(k)) {
-      if (state === 'play') {
-        if (!e.repeat) jumpPress();
-      } else if (!e.repeat) restart();
+      if (state === 'play') jumpDown(jumpKeyId(k), !e.repeat);
+      else if (!e.repeat) restart();
       e.preventDefault();
     } else if (k === 'Escape') {
       close();
@@ -1176,7 +1397,7 @@ export function createMascotGame(): Game {
     const k = e.key;
     if (isLeftKey(k)) setLeft(false);
     else if (isRightKey(k)) setRight(false);
-    else if (isJumpKey(k)) jumpRelease();
+    else if (isJumpKey(k)) jumpUp(jumpKeyId(k));
   }
 
   function build() {
@@ -1193,6 +1414,13 @@ export function createMascotGame(): Game {
         </div>
         <div class="mgame__screen">
           <canvas class="mgame__canvas" width="${VIEW_W}" height="${VIEW_H}" tabindex="0" data-mgame-canvas></canvas>
+          <div class="mgame__touch" data-mgame-touch>
+            <div class="mgame__pad">
+              <button class="mgame__tbtn" type="button" data-mgame-left aria-label="Move left">◀</button>
+              <button class="mgame__tbtn" type="button" data-mgame-right aria-label="Move right">▶</button>
+            </div>
+            <button class="mgame__tbtn mgame__tbtn--jump font-pixel" type="button" data-mgame-jump aria-label="Jump">JUMP</button>
+          </div>
           <div class="mgame__msg" data-mgame-msg hidden>
             <p class="mgame__msg-text font-pixel" data-mgame-msgtext></p>
             <div class="mgame__msg-actions">
@@ -1201,7 +1429,7 @@ export function createMascotGame(): Game {
             </div>
           </div>
         </div>
-        <p class="mgame__hint font-mono">← → run&nbsp;·&nbsp;space to jump (hold = leap)&nbsp;·&nbsp;stomp goombas, turtles &amp; bills&nbsp;·&nbsp;kick shells&nbsp;·&nbsp;dodge piranhas&nbsp;·&nbsp;grab ★ &amp; the flower&nbsp;·&nbsp;reach the castle&nbsp;·&nbsp;esc quits</p>
+        <p class="mgame__hint font-mono">← → move&nbsp;·&nbsp;space / JUMP to leap&nbsp;·&nbsp;jump the bills, stomp the entitled issues, dodge the CVEs&nbsp;·&nbsp;grab COFFEE to go invincible&nbsp;·&nbsp;the secret ? = a NEW PROJECT IDEA (you'll never finish it)&nbsp;·&nbsp;then jump the LAYOFF dragon to reach ManagedCode, where maintaining OSS finally pays&nbsp;·&nbsp;esc quits</p>
       </div>`;
     document.body.appendChild(root);
 
@@ -1228,11 +1456,85 @@ export function createMascotGame(): Game {
     root.addEventListener('click', (e) => {
       if (e.target === root) close();
     });
+
+    // --- on-screen touch controls (phones/tablets) ---
+    // Only surfaced on a coarse pointer. Pointer capture + pointercancel means a
+    // finger that slides off the button still releases cleanly — no stuck keys.
+    root.dataset.touch = String(
+      typeof window.matchMedia === 'function' &&
+        window.matchMedia('(hover: none) and (pointer: coarse)').matches
+    );
+    // Each button refcounts its own active pointers, so a second finger landing on
+    // it (or one finger lifting while another still holds) can't desync the input
+    // or the highlight. Touch pointers get implicit capture, so a finger that
+    // slides off still delivers its pointerup/cancel back here and releases clean.
+    const bindHold = (sel: string, press: () => void, release: () => void) => {
+      const el = root?.querySelector<HTMLElement>(sel);
+      if (!el) return;
+      const active = new Set<number>();
+      const reset = () => {
+        active.clear();
+        el.dataset.on = 'false';
+      };
+      touchResets.push(reset);
+      const down = (e: PointerEvent) => {
+        e.preventDefault();
+        try {
+          el.setPointerCapture(e.pointerId);
+        } catch {
+          /* explicit capture is belt-and-suspenders; touch capture is implicit */
+        }
+        const wasEmpty = active.size === 0;
+        active.add(e.pointerId);
+        if (wasEmpty) {
+          press();
+          el.dataset.on = 'true';
+        }
+      };
+      const up = (e: PointerEvent) => {
+        try {
+          el.releasePointerCapture(e.pointerId);
+        } catch {
+          /* no-op */
+        }
+        if (!active.delete(e.pointerId)) return;
+        if (active.size === 0) {
+          release();
+          el.dataset.on = 'false';
+        }
+      };
+      el.addEventListener('pointerdown', down);
+      el.addEventListener('pointerup', up);
+      el.addEventListener('pointercancel', up);
+      el.addEventListener('contextmenu', (e) => e.preventDefault());
+    };
+    bindHold(
+      '[data-mgame-left]',
+      () => setLeft(true),
+      () => setLeft(false)
+    );
+    bindHold(
+      '[data-mgame-right]',
+      () => setRight(true),
+      () => setRight(false)
+    );
+    bindHold(
+      '[data-mgame-jump]',
+      () => {
+        if (state === 'play') jumpDown('touch', true);
+      },
+      () => jumpUp('touch')
+    );
+
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
+    // Losing focus/leaving the tab drops any held key/button so nothing sticks on.
+    window.addEventListener('blur', clearInput);
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) stopLoop();
-      else if (root && root.dataset.open === 'true') startLoop();
+      if (document.hidden) {
+        clearInput();
+        stopLoop();
+      } else if (root && root.dataset.open === 'true') startLoop();
     });
 
     (window as Window & { __mgame?: () => unknown }).__mgame = () => ({
@@ -1243,8 +1545,13 @@ export function createMascotGame(): Game {
       state,
       power: player.power,
       onGround: player.onGround,
+      jumpHeld,
       blockStars: blockStars.length,
       oneups: oneups.filter((u) => !u.got).length,
+      dir: moveDir(),
+      celebrate,
+      fireworks: rockets.length + sparks.length,
+      bossDead: boss ? boss.dead : 1,
       usedBlocks: qblocks.filter((q) => q.used).map((q) => ({ tx: q.tx, ty: q.ty, kind: q.kind })),
       enemies: enemies.filter((e) => !e.dead).map((e) => ({ t: e.type, x: Math.round(e.x) })),
     });
@@ -1281,6 +1588,8 @@ export function createMascotGame(): Game {
   function close() {
     stopLoop();
     clearInput();
+    setPlaying(false);
+    celebrate = false;
     if (root) root.dataset.open = 'false';
     document.documentElement.classList.remove('mgame-open');
   }

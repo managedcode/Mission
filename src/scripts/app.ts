@@ -299,8 +299,9 @@ function initConsoleEgg() {
       'background:#df5f27;color:#23100a;font-weight:700;padding:6px 12px;font-family:monospace;font-size:13px;'
     );
     console.log(
-      "%cYou opened the console. Of course you did.\n%cWe're hiring maintainers → https://github.com/managedcode\n%c↑ ↑ ↓ ↓ ← → ← → B A — start",
+      "%cYou opened the console. Of course you did.\n%cThat one dependency holding up your entire prod? Maintained by one burnt-out dev, for $0.\n%cWe're hiring maintainers → https://github.com/managedcode\n%c↑ ↑ ↓ ↓ ← → ← → B A — start",
       'color:#1a9b4b;font-weight:600;',
+      'color:#888;',
       'color:#888;',
       'color:#888;'
     );
@@ -503,19 +504,23 @@ function initMascot() {
   mascot.style.pointerEvents = 'auto';
   mascot.style.cursor = 'pointer';
 
+  // Roams on a capable desktop (the hero runs around the foot of the page, chasing
+  // the cursor and piping up). Still hard-gated off under automation, touch, and
+  // reduced-motion so it never touches visual baselines.
   const canRoam =
     !reduceMotion &&
     !navigator.webdriver &&
-    window.matchMedia('(hover: hover) and (pointer: fine)').matches &&
-    document.documentElement.dataset.mascotRoam === 'true';
+    window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
   const IDLE_QUIPS = [
+    'new project?',
+    'rewrite it in rust?',
     'who maintains this?',
-    'still here.',
+    'still unpaid.',
     'someone has to.',
-    'blow on the cartridge',
-    'keep it alive',
+    'closing as wontfix',
+    'just one more refactor',
     'ship it',
   ];
 

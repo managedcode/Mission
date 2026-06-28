@@ -267,34 +267,26 @@ export const tiers = {
     'We scope it on a 30-min call',
     'You get a capacity band, a named maintainer and an SLA',
   ],
+  // Three grades — Junior, Mid (recommended), Senior. Each card visualizes its
+  // reserved capacity as a pixel meter (meterFill of meterTotal cells) and its
+  // SLA as a "clock" chip (window). hours/window are the real planning figures;
+  // meterFill is the proportional visual — keep them in sync.
+  meterTotal: 10,
+  meterLabel: 'Maintainer-hours / mo',
   plans: [
-    {
-      id: 'trainee',
-      name: 'Trainee',
-      symbol: '01',
-      salary: 'trainee-grade payroll',
-      blurb: 'A small watch lane for one critical library, with senior review around the edges.',
-      cta: 'Become a patron',
-      featured: false,
-      features: [
-        '~4–6 focused maintainer-hours / month',
-        '72-hour first human response',
-        '1 dependency watched and triaged',
-        'Senior-reviewed work plan',
-        'Your name in PATRONS.md',
-      ],
-    },
     {
       id: 'junior',
       name: 'Junior',
-      symbol: '02',
+      symbol: '01',
       salary: 'junior-grade payroll',
       blurb: 'A practical lane for a small stack: triage, reproductions, small fixes, and reports.',
+      hours: '10–15',
+      meterFill: 3,
+      window: '24h',
+      windowNote: 'first human response',
       cta: 'Become a patron',
       featured: false,
       features: [
-        '~10–15 focused maintainer-hours / month',
-        '24-hour first human response',
         'Up to 2 dependencies watched',
         'Small fixes, upgrades and issue reproduction',
         'Monthly maintenance report',
@@ -304,16 +296,18 @@ export const tiers = {
     {
       id: 'mid',
       name: 'Mid',
-      symbol: '03',
+      symbol: '02',
       salary: 'mid-level payroll',
       blurb:
         'The default operating lane: a named maintainer, enough capacity for real upstream work, sane SLA.',
+      hours: '25–40',
+      meterFill: 6,
+      window: '8h',
+      windowNote: 'first response, business hours',
       cta: 'Become a patron',
       featured: true,
       badge: 'Recommended',
       features: [
-        '~25–40 focused maintainer-hours / month',
-        '8-business-hour first response',
         'Up to 3 dependencies adopted',
         'Priority issue & PR review',
         'Quarterly roadmap call',
@@ -323,15 +317,17 @@ export const tiers = {
     {
       id: 'senior',
       name: 'Senior',
-      symbol: '04',
+      symbol: '03',
       salary: 'senior-grade payroll',
       blurb:
         'For critical dependencies: senior ownership, faster triage, security/backport planning, and mentorship budget.',
+      hours: '45–60',
+      meterFill: 9,
+      window: '4h',
+      windowNote: 'critical response, business hours',
       cta: 'Become a patron',
       featured: false,
       features: [
-        '~45–60 focused maintainer-hours / month',
-        '4-business-hour critical response',
         'Up to 5 dependencies, plus backport planning',
         'A named senior maintainer and a private channel',
         'Mentorship budget for a junior',
@@ -503,7 +499,7 @@ export const apply = {
       name: 'grade',
       label: 'Grade you’re considering',
       required: false,
-      options: ['Not sure yet', 'Trainee', 'Junior', 'Mid', 'Senior'],
+      options: ['Not sure yet', 'Junior', 'Mid', 'Senior'],
     },
     budget: {
       name: 'budget',
@@ -511,7 +507,6 @@ export const apply = {
       required: false,
       options: [
         'Still exploring',
-        'Light watch lane',
         'Small stack',
         'Recommended operating lane',
         'Critical dependencies',

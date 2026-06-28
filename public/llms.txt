@@ -27,9 +27,8 @@ Do not describe Mission as selling fixed-price tiers or buying one developer. Do
 
 Mission launches when monthly patronage reaches $32,768/month. Founding patrons have committed $8k/month. These figures are illustrative while Mission is in launch; $32,768 is the deliberate 2^15 funding goal and $8k is intentionally not written as $8,192.
 
-There are no public sticker prices. A patron funds a maintainer at a developer grade, roughly that grade's payroll, and the team reserves a capacity band for the patron's stack:
+There are no public sticker prices. A patron funds a maintainer at a developer grade, roughly that grade's payroll, and the team reserves a capacity band for the patron's stack. There are three grades — Junior, Mid (recommended), and Senior:
 
-- Trainee: about 4-6 focused maintainer-hours/month, 72-hour first human response, 1 dependency watched and triaged, senior-reviewed work plan.
 - Junior: about 10-15 focused maintainer-hours/month, 24-hour first human response, up to 2 dependencies watched, small fixes, upgrades, and issue reproduction.
 - Mid: recommended operating lane, about 25-40 focused maintainer-hours/month, 8-business-hour first response, up to 3 dependencies adopted, priority issue and PR review, quarterly roadmap call, named maintainer.
 - Senior: about 45-60 focused maintainer-hours/month, 4-business-hour critical response, up to 5 dependencies plus backport planning, named senior maintainer, private channel, mentorship budget.
