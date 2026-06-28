@@ -102,8 +102,7 @@ const signoffParts = manifesto.signoff
     font-size: clamp(20vw, 16vw + 4rem, 28vw);
     line-height: 0.78;
     letter-spacing: -0.02em;
-    color: var(--fg);
-    opacity: 0.05;
+    color: color-mix(in srgb, var(--fg) 38%, var(--bg));
     pointer-events: none;
     user-select: none;
     white-space: nowrap;
@@ -113,7 +112,6 @@ const signoffParts = manifesto.signoff
     .manifesto__ghost {
       bottom: auto;
       top: 0.2em;
-      opacity: 0.04;
     }
   }
 

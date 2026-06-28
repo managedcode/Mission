@@ -401,6 +401,53 @@ function initMagnetic() {
   });
 }
 
+/* ---------- Team/contact CTAs ----------
+   These buttons used to rely on mailto as the primary action. On browsers
+   without a mail handler that feels like a dead click, so the button now always
+   lands on the contact block and shows the exact subject line. */
+function initJoinContact() {
+  const panel = document.querySelector<HTMLElement>('[data-join-contact-panel]');
+  const status = document.querySelector<HTMLElement>('[data-join-contact-status]');
+  if (!panel || !status) return;
+
+  const email = panel.dataset.contactEmail ?? '';
+  const selectedPrefix = status.dataset.selectedPrefix ?? 'Email subject:';
+  const copiedPrefix = status.dataset.copiedPrefix ?? 'Copied email and subject:';
+  const fallbackPrefix = status.dataset.copyFallbackPrefix ?? 'Use email and subject:';
+
+  document.querySelectorAll<HTMLAnchorElement>('[data-join-contact-cta]').forEach((link) => {
+    if (link.dataset.joinContactReady === 'true') return;
+    link.dataset.joinContactReady = 'true';
+    link.addEventListener('click', () => {
+      const subject = link.dataset.contactSubject ?? '';
+      const copyText = [email, subject ? `Subject: ${subject}` : ''].filter(Boolean).join('\n');
+
+      panel.dataset.selected = 'true';
+      status.textContent = subject
+        ? `${selectedPrefix} ${subject}`
+        : status.dataset.defaultStatus || '';
+
+      window.requestAnimationFrame(() => {
+        panel.focus({ preventScroll: true });
+      });
+
+      if (!copyText || !navigator.clipboard?.writeText) return;
+      void navigator.clipboard
+        .writeText(copyText)
+        .then(() => {
+          status.textContent = subject
+            ? `${copiedPrefix} ${email} — ${subject}`
+            : `${copiedPrefix} ${email}`;
+        })
+        .catch(() => {
+          status.textContent = subject
+            ? `${fallbackPrefix} ${email} — ${subject}`
+            : `${fallbackPrefix} ${email}`;
+        });
+    });
+  });
+}
+
 /* ---------- Console easter egg (our audience opens devtools) ---------- */
 function initConsoleEgg() {
   try {
@@ -793,6 +840,7 @@ function init() {
   initScrollProgress();
   initAnalyticsScrollTracking();
   initMagnetic();
+  initJoinContact();
   initKonami();
   initSound();
   initMascot();

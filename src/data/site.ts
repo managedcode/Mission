@@ -398,6 +398,14 @@ export const join = {
   kicker: 'Work with us',
   heading: 'Maintain things that matter, at a sane pace.',
   lede: 'We hire maintainers and mentor juniors into the role. Salaried, in the open, at a sane pace. If you love this work — or used to — there’s a desk here.',
+  contact: {
+    anchorId: 'join-contact',
+    defaultStatus: 'Choose a path above and we’ll show the exact subject line here.',
+    selectedPrefix: 'Email subject:',
+    copiedPrefix: 'Copied email and subject:',
+    copyFallbackPrefix: 'Use email and subject:',
+    generalSubject: 'Joining the team',
+  },
   cards: [
     {
       title: 'Maintainers',
@@ -478,7 +486,7 @@ export const finalCta = {
   heading: 'Put a funded maintainer behind your stack.',
   lede: 'The open source your product runs on shouldn’t hang on a volunteer’s spare time. Use it, fund it, pass it on.',
   primary: { label: 'Become a patron', href: '#apply' },
-  secondary: { label: 'Talk to us', href: 'mailto:opensource@managed-code.com' },
+  secondary: { label: 'Talk to us', href: '#join-contact' },
 } as const;
 
 /* The patron application form (#apply). Submissions POST as JSON to
@@ -501,19 +509,19 @@ export const apply = {
     sourceNote: 'ManagedCode Mission landing page',
   },
   fields: {
-    company: { name: 'company', label: 'Company', placeholder: 'Acme Inc.', required: true },
+    company: { name: 'company', label: 'Company', placeholder: 'Company name', required: true },
     email: {
       name: 'email',
       label: 'Work email',
-      placeholder: 'you@company.com',
+      placeholder: 'Work email address',
       required: true,
       type: 'email',
     },
-    name: { name: 'name', label: 'Your name', placeholder: 'Jane Doe', required: false },
+    name: { name: 'name', label: 'Your name', placeholder: 'Your name', required: false },
     stack: {
       name: 'stack',
       label: 'Open source you depend on',
-      placeholder: 'The libraries / dependencies that matter most to you…',
+      placeholder: 'Repos, packages, dependencies, maintainers…',
       required: true,
     },
     grade: {
@@ -543,7 +551,7 @@ export const apply = {
     notes: {
       name: 'notes',
       label: 'Anything else',
-      placeholder: 'Context, deadlines, the specific pain…',
+      placeholder: 'Extra context, deadlines, constraints…',
       required: false,
     },
   },

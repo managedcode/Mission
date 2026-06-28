@@ -268,7 +268,7 @@ const meterCells = (fill: number) =>
     background: color-mix(in srgb, var(--bg) 72%, transparent);
     font-size: 0.58rem;
     line-height: 1;
-    color: var(--plan-tone);
+    color: color-mix(in srgb, var(--plan-tone) 55%, var(--fg));
   }
   .plan__window {
     display: inline-flex;
@@ -325,6 +325,10 @@ const meterCells = (fill: number) =>
     letter-spacing: 0.01em;
     line-height: 1.4;
   }
+  :global(:root[data-theme='dark']) .plan__period,
+  :global(.invert) .plan__period {
+    color: var(--fg-soft);
+  }
 
   .plan__blurb {
     font-size: var(--step-0);
@@ -349,6 +353,10 @@ const meterCells = (fill: number) =>
     letter-spacing: 0.03em;
     color: var(--fg-faint);
     text-transform: uppercase;
+  }
+  :global(:root[data-theme='dark']) .plan__meter-label,
+  :global(.invert) .plan__meter-label {
+    color: var(--fg-soft);
   }
   .plan__meter-val {
     font-size: var(--step--1);

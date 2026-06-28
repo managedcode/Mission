@@ -280,7 +280,55 @@ test.describe('Mission Run mini-game', () => {
     state: string;
     jumpHeld: boolean;
     projectScale: number;
+    blocks?: Array<{ tx: number; ty: number; kind: string; used: boolean }>;
+    brickBumps?: string[];
+    brokenBricks?: string[];
+    enemies?: Array<{ t: string; x: number; label?: string; tone?: string }>;
+    pose?: string;
+    poseT?: number;
+    endingT?: number;
+    overT?: number;
+    messageVisible?: boolean;
   };
+
+  test('expense enemies are household bills and regular bricks can be bumped', async ({ page }) => {
+    test.skip(!test.info().project.name.startsWith('desktop'), 'keyboard-only game path');
+
+    await page.goto('/');
+    await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
+    await page.locator('[data-mascot]').click({ force: true });
+
+    const state = await page.evaluate(() => {
+      return (
+        window as Window & {
+          __mgame?: () => MissionRunState;
+        }
+      ).__mgame?.();
+    });
+
+    const labels = new Set(state?.enemies?.map((enemy) => enemy.label).filter(Boolean));
+    for (const label of ['RENT', 'TAX', 'ELECTRIC', 'WATER', 'MOBILE', 'SUBS', 'LOAN']) {
+      expect(labels.has(label), `${label} should be present as an expense monster`).toBe(true);
+    }
+    for (const banned of ['POWER', 'ISP', 'OFFICE', 'SAAS', 'CLOUD']) {
+      expect(labels.has(banned), `${banned} should not be user-facing in the mini-game`).toBe(
+        false
+      );
+    }
+
+    expect(state?.blocks).toContainEqual({ tx: 32, ty: 5, kind: 'coin', used: false });
+
+    const bumped = await page.evaluate(() => {
+      const w = window as Window & {
+        __mgame?: () => MissionRunState;
+        __mgameBumpBrick?: (tx?: number, ty?: number) => void;
+      };
+      w.__mgameBumpBrick?.(13, 5);
+      return w.__mgame?.();
+    });
+    expect(bumped?.brickBumps).toContain('13:5');
+    expect(bumped?.brokenBricks).not.toContain('13:5');
+  });
 
   test('holding Space extends one jump without auto-jumping on landing', async ({ page }) => {
     test.skip(!test.info().project.name.startsWith('desktop'), 'keyboard-only game path');
@@ -411,6 +459,99 @@ test.describe('Mission Run mini-game', () => {
     expect(afterContact?.w).toBe(before?.w);
     expect(afterContact?.h).toBe(before?.h);
     expect(afterContact?.lives).toBe(before?.lives);
+    expect(afterContact?.pose).toBe('shrink');
+    expect(afterContact?.poseT).toBeGreaterThan(0);
+  });
+
+  test('win and loss finales wait for a visible beat before showing the card', async ({ page }) => {
+    test.skip(!test.info().project.name.startsWith('desktop'), 'keyboard-only game path');
+
+    await page.goto('/');
+    await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
+    await page.locator('[data-mascot]').click({ force: true });
+
+    const readGame = () =>
+      page.evaluate(() => {
+        const state = (
+          window as Window & {
+            __mgame?: () => MissionRunState;
+          }
+        ).__mgame?.();
+        return state ?? null;
+      });
+
+    await expect.poll(async () => (await readGame())?.onGround, { timeout: 3000 }).toBe(true);
+
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __mgameTriggerWin?: () => void;
+        }
+      ).__mgameTriggerWin?.();
+    });
+
+    await expect.poll(async () => (await readGame())?.state, { timeout: 1000 }).toBe('ending');
+    expect((await readGame())?.messageVisible).toBe(false);
+
+    await page.waitForTimeout(900);
+    const midWin = await readGame();
+    expect(midWin?.state).toBe('ending');
+    expect(midWin?.messageVisible).toBe(false);
+
+    await expect
+      .poll(
+        async () => {
+          const state = await readGame();
+          return `${state?.state}:${state?.messageVisible}`;
+        },
+        { timeout: 5000 }
+      )
+      .toBe('win:true');
+
+    await page.locator('[data-mgame-again]').click();
+    await expect.poll(async () => (await readGame())?.state, { timeout: 1000 }).toBe('play');
+    await expect.poll(async () => (await readGame())?.onGround, { timeout: 3000 }).toBe(true);
+
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __mgameTriggerGameOver?: () => void;
+        }
+      ).__mgameTriggerGameOver?.();
+    });
+
+    await expect.poll(async () => (await readGame())?.state, { timeout: 1000 }).toBe('dying');
+    const lossStart = await readGame();
+    expect(lossStart?.messageVisible).toBe(false);
+    expect(lossStart?.pose).toBe('death-squash');
+
+    await expect
+      .poll(
+        async () => {
+          const state = await readGame();
+          return `${state?.state}:${state?.pose}:${state?.messageVisible}`;
+        },
+        { timeout: 2000 }
+      )
+      .toBe('dying:death:false');
+
+    const lossFlight = await readGame();
+    expect(lossFlight?.y ?? Infinity).toBeLessThan(lossStart?.y ?? 0);
+
+    await page.waitForTimeout(600);
+    const midLoss = await readGame();
+    expect(midLoss?.state).toBe('dying');
+    expect(midLoss?.messageVisible).toBe(false);
+
+    await expect
+      .poll(
+        async () => {
+          const state = await readGame();
+          return `${state?.state}:${state?.messageVisible}`;
+        },
+        { timeout: 5000 }
+      )
+      .toBe('over:true');
   });
 });
 
@@ -461,6 +602,55 @@ test.describe('Patronage tiers', () => {
     for (let i = 0; i < ctaCount; i++) {
       await expect(ctas.nth(i)).toHaveAttribute('href', /#apply$/);
     }
+  });
+});
+
+test.describe('CTA interactions', () => {
+  test('join cards and final contact CTA reveal a visible contact subject', async ({ page }) => {
+    await page.goto('/');
+
+    const status = page.locator('[data-join-contact-status]');
+    await expect(status).toContainText('Choose a path above');
+
+    const paths = [
+      { label: /apply to maintain/i, subject: 'Joining the team — Maintainers' },
+      { label: /talk to us/i, subject: 'Joining the team — Burnout' },
+      { label: /apply to learn/i, subject: 'Joining the team — Juniors' },
+    ];
+
+    for (const path of paths) {
+      const cta = page.locator('#join [data-join-contact-cta]', { hasText: path.label });
+      await expect(cta).toHaveCount(1);
+      await expect(cta).toHaveAttribute('href', '#join-contact');
+      await cta.click();
+      await expect(page).toHaveURL(/#join-contact$/);
+      await expect(status).toContainText(path.subject);
+    }
+
+    const finalTalk = page.locator('.final-cta [data-join-contact-cta]');
+    await expect(finalTalk).toHaveCount(1);
+    await expect(finalTalk).toHaveAttribute('href', '#join-contact');
+    await finalTalk.click();
+    await expect(page).toHaveURL(/#join-contact$/);
+    await expect(status).toContainText('Joining the team');
+  });
+
+  test('home button-style links have concrete on-page, page, external, or email targets', async ({
+    page,
+  }) => {
+    await page.goto('/');
+
+    const badTargets = await page.locator('a.btn').evaluateAll((links) =>
+      links
+        .map((link) => {
+          const href = link.getAttribute('href')?.trim() ?? '';
+          const text = (link.textContent ?? '').replace(/\s+/g, ' ').trim();
+          return { href, text };
+        })
+        .filter(({ href }) => !href || href === '#')
+    );
+
+    expect(badTargets).toEqual([]);
   });
 });
 

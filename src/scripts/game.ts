@@ -3,7 +3,7 @@ import { miniGame } from '../data/site';
 /* =================================================================
    RENT RUN — a savagely on-the-nose platformer about being an open-source
    maintainer. You ship for $0 while the expense monsters keep coming:
-   RENT · TAX · POWER · WATER · GAS · ISP · TOOLS · CLOUD · SUBS · BENEFITS.
+   RENT · TAX · ELECTRIC · WATER · MOBILE · SUBS · GAS · LOAN · FEES.
    Bump ? blocks for GitHub ★ (worth $0), grab the COFFEE, and find the secret
    NEW PROJECT IDEA — the backlog grows, so the maintainer grows with it.
 
@@ -65,7 +65,7 @@ export function createMascotGame(): Game {
     [10, 5, 'coin'],
     [12, 5, 'coin'],
     [16, 5, 'hidden'],
-    [32, 4, 'coin'],
+    [32, 5, 'coin'],
     [40, 3, 'power'],
     [53, 5, 'coin'],
     [57, 3, 'hidden'],
@@ -75,20 +75,19 @@ export function createMascotGame(): Game {
   // They are not framework jokes; they are the boring expenses that keep charging
   // while the maintainer ships for $0.
   const ENEMIES_DEF: Array<[string, number, string?, BillTone?]> = [
-    ['goomba', 12, 'TAX', 'tax'],
+    ['goomba', 11, 'TAX', 'tax'],
     ['bill', 18, 'RENT', 'rent'],
-    ['goomba', 22, 'TOOLS', 'tools'],
-    ['turtle', 29, 'CLOUD', 'cloudBill'],
-    ['bill', 34, 'POWER', 'power'],
-    ['goomba', 40, 'PAYROLL', 'payroll'],
-    ['bill', 47, 'WATER', 'water'],
-    ['turtle', 50, 'SUBS', 'subs'],
-    ['fly', 53, 'INSUR', 'insurance'],
-    ['bill', 56, 'GAS', 'gas'],
-    ['bill', 67, 'ISP', 'isp'],
-    ['goomba', 72, 'LEGAL', 'legal'],
-    ['bill', 76, 'OFFICE', 'office'],
-    ['bill', 82, 'BENEFITS', 'benefits'],
+    ['fly', 14, 'ELECTRIC', 'electric'],
+    ['bill', 29, 'WATER', 'water'],
+    ['turtle', 34, 'LOAN', 'loan'],
+    ['bill', 40, 'MOBILE', 'mobile'],
+    ['bill', 47, 'SUBS', 'subs'],
+    ['bill', 53, 'GAS', 'gas'],
+    ['goomba', 58, 'FEES', 'fees'],
+    ['fly', 67, 'TAX', 'tax'],
+    ['bill', 72, 'RENT', 'rent'],
+    ['turtle', 76, 'LOAN', 'loan'],
+    ['bill', 82, 'WATER', 'water'],
   ];
   // background signposts = the open-source career arc, dead obvious: you ship OSS,
   // you're still paid $0, you're drowning (SOS) — then the LAYOFF dragon, then the
@@ -98,10 +97,10 @@ export function createMascotGame(): Game {
     [38 * TILE, 'STILL $0'],
     [85 * TILE, 'SOS'],
   ];
-  // subscription/cloud/fee costs that erupt from each expense pipe (by pipe order)
+  // recurring household bills that erupt from each expense pipe (by pipe order)
   const PIPE_TAGS: Array<[string, BillTone]> = [
-    ['CLOUD', 'cloudBill'],
-    ['SAAS', 'subs'],
+    ['MOBILE', 'mobile'],
+    ['SUBS', 'subs'],
     ['FEES', 'fees'],
   ];
   const START = { x: 2 * TILE, y: 6 * TILE };
@@ -119,6 +118,8 @@ export function createMascotGame(): Game {
       solidSet.add(kk(tx, 10));
     }
   for (const [px, py, w] of PLATFORMS) for (let i = 0; i < w; i++) solidSet.add(kk(px + i, py));
+  const isPipeTile = (tx: number, ty: number) =>
+    PIPES.some(([px, ph]) => (tx === px || tx === px + 1) && ty >= GROUND_ROW - ph && ty <= 8);
   for (const [px, ph] of PIPES)
     for (let r = GROUND_ROW - ph; r <= 8; r++) {
       solidSet.add(kk(px, r));
@@ -128,6 +129,7 @@ export function createMascotGame(): Game {
   const solidAt = (tx: number, ty: number) => {
     const q = qmap.get(kk(tx, ty));
     if (q) return q.kind !== 'hidden' || q.used;
+    if (brokenBricks.has(kk(tx, ty))) return false;
     return solidSet.has(kk(tx, ty));
   };
 
@@ -161,19 +163,11 @@ export function createMascotGame(): Game {
     util: '#2b50e0',
     loan: '#b08628',
     mobile: '#22b8cf',
-    isp: '#6e87ff',
     tax: '#c24a7a',
-    tools: '#d97757',
-    cloudBill: '#6e87ff',
     subs: '#8a6cff',
-    insurance: '#e85d9b',
-    legal: '#7c8896',
-    office: '#b08628',
-    benefits: '#16c79a',
     fees: '#df5f27',
-    payroll: '#d7263d',
     // the bills that keep charging while you maintain for free
-    power: '#f2c200',
+    electric: '#f2c200',
     water: '#27a3e0',
     gas: '#e0662b',
     gym: '#9b59b6',
@@ -195,18 +189,10 @@ export function createMascotGame(): Game {
     | 'util'
     | 'loan'
     | 'mobile'
-    | 'isp'
     | 'tax'
-    | 'tools'
-    | 'cloudBill'
     | 'subs'
-    | 'insurance'
-    | 'legal'
-    | 'office'
-    | 'benefits'
     | 'fees'
-    | 'payroll'
-    | 'power'
+    | 'electric'
     | 'water'
     | 'gas'
     | 'gym'
@@ -341,7 +327,8 @@ export function createMascotGame(): Game {
   let camX = 0;
   let stars = 0;
   let lives = 3;
-  let state: 'play' | 'win' | 'over' | 'ending' = 'play';
+  type GameState = 'play' | 'ending' | 'win' | 'dying' | 'over';
+  let state: GameState = 'play';
   let tick = 0;
 
   type Q = {
@@ -372,11 +359,23 @@ export function createMascotGame(): Game {
   let enemies: Enemy[] = [];
   type Particle = { x: number; y: number; vy: number; life: number; text: string; color: string };
   let particles: Particle[] = [];
+  const brickBumps = new Map<string, number>();
+  const brokenBricks = new Set<string>();
   type BlockStar = { x: number; y: number; vx: number; vy: number; life: number };
   let blockStars: BlockStar[] = [];
   type Pickup = { x: number; y: number; vx: number; vy: number; got: boolean };
   let oneups: Pickup[] = []; // "NEW PROJECT IDEA" 1-ups dropped by secret blocks
   let enterT = 0; // castle-entry timer for the ending scene
+  let overT = 0; // delayed game-over timer, so the loss has a readable beat
+  type PlayerPose = 'none' | 'hit' | 'shrink' | 'grow' | 'stomp';
+  let playerPose: PlayerPose = 'none';
+  let poseT = 0;
+  const WIN_DOOR_FADE_FRAMES = 72;
+  const WIN_CARD_DELAY_FRAMES = 148;
+  const GAME_OVER_SQUASH_FRAMES = 12;
+  const GAME_OVER_POP_FRAMES = 28;
+  const GAME_OVER_FALL_FRAMES = 82;
+  const GAME_OVER_CARD_DELAY_FRAMES = 136;
   // --- the LAYOFF dragon: the termination boss guarding the gate. Spits
   // fire; you jump it like Bowser to reach the job. (COFFEE lets you blow through.)
   type Boss = {
@@ -400,7 +399,7 @@ export function createMascotGame(): Game {
   let rockets: Rocket[] = [];
   let celebrate = false; // spawning fireworks (true from castle-entry through the win)
   let fwTick = 0;
-  const FW_COLORS = [C.starHi, C.star, C.bodyHi, C.grassHi, C.mobile, C.rent, C.benefits, C.cream];
+  const FW_COLORS = [C.starHi, C.star, C.bodyHi, C.grassHi, C.mobile, C.rent, C.electric, C.cream];
 
   function clearInput() {
     leftHeld = false;
@@ -414,6 +413,14 @@ export function createMascotGame(): Game {
   }
   function setPlaying(on: boolean) {
     if (root) root.dataset.playing = String(on);
+  }
+  function setPlayerPose(pose: PlayerPose, frames: number) {
+    playerPose = pose;
+    poseT = frames;
+  }
+  function activePlayerPose(): PlayerPose | 'death-squash' | 'death' {
+    if (state === 'dying') return overT <= GAME_OVER_SQUASH_FRAMES ? 'death-squash' : 'death';
+    return poseT > 0 ? playerPose : 'none';
   }
   function playerOverlapsSolid() {
     const left = Math.floor(player.x / TILE);
@@ -452,6 +459,7 @@ export function createMascotGame(): Game {
   function spawnEnemies() {
     enemies = [];
     for (const [type, tx, label, tone] of ENEMIES_DEF) {
+      const h = type === 'turtle' ? 14 : type === 'bill' ? (tone === 'mobile' ? 16 : 14) : 12;
       if (type === 'fly')
         enemies.push({
           type: 'fly',
@@ -459,7 +467,7 @@ export function createMascotGame(): Game {
           y: GROUND_TOP - 34,
           w: 12,
           h: 10,
-          vx: 0.7,
+          vx: tx <= 20 ? -0.25 : 0.7,
           baseY: GROUND_TOP - 34,
           dead: 0,
           t: (tx * 7) % 60,
@@ -470,10 +478,10 @@ export function createMascotGame(): Game {
         enemies.push({
           type: type as EType,
           x: tx * TILE,
-          y: GROUND_TOP - (type === 'turtle' ? 14 : 12),
+          y: GROUND_TOP - h,
           w: 12,
-          h: type === 'turtle' ? 14 : 12,
-          vx: 0.5,
+          h,
+          vx: tx <= 20 ? -0.25 : 0.5,
           baseY: 0,
           dead: 0,
           t: 0,
@@ -524,9 +532,13 @@ export function createMascotGame(): Game {
     flowers = [];
     spawnEnemies();
     particles = [];
+    brickBumps.clear();
+    brokenBricks.clear();
     blockStars = [];
     oneups = [];
     enterT = 0;
+    overT = 0;
+    setPlayerPose('none', 0);
     sparks = [];
     rockets = [];
     celebrate = false;
@@ -603,6 +615,20 @@ export function createMascotGame(): Game {
     oneups.push({ x: tx * TILE + 1, y: ty * TILE - 14, vx: 0.8, vy: -2.4, got: false });
     addParticle(tx * TILE - 20, ty * TILE - 4, 'NEW PROJECT IDEA', C.life);
   }
+  function isBreakableBrick(tx: number, ty: number) {
+    const key = kk(tx, ty);
+    return ty < GROUND_ROW && !qmap.has(key) && !isPipeTile(tx, ty) && solidSet.has(key);
+  }
+  function bumpBrick(tx: number, ty: number) {
+    const key = kk(tx, ty);
+    if (!isBreakableBrick(tx, ty) || brokenBricks.has(key)) return;
+    if (player.projectScale > PLAYER_SMALL.scale) {
+      brokenBricks.add(key);
+      addParticle(tx * TILE + 1, ty * TILE - 5, 'CRACK', C.starHi);
+      return;
+    }
+    brickBumps.set(key, 8);
+  }
   function bumpBlock(q: Q) {
     q.used = true;
     q.bump = 8;
@@ -630,6 +656,8 @@ export function createMascotGame(): Game {
     player.vy = 0;
     player.invuln = 100;
     player.power = 0;
+    setPlayerPose('hit', 44);
+    addParticle(player.x - 8, player.y - 8, '-1 LIFE', C.rent);
   }
   function hurt() {
     if (player.invuln > 0 || player.power > 0) return;
@@ -637,6 +665,8 @@ export function createMascotGame(): Game {
       resizePlayer(PLAYER_SMALL.scale);
       player.invuln = 100;
       player.vy = -3;
+      setPlayerPose('shrink', 38);
+      addParticle(player.x - 10, player.y - 8, 'TOO MUCH', C.rent);
       return;
     }
     lives -= 1;
@@ -645,16 +675,23 @@ export function createMascotGame(): Game {
     player.invuln = 100;
     player.vy = -4;
     player.vx = -player.face * 3;
+    setPlayerPose('hit', 34);
+    addParticle(player.x - 8, player.y - 8, 'OUCH', C.rent);
   }
   function updateEnding() {
     // Mario-style castle entry: the maintainer walks into the (now warmly lit) gate
-    // and fades in, while fireworks go up over the ManagedCode HQ.
+    // and fades in, then the scene gets one real fanfare beat before the card.
     const doorX = CASTLE_X + CASTLE_W / 2 - player.w / 2;
     if (player.x < doorX - 1) {
       player.x += 1.4;
       player.face = 1;
       player.step += 0.2;
-    } else enterT++;
+    } else {
+      player.x = doorX;
+      player.vx = 0;
+      enterT++;
+      if (enterT % 24 === 0 && enterT < WIN_CARD_DELAY_FRAMES - 12) spawnRocket();
+    }
     player.vy += GRAV;
     if (player.vy > MAXFALL) player.vy = MAXFALL;
     player.onGround = false;
@@ -662,7 +699,18 @@ export function createMascotGame(): Game {
     collide('y');
     settleGround();
     camX = Math.max(0, Math.min(WORLD_W - VIEW_W, player.x + player.w / 2 - VIEW_W / 2));
-    if (enterT > 36) showWin();
+    if (enterT >= WIN_CARD_DELAY_FRAMES) showWin();
+  }
+  function startEnding() {
+    state = 'ending';
+    enterT = 0;
+    overT = 0;
+    celebrate = true;
+    if (boss) boss.dead = 1; // the layoff monster loses; you got the job
+    fireballs = [];
+    clearInput();
+    setPlaying(false);
+    hideMsg();
   }
   function showWin() {
     state = 'win';
@@ -675,10 +723,37 @@ export function createMascotGame(): Game {
   }
   function gameOver() {
     clearInput();
-    state = 'over';
+    state = 'dying';
     setPlaying(false);
     celebrate = false;
     fireballs = []; // don't leave hazards frozen behind the translucent lose card
+    overT = 0;
+    player.power = 0;
+    player.invuln = 0;
+    player.vx = -player.face * 0.45;
+    player.vy = 0;
+    player.onGround = false;
+    if (player.y > VIEW_H) player.y = GROUND_TOP - player.h;
+    setPlayerPose('none', 0);
+    addParticle(player.x - 4, player.y - 10, 'OOF', C.rent);
+    hideMsg();
+  }
+  function updateGameOver() {
+    overT++;
+    if (overT <= GAME_OVER_SQUASH_FRAMES) {
+      player.step += 0.1;
+    } else if (overT <= GAME_OVER_FALL_FRAMES) {
+      if (overT === GAME_OVER_SQUASH_FRAMES + 1) player.vy = -7.4;
+      player.vy += overT < GAME_OVER_POP_FRAMES ? 0.18 : 0.38;
+      if (player.vy > MAXFALL) player.vy = MAXFALL;
+      player.x += player.vx;
+      player.y += player.vy;
+      player.step += 0.18;
+    }
+    if (overT >= GAME_OVER_CARD_DELAY_FRAMES) showGameOver();
+  }
+  function showGameOver() {
+    state = 'over';
     showMsg(
       `BURNED OUT   ★ ${stars}\nyou archived the repo. somewhere a Fortune 500\nstill ships it in prod — for free.`,
       false
@@ -707,6 +782,7 @@ export function createMascotGame(): Game {
           } else if (player.vy < 0) {
             player.y = (ty + 1) * TILE;
             if (q && !q.used) bumpBlock(q);
+            else bumpBrick(tx, ty);
           }
           player.vy = 0;
           return;
@@ -793,6 +869,8 @@ export function createMascotGame(): Game {
       else if (stomp) {
         e.vx = 0;
         player.vy = JUMP * 0.5;
+        setPlayerPose('stomp', 14);
+        addParticle(e.x - 2, e.y - 10, 'BONK', C.starHi);
       } // stomp a moving shell → stop it
       else hurt();
       return;
@@ -814,6 +892,8 @@ export function createMascotGame(): Game {
       } else e.dead = 1;
       stars++;
       player.vy = JUMP * 0.55;
+      setPlayerPose('stomp', 14);
+      addParticle(e.x - 2, e.y - 10, 'BONK', C.starHi);
       updateHud();
     } else if (player.power > 0) {
       e.dead = 1;
@@ -824,8 +904,14 @@ export function createMascotGame(): Game {
 
   function update() {
     tick++;
+    if (poseT > 0) poseT--;
+    else playerPose = 'none';
     updateFireworks();
     for (const q of qblocks) if (q.bump > 0) q.bump--;
+    for (const [key, bump] of brickBumps) {
+      if (bump <= 1) brickBumps.delete(key);
+      else brickBumps.set(key, bump - 1);
+    }
     for (const s of blockStars) {
       s.x += s.vx;
       s.y += s.vy;
@@ -846,6 +932,10 @@ export function createMascotGame(): Game {
     }
     if (state === 'ending') {
       updateEnding();
+      return;
+    }
+    if (state === 'dying') {
+      updateGameOver();
       return;
     }
     if (state !== 'play') return;
@@ -893,6 +983,7 @@ export function createMascotGame(): Game {
       if (!f.got && ov(player.x, player.y, player.w, player.h, f.x, f.y, 10, 12)) {
         f.got = true;
         player.power = 420;
+        setPlayerPose('grow', 24);
         addParticle(f.x - 8, f.y - 4, 'CAFFEINE', C.starHi);
       }
 
@@ -917,6 +1008,7 @@ export function createMascotGame(): Game {
       if (ov(player.x, player.y, player.w, player.h, u.x, u.y, 14, 14)) {
         u.got = true;
         resizePlayer(PLAYER_BIG.scale);
+        setPlayerPose('grow', 42);
         addParticle(u.x - 20, u.y - 4, 'NEW PROJECT IDEA', C.life);
       }
     }
@@ -928,13 +1020,7 @@ export function createMascotGame(): Game {
     updateBoss();
 
     if (player.x + player.w >= CASTLE_X + 18) {
-      state = 'ending';
-      enterT = 0;
-      celebrate = true;
-      if (boss) boss.dead = 1; // the layoff monster loses; you got the job
-      fireballs = [];
-      clearInput();
-      setPlaying(false);
+      startEnding();
     }
     camX = Math.max(0, Math.min(WORLD_W - VIEW_W, player.x + player.w / 2 - VIEW_W / 2));
   }
@@ -1057,7 +1143,7 @@ export function createMascotGame(): Game {
     block(x + 4, y + 10, 6, 3, C.cream);
     block(x + 6, y + 12, 2, 2, C.cream); // body + tail
     block(x + 3, y + 13, 8, 1, C.bodyHi); // green "new project" base
-    drawTag(x + 7, y - 12, 'NEW PROJECT IDEA', 'tools');
+    drawTag(x + 7, y - 12, 'NEW PROJECT IDEA', 'subs');
   }
   function drawQBlock(q: Q) {
     const x = q.tx * TILE;
@@ -1092,12 +1178,69 @@ export function createMascotGame(): Game {
     block(tx - 2, topY, lw + 4, 1, t);
     text(label, tx, topY + 1, 1, C.starHi);
   }
-  function drawEnemy(e: Enemy) {
+  function drawBillMonster(e: Enemy, wob: number) {
     const x = e.x;
     const y = e.y;
-    const wob = Math.floor(tick / 8) % 2;
-    if (e.type === 'bill') {
-      const t = billTone(e.tone || 'rent');
+    const tone = e.tone || 'rent';
+    const t = billTone(tone);
+    if (tone === 'rent') {
+      // Angry house: rent is the monster with a roof over its head.
+      block(x + 1, y + 4, 10, 8, C.paper);
+      block(x + 2, y + 2, 8, 2, t);
+      block(x + 3, y, 6, 2, t);
+      block(x + 3, y + 6, 2, 2, C.ink);
+      block(x + 8, y + 6, 2, 2, C.ink);
+      block(x + 5, y + 9, 3, 3, t);
+      block(x + (wob ? 0 : 1), y + 12, 3, 2, C.ink);
+      block(x + (wob ? 9 : 8), y + 12, 3, 2, C.ink);
+    } else if (tone === 'water') {
+      // Droplet with a bill face.
+      block(x + 5, y, 2, 2, C.starHi);
+      block(x + 3, y + 2, 6, 3, t);
+      block(x + 1, y + 5, 10, 5, t);
+      block(x + 2, y + 10, 8, 2, '#145f86');
+      block(x + 3, y + 6, 2, 2, C.cream);
+      block(x + 8, y + 6, 2, 2, C.cream);
+      block(x + 4, y + 7, 1, 1, C.ink);
+      block(x + 9, y + 7, 1, 1, C.ink);
+      block(x + (wob ? 1 : 2), y + 12, 3, 2, '#145f86');
+      block(x + (wob ? 8 : 7), y + 12, 3, 2, '#145f86');
+    } else if (tone === 'mobile') {
+      // Phone bill: antenna + screen-face.
+      block(x + 3, y, 6, 2, t);
+      block(x + 4, y - 2, 1, 2, t);
+      block(x + 2, y + 2, 9, 12, '#0b2630');
+      block(x + 3, y + 3, 7, 8, t);
+      block(x + 4, y + 6, 1, 2, C.ink);
+      block(x + 8, y + 6, 1, 2, C.ink);
+      block(x + 5, y + 10, 3, 1, C.starHi);
+      block(x + (wob ? 1 : 2), y + 14, 3, 2, C.ink);
+      block(x + (wob ? 8 : 7), y + 14, 3, 2, C.ink);
+    } else if (tone === 'subs') {
+      // Subscription ghost: recurring charge that follows you around.
+      block(x + 2, y + 2, 8, 2, t);
+      block(x + 1, y + 4, 10, 7, t);
+      block(x + 1, y + 11, 2, 2, t);
+      block(x + 5, y + 11, 2, 2, t);
+      block(x + 9, y + 11, 2, 2, t);
+      block(x + 3, y + 6, 2, 2, C.cream);
+      block(x + 7, y + 6, 2, 2, C.cream);
+      block(x + 4, y + 7, 1, 1, C.ink);
+      block(x + 8, y + 7, 1, 1, C.ink);
+      block(x + 5, y + 9, 3, 1, C.ink);
+      block(x + (wob ? 0 : 1), y + 13, 3, 2, '#392b7a');
+      block(x + (wob ? 9 : 8), y + 13, 3, 2, '#392b7a');
+    } else if (tone === 'gas') {
+      // Flame bill: heat and fuel spikes.
+      block(x + 5, y, 2, 2, C.starHi);
+      block(x + 3, y + 2, 6, 4, C.starHi);
+      block(x + 1, y + 5, 10, 6, t);
+      block(x + 3, y + 6, 2, 2, C.ink);
+      block(x + 8, y + 6, 2, 2, C.ink);
+      block(x + 4, y + 10, 5, 2, '#7a2c13');
+      block(x + (wob ? 1 : 2), y + 12, 3, 2, '#7a2c13');
+      block(x + (wob ? 8 : 7), y + 12, 3, 2, '#7a2c13');
+    } else {
       block(x, y, 12, 10, C.paper);
       block(x, y, 12, 3, t);
       block(x + 2, y + 5, 2, 2, C.ink);
@@ -1105,9 +1248,19 @@ export function createMascotGame(): Game {
       block(x + 3, y + 8, 6, 1, t);
       block(x + (wob ? 0 : 2), y + 10, 3, 2, C.ink);
       block(x + (wob ? 9 : 7), y + 10, 3, 2, C.ink);
+    }
+  }
+  function drawEnemy(e: Enemy) {
+    const x = e.x;
+    const y = e.y;
+    const wob = Math.floor(tick / 8) % 2;
+    if (e.type === 'bill') {
+      drawBillMonster(e, wob);
     } else if (e.type === 'goomba') {
-      block(x + 1, y, 10, 7, C.goomba);
-      block(x, y + 3, 12, 4, C.goomba);
+      const t = billTone(e.tone || 'tax');
+      block(x + 1, y, 10, 7, t);
+      block(x, y + 3, 12, 4, t);
+      block(x + 3, y + 1, 6, 2, C.sign); // official-looking bill stamp
       block(x + 3, y + 3, 2, 2, C.cream);
       block(x + 7, y + 3, 2, 2, C.cream);
       block(x + 3, y + 4, 1, 1, C.ink);
@@ -1115,10 +1268,12 @@ export function createMascotGame(): Game {
       block(x + (wob ? 0 : 2), y + 9, 4, 3, C.goombaD);
       block(x + (wob ? 8 : 6), y + 9, 4, 3, C.goombaD);
     } else if (e.type === 'turtle') {
+      const t = billTone(e.tone || 'loan');
       block(x + (e.vx < 0 ? 8 : 1), y + 2, 3, 4, C.skin); // head
-      block(x + 1, y + 5, 10, 7, C.shell);
-      block(x, y + 7, 12, 4, C.shell);
+      block(x + 1, y + 5, 10, 7, t);
+      block(x, y + 7, 12, 4, t);
       block(x + 3, y + 6, 6, 3, C.shellD);
+      block(x + 5, y + 5, 2, 1, C.starHi); // coin glint: debt keeps compounding
       block(x + (wob ? 1 : 2), y + 12, 3, 2, C.shellD);
       block(x + (wob ? 8 : 7), y + 12, 3, 2, C.shellD);
     } else if (e.type === 'shell') {
@@ -1128,9 +1283,12 @@ export function createMascotGame(): Game {
       block(x + 4, y + 2, 4, 2, C.shell);
     } else if (e.type === 'fly') {
       const flap = Math.floor(tick / 5) % 2;
+      const t = billTone(e.tone || 'electric');
       block(x + (flap ? -2 : 0), y + 1, 3, 4, C.wing);
       block(x + 11 - (flap ? 1 : 3), y + 1, 3, 4, C.wing); // wings
-      block(x + 2, y + 2, 8, 7, C.util);
+      block(x + 2, y + 2, 8, 7, t);
+      block(x + 5, y - 1, 2, 3, C.starHi);
+      block(x + 4, y + 1, 4, 1, C.starHi); // electric crown/bolt
       block(x + 3, y + 4, 2, 2, C.cream);
       block(x + 7, y + 4, 2, 2, C.cream);
       block(x + 3, y + 5, 1, 1, C.ink);
@@ -1254,15 +1412,10 @@ export function createMascotGame(): Game {
       for (let tx = t0; tx <= t1; tx++) {
         if (!solidAt(tx, ty) || qmap.has(kk(tx, ty))) continue;
         // pipe tiles are drawn separately
-        let isPipe = false;
-        for (const [px, ph] of PIPES)
-          if ((tx === px || tx === px + 1) && ty >= GROUND_ROW - ph && ty <= 8) {
-            isPipe = true;
-            break;
-          }
-        if (isPipe) continue;
+        if (isPipeTile(tx, ty)) continue;
         const x = tx * TILE;
-        const y = ty * TILE;
+        const key = kk(tx, ty);
+        const y = ty * TILE - (brickBumps.get(key) ? 3 : 0);
         if (ty >= GROUND_ROW) {
           block(x, y, TILE, TILE, C.dirt);
           if (ty === GROUND_ROW) {
@@ -1293,8 +1446,8 @@ export function createMascotGame(): Game {
     for (const e of [...enemies].sort((a, b) => a.x - b.x)) {
       if (e.dead || !e.label) continue;
       const lw = textW(e.label, 1);
-      const l = Math.round(e.x + e.w / 2 - lw / 2) - 2;
-      const r = l + lw + 4;
+      const l = Math.round(e.x + e.w / 2 - lw / 2) - 6;
+      const r = l + lw + 12;
       let lvl = 0;
       while (placedTags.some((p) => p.lvl === lvl && l < p.r && r > p.l)) lvl++;
       placedTags.push({ l, r, lvl });
@@ -1314,6 +1467,7 @@ export function createMascotGame(): Game {
       ctx.globalAlpha = 1;
     }
     drawFireworks();
+    drawGameOverCurtain();
   }
 
   function drawFireworks() {
@@ -1327,30 +1481,95 @@ export function createMascotGame(): Game {
       ctx.globalAlpha = 1;
     }
   }
+  function drawGameOverCurtain() {
+    if (state !== 'dying') return;
+    const start = GAME_OVER_POP_FRAMES + 18;
+    const range = GAME_OVER_CARD_DELAY_FRAMES - start;
+    const alpha = Math.max(0, Math.min(0.68, ((overT - start) / range) * 0.68));
+    if (alpha <= 0) return;
+    ctx.fillStyle = `rgba(6, 18, 10, ${alpha.toFixed(3)})`;
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+  }
 
   // The maintainer: a dev in a hoodie (hood up → hides hair, so anyone can read
   // themselves into it), a neutral skin tone, two friendly eyes. Walks with a
   // little body-bob + alternating legs.
+  function drawSquashedPlayer(x: number, y: number, s: number, hood: string) {
+    const pblock = (dx: number, dy: number, w: number, h: number, color: string) =>
+      block(x + dx * s, y + dy * s, w * s, h * s, color);
+    pblock(1, 4, 9, 2, hood);
+    pblock(2, 5, 7, 3, hood);
+    pblock(3, 6, 5, 2, C.face);
+    pblock(4, 6, 1, 1, C.ink);
+    pblock(6, 6, 1, 1, C.ink);
+    pblock(1, 8, 9, 3, hood);
+    pblock(1, 8, 9, 1, C.bodyHi);
+    pblock(2, 11, 7, 2, C.ink);
+  }
   function drawPlayer() {
-    if (player.invuln > 0 && Math.floor(player.invuln / 4) % 2 === 0) return;
-    if (state === 'ending' && enterT > 0) ctx.globalAlpha = Math.max(0, 1 - enterT / 36); // fade into the castle
-    const x = player.x;
+    const pose = activePlayerPose();
+    if (
+      state !== 'dying' &&
+      pose === 'none' &&
+      player.invuln > 0 &&
+      Math.floor(player.invuln / 4) % 2 === 0
+    ) {
+      return;
+    }
+    if (state === 'ending' && enterT > 0) {
+      ctx.globalAlpha = Math.max(0, 1 - enterT / WIN_DOOR_FADE_FRAMES);
+    }
+    const panic = pose === 'death';
+    const squash =
+      pose === 'death-squash' ||
+      (pose === 'hit' && poseT > 22) ||
+      (pose === 'shrink' && poseT > 20);
+    const flash =
+      pose === 'grow' || pose === 'shrink' || pose === 'stomp' || pose === 'death-squash';
+    const wobble = pose === 'hit' || pose === 'shrink' ? (Math.floor(poseT / 3) % 2 ? 1 : -1) : 0;
+    const x = player.x + wobble;
     const s = player.projectScale;
     const walking = player.onGround && Math.abs(player.vx) > 0.25;
     const frame = Math.floor(player.step) % 2;
-    const y = player.y - (walking && frame === 0 ? s : 0); // body lifts mid-stride
-    const hood = player.power > 0 ? (Math.floor(tick / 4) % 2 ? C.star : C.bodyHi) : C.body;
+    const boost = pose === 'grow' || pose === 'stomp' ? s : 0;
+    const y = player.y - (walking && frame === 0 ? s : 0) - boost; // body lifts mid-stride
+    const hood =
+      flash && Math.floor(tick / 4) % 2
+        ? C.starHi
+        : player.power > 0
+          ? Math.floor(tick / 4) % 2
+            ? C.star
+            : C.bodyHi
+          : C.body;
+    if (squash) {
+      drawSquashedPlayer(x, player.y + s, s, hood);
+      ctx.globalAlpha = 1;
+      return;
+    }
     const pblock = (dx: number, dy: number, w: number, h: number, color: string) =>
       block(x + dx * s, y + dy * s, w * s, h * s, color);
     // hood (covers the hair)
     pblock(2, 0, 7, 2, hood);
     pblock(1, 1, 9, 3, hood);
-    pblock(1, 4, 2, 3, hood);
-    pblock(8, 4, 2, 3, hood);
+    if (panic) {
+      pblock(0, 5, 2, 2, hood);
+      pblock(9, 5, 2, 2, hood);
+    } else {
+      pblock(1, 4, 2, 3, hood);
+      pblock(8, 4, 2, 3, hood);
+    }
     // face (neutral tone) in the hood opening + two eyes
     pblock(3, 3, 5, 4, C.face);
-    pblock(4, 4, 1, 2, C.ink);
-    pblock(6, 4, 1, 2, C.ink);
+    if (panic) {
+      pblock(4, 4, 1, 1, C.ink);
+      pblock(5, 5, 1, 1, C.ink);
+      pblock(6, 4, 1, 1, C.ink);
+      pblock(4, 5, 1, 1, C.ink);
+      pblock(6, 5, 1, 1, C.ink);
+    } else {
+      pblock(4, 4, 1, 2, C.ink);
+      pblock(6, 4, 1, 2, C.ink);
+    }
     // hoodie body
     pblock(1, 7, 9, 4, hood);
     pblock(1, 7, 9, 1, C.bodyHi);
@@ -1358,7 +1577,10 @@ export function createMascotGame(): Game {
     // legs (true ground y; alternate while walking, tuck in the air)
     const ly = player.y + 11 * s;
     const lblock = (dx: number, w: number) => block(x + dx * s, ly, w * s, 3 * s, C.ink);
-    if (!player.onGround) {
+    if (panic) {
+      lblock(1, 2);
+      lblock(8, 2);
+    } else if (!player.onGround) {
       lblock(2, 3);
       lblock(6, 3);
     } else if (walking && frame === 0) {
@@ -1609,51 +1831,40 @@ export function createMascotGame(): Game {
       projectScale: player.projectScale,
       w: player.w,
       h: player.h,
+      pose: activePlayerPose(),
+      poseT,
+      endingT: enterT,
+      overT,
+      messageVisible: Boolean(msgEl && !msgEl.hidden),
       dir: moveDir(),
       celebrate,
       fireworks: rockets.length + sparks.length,
       bossDead: boss ? boss.dead : 1,
+      blocks: qblocks.map((q) => ({ tx: q.tx, ty: q.ty, kind: q.kind, used: q.used })),
+      brickBumps: Array.from(brickBumps.keys()),
+      brokenBricks: Array.from(brokenBricks.keys()),
       usedBlocks: qblocks.filter((q) => q.used).map((q) => ({ tx: q.tx, ty: q.ty, kind: q.kind })),
-      enemies: enemies.filter((e) => !e.dead).map((e) => ({ t: e.type, x: Math.round(e.x) })),
+      enemies: enemies
+        .filter((e) => !e.dead)
+        .map((e) => ({ t: e.type, x: Math.round(e.x), label: e.label, tone: e.tone })),
     });
     if (import.meta.env.DEV || navigator.webdriver) {
-      (
-        window as Window & {
-          __mgameDropNewProject?: () => void;
-          __mgameSpawnExpense?: () => void;
-          __mgameWarpBoss?: () => void;
-        }
-      ).__mgameDropNewProject = () => {
+      type DebugWindow = Window & {
+        __mgameDropNewProject?: () => void;
+        __mgameSpawnExpense?: () => void;
+        __mgameWarpBoss?: () => void;
+        __mgameBumpBrick?: (tx?: number, ty?: number) => void;
+        __mgameTriggerWin?: () => void;
+        __mgameTriggerGameOver?: () => void;
+      };
+      const debugWindow = window as DebugWindow;
+      debugWindow.__mgameDropNewProject = () => {
         oneups.push({ x: player.x, y: player.y, vx: 0, vy: 0, got: false });
       };
-      (
-        window as Window & {
-          __mgameDropNewProject?: () => void;
-          __mgameSpawnExpense?: () => void;
-          __mgameWarpBoss?: () => void;
-        }
-      ).__mgameSpawnExpense = () => {
-        enemies.push({
-          type: 'bill',
-          x: player.x,
-          y: player.y + player.h - 12,
-          w: 12,
-          h: 12,
-          vx: 0,
-          baseY: 0,
-          dead: 0,
-          t: 0,
-          label: 'RENT',
-          tone: 'rent',
-        });
+      debugWindow.__mgameSpawnExpense = () => {
+        hurt();
       };
-      (
-        window as Window & {
-          __mgameDropNewProject?: () => void;
-          __mgameSpawnExpense?: () => void;
-          __mgameWarpBoss?: () => void;
-        }
-      ).__mgameWarpBoss = () => {
+      debugWindow.__mgameWarpBoss = () => {
         player.x = BOSS_X - 72;
         player.y = GROUND_TOP - player.h;
         player.vx = 0;
@@ -1668,6 +1879,23 @@ export function createMascotGame(): Game {
           boss.dead = 0;
         }
         camX = Math.max(0, Math.min(WORLD_W - VIEW_W, player.x + player.w / 2 - VIEW_W / 2));
+      };
+      debugWindow.__mgameBumpBrick = (tx = 13, ty = 5) => {
+        bumpBrick(tx, ty);
+      };
+      debugWindow.__mgameTriggerWin = () => {
+        player.x = CASTLE_X + 18 - player.w;
+        player.y = GROUND_TOP - player.h;
+        player.vx = 0;
+        player.vy = 0;
+        player.onGround = true;
+        startEnding();
+        camX = Math.max(0, Math.min(WORLD_W - VIEW_W, player.x + player.w / 2 - VIEW_W / 2));
+      };
+      debugWindow.__mgameTriggerGameOver = () => {
+        lives = 0;
+        updateHud();
+        gameOver();
       };
     }
   }

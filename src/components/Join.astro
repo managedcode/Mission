@@ -13,6 +13,7 @@ const subjectFor = (title: string) => {
 };
 
 const mailto = (subject: string) => `mailto:${site.email}?subject=${encodeURIComponent(subject)}`;
+const contactHref = `#${join.contact.anchorId}`;
 ---
 
 <section class="section join" id="join" aria-labelledby="join-h">
@@ -46,7 +47,13 @@ const mailto = (subject: string) => `mailto:${site.email}?subject=${encodeURICom
             <h3 class="join__card-title">{card.title}</h3>
             <p class="join__card-body">{card.body}</p>
 
-            <a class="btn btn--ghost join__card-cta" href={mailto(subjectFor(card.title))}>
+            <a
+              class="btn btn--ghost join__card-cta"
+              href={contactHref}
+              data-join-contact-cta
+              data-contact-label={card.cta}
+              data-contact-subject={subjectFor(card.title)}
+            >
               {card.cta}
               <span aria-hidden="true">→</span>
             </a>
@@ -55,14 +62,31 @@ const mailto = (subject: string) => `mailto:${site.email}?subject=${encodeURICom
       }
     </ul>
 
-    <div class="join__knock" data-reveal>
+    <div
+      class="join__knock"
+      id={join.contact.anchorId}
+      data-reveal
+      data-join-contact-panel
+      data-contact-email={site.email}
+      tabindex="-1"
+    >
       <hr class="rule--dotted join__knock-rule" />
       <p class="join__knock-line">
         <span class="join__knock-label font-pixel">Knock on the door</span>
-        <a class="join__knock-mail font-mono" href={`mailto:${site.email}`}>
+        <a class="join__knock-mail font-mono" href={mailto(join.contact.generalSubject)}>
           {join.ctaEmailLabel}
           <span class="join__knock-caret caret" aria-hidden="true"></span>
         </a>
+      </p>
+      <p
+        class="join__contact-status font-mono"
+        data-join-contact-status
+        data-default-status={join.contact.defaultStatus}
+        data-selected-prefix={join.contact.selectedPrefix}
+        data-copied-prefix={join.contact.copiedPrefix}
+        data-copy-fallback-prefix={join.contact.copyFallbackPrefix}
+      >
+        {join.contact.defaultStatus}
       </p>
     </div>
   </div>
@@ -167,6 +191,10 @@ const mailto = (subject: string) => `mailto:${site.email}?subject=${encodeURICom
     flex-direction: column;
     align-items: center;
     gap: clamp(1.25rem, 0.9rem + 1.4vw, 2rem);
+    scroll-margin-top: calc(var(--header-h) + var(--space-l));
+  }
+  .join__knock:focus {
+    outline: none;
   }
   .join__knock-rule {
     width: 100%;
@@ -210,6 +238,16 @@ const mailto = (subject: string) => `mailto:${site.email}?subject=${encodeURICom
   }
   .join__knock-caret {
     display: inline-block;
+  }
+  .join__contact-status {
+    max-width: 58ch;
+    min-height: 1.5em;
+    color: var(--fg-soft);
+    font-size: var(--step--1);
+    line-height: 1.5;
+  }
+  .join__knock[data-selected='true'] .join__contact-status {
+    color: var(--fg);
   }
 
   /* ---------- Responsive ---------- */

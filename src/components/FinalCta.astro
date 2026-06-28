@@ -1,5 +1,5 @@
 ---
-import { finalCta } from '../data/site';
+import { finalCta, join } from '../data/site';
 
 // Marquee motto — two identical halves, each repeated enough to overflow the
 // widest viewport so the -50% loop never shows an empty strip. set:html children
@@ -29,7 +29,15 @@ const mottoHalf = Array.from({ length: 6 })
         {finalCta.primary.label}
         <span aria-hidden="true">→</span>
       </a>
-      <a class="btn btn--ghost" href={finalCta.secondary.href}>{finalCta.secondary.label}</a>
+      <a
+        class="btn btn--ghost"
+        href={finalCta.secondary.href}
+        data-join-contact-cta
+        data-contact-label={finalCta.secondary.label}
+        data-contact-subject={join.contact.generalSubject}
+      >
+        {finalCta.secondary.label}
+      </a>
     </div>
   </div>
 
