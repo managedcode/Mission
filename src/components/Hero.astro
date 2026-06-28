@@ -5,7 +5,7 @@ import GitHubMark from './GitHubMark.astro';
 // Precompute the headline as a trusted HTML string. Each word is its own
 // reveal target with a staggered delay. (Avoids fragile nested-map JSX.)
 // The final line is the PAIN ("nobody on call.") — its words carry the
-// .kinetic variable-weight pulse and ignite an amber phosphor on reveal.
+// Preserve the final amber phosphor state without animating non-composited text effects.
 let wordIndex = 0;
 const lastLineIndex = hero.headlineLines.length - 1;
 const headlineHtml = hero.headlineLines
@@ -170,16 +170,12 @@ const mottoHalf = Array.from({ length: 4 })
      A subtle amber phosphor glow ignites once the words reveal. */
   :global(.hero__line:last-child .hero__word-inner) {
     color: var(--amber);
-    text-shadow: none;
-    transition: text-shadow 0.8s var(--ease-out);
-  }
-  :global(:root[data-theme='dark'] .hero__line:last-child .hero__word-inner) {
-    color: var(--accent-2);
-  }
-  :global(:root.js .hero__line:last-child .hero__word[data-reveal].is-visible .hero__word-inner) {
     text-shadow:
       0 0 18px color-mix(in srgb, var(--amber) 55%, transparent),
       0 0 4px color-mix(in srgb, var(--amber) 35%, transparent);
+  }
+  :global(:root[data-theme='dark'] .hero__line:last-child .hero__word-inner) {
+    color: var(--accent-2);
   }
   /* let the amber phosphor bleed past the reveal-mask once the slide is done */
   :global(:root.js .hero__line:last-child .hero__word[data-reveal].is-visible) {

@@ -9,7 +9,7 @@ const year = 2026;
   <div class="wrap site-footer__inner">
     <div class="site-footer__brand">
       <a class="brand" href="/" aria-label={`${site.brand} ${site.name} — home`}>
-        <Logo size={32} />
+        <Logo size={40} tight />
         <span class="site-footer__word">{site.brand}</span>
         <span class="site-footer__word-tag font-pixel">{site.name}</span>
       </a>
@@ -89,24 +89,25 @@ const year = 2026;
   }
   .brand {
     display: inline-flex;
-    align-items: baseline;
-    gap: 0.6rem;
+    align-items: center;
+    gap: 0.7rem;
   }
   .brand .mc-logo {
     color: var(--fg);
-    align-self: center;
+    flex: none;
   }
   .site-footer__word {
     font-family: var(--font-display);
     font-weight: 700;
     font-size: 1.35rem;
+    line-height: 1;
     letter-spacing: -0.015em;
   }
   .site-footer__word-tag {
     font-size: 0.5rem;
+    line-height: 1;
     color: var(--accent);
     letter-spacing: 0.1em;
-    align-self: center;
   }
   .site-footer__tag {
     font-size: var(--step-1);

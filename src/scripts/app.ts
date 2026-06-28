@@ -276,10 +276,13 @@ function initMagnetic() {
   if (reduceMotion) return;
   if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
   document.querySelectorAll<HTMLElement>('.hero__cta .btn, .final-cta__cta .btn').forEach((el) => {
+    let rect = el.getBoundingClientRect();
+    el.addEventListener('pointerenter', () => {
+      rect = el.getBoundingClientRect();
+    });
     el.addEventListener('mousemove', (e) => {
-      const r = el.getBoundingClientRect();
-      const x = e.clientX - (r.left + r.width / 2);
-      const y = e.clientY - (r.top + r.height / 2);
+      const x = e.clientX - (rect.left + rect.width / 2);
+      const y = e.clientY - (rect.top + rect.height / 2);
       el.style.transform = `translate(${x * 0.25}px, ${y * 0.32}px)`;
     });
     el.addEventListener('mouseleave', () => {
@@ -539,9 +542,17 @@ function initMascot() {
   const triggerHop = () => {
     if (canRoam) {
       hopStart = performance.now(); // JS-driven hop (composes with roaming x)
+    } else if (sprite?.animate) {
+      sprite.animate(
+        [
+          { transform: 'translateY(0)' },
+          { transform: 'translateY(-12px)', offset: 0.35 },
+          { transform: 'translateY(0)' },
+        ],
+        { duration: 450, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
+      );
     } else {
       mascot.classList.remove('is-hop');
-      void mascot.offsetWidth; // reflow so the CSS hop restarts
       mascot.classList.add('is-hop');
       window.setTimeout(() => mascot.classList.remove('is-hop'), 500);
     }
@@ -558,10 +569,10 @@ function initMascot() {
 
   // --- roaming companion ---
   mascot.classList.add('mascot--roaming');
-  const width = () => mascot.offsetWidth || 52;
+  const mascotWidth = 52;
   const margin = 10;
   const minX = margin;
-  const maxX = () => Math.max(minX, window.innerWidth - width() - margin);
+  const maxX = () => Math.max(minX, window.innerWidth - mascotWidth - margin);
 
   let x = Math.min(maxX(), 48);
   let target = x;
@@ -592,7 +603,7 @@ function initMascot() {
 
     // chase the cursor while it's recently active; otherwise stroll somewhere
     if (now - lastPointer < 2600 && pointerX >= 0) {
-      target = Math.max(minX, Math.min(maxX(), pointerX - width() / 2));
+      target = Math.max(minX, Math.min(maxX(), pointerX - mascotWidth / 2));
     } else if (now > nextWander) {
       target = minX + Math.random() * (maxX() - minX);
       nextWander = now + 5000 + Math.random() * 8000;

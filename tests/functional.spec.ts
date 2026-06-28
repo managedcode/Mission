@@ -2,6 +2,98 @@ import { test, expect } from '@playwright/test';
 
 // In-page anchors that should each resolve to an element on the home page.
 const NAV_ANCHORS = ['#manifesto', '#how', '#maintainers', '#patronage', '#faq'];
+const MOBILE_WIDTHS = [320, 360, 375, 390, 414, 430] as const;
+const MOBILE_PATHS = ['/', '/patrons', '/projects', '/team', '/404'] as const;
+const MOBILE_AUDIT_HEIGHT = 844;
+
+async function prepareForResponsiveAudit(page: import('@playwright/test').Page): Promise<void> {
+  await page.evaluate(() => {
+    document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
+      el.classList.add('is-visible');
+    });
+
+    const style = document.createElement('style');
+    style.setAttribute('data-responsive-audit', '');
+    style.textContent =
+      '*,*::before,*::after{animation:none!important;transition:none!important;}' +
+      '.cursor,.cursor__ring,.scroll-progress,.crt-overlay,.sound-toggle,.mascot,.intro,.mgame{display:none!important;}';
+    document.head.appendChild(style);
+  });
+}
+
+async function collectMobileLayoutIssues(page: import('@playwright/test').Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const viewportWidth = document.documentElement.clientWidth;
+    const viewportHeight = window.innerHeight;
+    const pageScrollWidth = Math.max(
+      document.documentElement.scrollWidth,
+      document.body.scrollWidth
+    );
+    const issues: string[] = [];
+
+    if (pageScrollWidth - viewportWidth > 1) {
+      issues.push(`document overflows horizontally by ${pageScrollWidth - viewportWidth}px`);
+    }
+
+    const visibleElements = Array.from(document.querySelectorAll<HTMLElement>('body *'));
+    for (const el of visibleElements) {
+      const rect = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      if (rect.width <= 0 || rect.height <= 0) continue;
+      if (
+        style.display === 'none' ||
+        style.visibility === 'hidden' ||
+        Number(style.opacity) === 0
+      ) {
+        continue;
+      }
+      if (rect.bottom < 0 || rect.top > viewportHeight * 4) continue;
+      if (
+        el.closest(
+          '.hero__marquee,.starfield,.hero__grid-bg,.scroll-progress,.cursor,.cursor__ring'
+        )
+      ) {
+        continue;
+      }
+
+      const overflowLeft = Math.max(0, -rect.left);
+      const overflowRight = Math.max(0, rect.right - viewportWidth);
+      if (overflowLeft <= 1 && overflowRight <= 1) continue;
+
+      const label =
+        el.getAttribute('aria-label') ||
+        el.textContent?.replace(/\s+/g, ' ').trim().slice(0, 72) ||
+        el.tagName.toLowerCase();
+      issues.push(
+        `${el.tagName.toLowerCase()}${el.className ? `.${String(el.className).split(/\s+/)[0]}` : ''} (${label}) overflows viewport`
+      );
+      if (issues.length >= 8) break;
+    }
+
+    const criticalText = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        'h1,h2,h3,.btn,.chip,.field__label,.field__input,.repo__name,.repo__downloads,.plan__amount,.funding__label,.patrons__meter-text,.team__pct,.team__caption,.site-footer a'
+      )
+    );
+    for (const el of criticalText) {
+      const rect = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      const text = el.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+      if (!text || rect.width <= 0 || rect.height <= 0) continue;
+      if (style.display === 'none' || style.visibility === 'hidden') continue;
+
+      if (rect.left < -1 || rect.right > viewportWidth + 1) {
+        issues.push(`critical text clipped: "${text.slice(0, 72)}"`);
+      }
+      if (Number.parseFloat(style.fontSize) < 10) {
+        issues.push(`critical text below 10px: "${text.slice(0, 72)}"`);
+      }
+      if (issues.length >= 12) break;
+    }
+
+    return issues;
+  });
+}
 
 test.describe('Home page · structure & SEO', () => {
   test('returns 200 with a ManagedCode title and a single visible h1', async ({ page }) => {
@@ -78,6 +170,18 @@ test.describe('Home page · structure & SEO', () => {
   });
 });
 
+test.describe('Agent accessibility files', () => {
+  test('llms.txt is Markdown with a heading and crawlable links', async ({ page }) => {
+    const response = await page.goto('/llms.txt');
+    expect(response?.status()).toBe(200);
+
+    const body = await response?.text();
+    expect(body, 'llms.txt should be served').toBeTruthy();
+    expect(body).toMatch(/^#\s+\S/m);
+    expect(body).toMatch(/\[[^\]\n]+\]\(https:\/\/[^)\s]+\)/);
+  });
+});
+
 test.describe('Theme toggle', () => {
   test('flips html[data-theme] and persists to localStorage', async ({ page }) => {
     await page.goto('/');
@@ -97,24 +201,140 @@ test.describe('Theme toggle', () => {
 });
 
 test.describe('Mobile navigation', () => {
-  test('toggle opens/closes the menu and a link click closes it', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+  test('toggle opens/closes the menu and a link click closes it across phone widths', async ({
+    page,
+  }) => {
+    for (const width of MOBILE_WIDTHS) {
+      await page.setViewportSize({ width, height: MOBILE_AUDIT_HEIGHT });
+      await page.goto('/');
+
+      const toggle = page.locator('[data-nav-toggle]');
+      const menu = page.locator('[data-nav-menu]');
+
+      await expect(toggle, `${width}px menu toggle starts closed`).toHaveAttribute(
+        'aria-expanded',
+        'false'
+      );
+      await expect(menu, `${width}px menu starts closed`).toHaveAttribute('data-open', 'false');
+
+      await toggle.click();
+      await expect(toggle, `${width}px menu toggle opens`).toHaveAttribute('aria-expanded', 'true');
+      await expect(menu, `${width}px menu opens`).toHaveAttribute('data-open', 'true');
+
+      const menuBox = await menu.boundingBox();
+      expect(menuBox, `${width}px menu should have a visible box`).toBeTruthy();
+      expect(
+        menuBox?.x ?? 0,
+        `${width}px menu should start inside viewport`
+      ).toBeGreaterThanOrEqual(-1);
+      expect(
+        (menuBox?.x ?? 0) + (menuBox?.width ?? 0),
+        `${width}px menu should fit viewport width`
+      ).toBeLessThanOrEqual(width + 1);
+
+      // Clicking an in-menu link closes the menu (see initNav in app.ts).
+      await menu.locator('ul a').first().click();
+      await expect(toggle, `${width}px menu toggle closes after link`).toHaveAttribute(
+        'aria-expanded',
+        'false'
+      );
+      await expect(menu, `${width}px menu closes after link`).toHaveAttribute('data-open', 'false');
+    }
+  });
+});
+
+test.describe('Mobile viewport coverage', () => {
+  test('key pages stay readable from 320px through large-phone widths', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'desktop',
+      'Runs once with explicit viewport sizes; visual/perf specs cover the full device matrix.'
+    );
+
+    for (const path of MOBILE_PATHS) {
+      for (const width of MOBILE_WIDTHS) {
+        await page.setViewportSize({ width, height: MOBILE_AUDIT_HEIGHT });
+        await page.goto(path);
+        await prepareForResponsiveAudit(page);
+
+        await expect(page.locator('[data-header]'), `${path} ${width}px header`).toBeVisible();
+        await expect(page.locator('main'), `${path} ${width}px main`).toBeVisible();
+        await expect(page.locator('h1'), `${path} ${width}px h1 count`).toHaveCount(1);
+        await expect(page.locator('h1'), `${path} ${width}px h1 visible`).toBeVisible();
+
+        const issues = await collectMobileLayoutIssues(page);
+        expect(issues, `${path} at ${width}px should not clip or overflow`).toEqual([]);
+      }
+    }
+  });
+});
+
+test.describe('Mission Run mini-game', () => {
+  test('holding Space extends one jump without auto-jumping on landing', async ({ page }) => {
+    test.skip(!test.info().project.name.startsWith('desktop'), 'keyboard-only game path');
+
     await page.goto('/');
+    await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
+    await page.locator('[data-mascot]').click({ force: true });
 
-    const toggle = page.locator('[data-nav-toggle]');
-    const menu = page.locator('[data-nav-menu]');
+    const readGame = () =>
+      page.evaluate(() => {
+        const state = (
+          window as Window & {
+            __mgame?: () => { y: number; onGround: boolean; state: string };
+          }
+        ).__mgame?.();
+        return state ?? null;
+      });
 
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    await expect(menu).toHaveAttribute('data-open', 'false');
+    await expect.poll(async () => (await readGame())?.onGround, { timeout: 3000 }).toBe(true);
 
-    await toggle.click();
-    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    await expect(menu).toHaveAttribute('data-open', 'true');
+    await page.evaluate(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+      (
+        window as Window & {
+          __mgameSpaceRepeat?: number;
+        }
+      ).__mgameSpaceRepeat = window.setInterval(() => {
+        window.dispatchEvent(
+          new KeyboardEvent('keydown', { key: ' ', repeat: true, bubbles: true })
+        );
+      }, 30);
+    });
 
-    // Clicking an in-menu link closes the menu (see initNav in app.ts).
-    await menu.locator('ul a').first().click();
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    await expect(menu).toHaveAttribute('data-open', 'false');
+    await page.waitForTimeout(1500);
+
+    const samples: Array<{ y: number; onGround: boolean }> = [];
+    for (let i = 0; i < 4; i++) {
+      const state = await readGame();
+      expect(state?.state).toBe('play');
+      samples.push({ y: state?.y ?? -1, onGround: state?.onGround ?? false });
+      await page.waitForTimeout(80);
+    }
+
+    await page.evaluate(() => {
+      const w = window as Window & { __mgameSpaceRepeat?: number };
+      if (w.__mgameSpaceRepeat) window.clearInterval(w.__mgameSpaceRepeat);
+      window.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true }));
+    });
+
+    expect(samples).toEqual(samples.map((sample) => ({ ...sample, onGround: true })));
+    const restingY = samples[0]?.y;
+    expect(new Set(samples.map((sample) => sample.y))).toEqual(new Set([restingY]));
+
+    await page.evaluate(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', repeat: true, bubbles: true }));
+    });
+    await page.waitForTimeout(240);
+
+    const repeatOnlyState = await readGame();
+    expect(repeatOnlyState?.onGround).toBe(true);
+    expect(repeatOnlyState?.y).toBe(restingY);
+
+    await page.evaluate(() => {
+      window.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true }));
+    });
   });
 });
 

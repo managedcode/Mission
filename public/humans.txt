@@ -7,7 +7,7 @@ You found humans.txt. Old-school. We like you already.
     Run by    Managed Code — open-source community for .NET
     Contact   opensource@managed-code.com
     Code      github.com/managedcode
-    Made in   Ukraine 🇺🇦, with ❤ and too much coffee
+    Built     in the open, with ❤ and too much coffee
 
 /* WE'RE HIRING */
     Maintainers who love the boring, important work.

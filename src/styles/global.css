@@ -266,8 +266,15 @@ p {
   width: 0.7em;
   height: 0.7em;
   background: currentColor;
-  box-shadow: 1.4em 0 0 var(--accent-2);
   flex: none;
+}
+@media (min-width: 48rem) {
+  .kicker::before {
+    width: 1.8em;
+    background:
+      linear-gradient(currentColor 0 0) 0 0 / 0.7em 0.7em no-repeat,
+      linear-gradient(var(--accent-2) 0 0) 1.1em 0 / 0.7em 0.7em no-repeat;
+  }
 }
 
 /* ---------- Layout utilities ---------- */
@@ -790,28 +797,10 @@ body::after {
   }
 }
 
-/* Kinetic display word — variable-font weight breathes + phosphor ignite on reveal */
+/* Kinetic display word — static weight/color only. Lighthouse flags animating
+   variable font axes and text-shadow as non-composited work on the hero. */
 .kinetic {
   font-variation-settings: 'wght' 700;
-  transition:
-    font-variation-settings 0.8s var(--ease-out),
-    text-shadow 0.8s var(--ease-out);
-}
-:root.js [data-reveal].is-visible .kinetic {
-  animation: kinetic-pulse 3.4s var(--ease-out) 0.4s infinite alternate;
-}
-@keyframes kinetic-pulse {
-  from {
-    font-variation-settings: 'wght' 560;
-  }
-  to {
-    font-variation-settings: 'wght' 760;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  :root.js [data-reveal].is-visible .kinetic {
-    animation: none;
-  }
 }
 
 /* ---------- Custom pixel cursor (desktop, fine pointer only) ---------- */

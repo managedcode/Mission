@@ -24,7 +24,7 @@ export const site = {
   repo: 'https://github.com/managedcode/Mission',
   locale: 'en',
   twitter: '@managedcode',
-  madeIn: 'Made in Ukraine 🇺🇦',
+  madeIn: 'Built in the open',
   // Patron application form. The form POSTs JSON to the ManagedCode Form CRM
   // Azure Function. There is deliberately NO mailto fallback.
   formEndpoint: 'https://func-managed-code-form-crm.azurewebsites.net/api/managed-code/mission',
@@ -245,12 +245,12 @@ export const team = {
 export const funding = {
   kicker: 'The goal',
   heading: 'Mission starts at $32,768 a month',
-  body: 'A working team runs on about $32,768 a month — every month. That covers senior-led maintenance, delivery capacity, junior mentorship, release/security time, and the operating buffer that makes an SLA real. Founding patrons have committed $6k; you’re billed only when your maintainer starts.',
-  committed: 6000,
+  body: 'A working team runs on about $32,768 a month — every month. That covers senior-led maintenance, delivery capacity, junior mentorship, release/security time, and the operating buffer that makes an SLA real. Founding patrons have committed $8k; you’re billed only when your maintainer starts.',
+  committed: 8000,
   goal: 32768,
-  committedShort: '$6k',
+  committedShort: '$8k',
   goalShort: '$32,768',
-  committedLabel: '$6k/mo from founding patrons',
+  committedLabel: '$8k/mo from founding patrons',
   goalLabel: '$32,768/mo to launch',
   cta: { label: 'Become a founding patron', href: '#apply' },
   note: 'Run by Managed Code — 1,100+ GitHub stars and 1.3M+ NuGet downloads already shipped. Figures illustrative while Mission is in launch.',
@@ -435,7 +435,7 @@ export const faq = {
     },
     {
       q: 'Where is the team based?',
-      a: 'Managed Code is made in Ukraine. The operating model is a Ukraine/Eastern Europe-anchored remote team with EU business-day coverage first. US overlap, weekend rotation, and 24/7-style escalation are custom scope, not implied by the public grades.',
+      a: 'Managed Code is remote-first, with EU business-day coverage first. US overlap, weekend rotation, and 24/7-style escalation are custom scope, not implied by the public grades.',
     },
     {
       q: 'How is this different from a vendor support contract?',

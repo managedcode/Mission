@@ -178,10 +178,9 @@ const { kicker, heading, lede, steps } = howItWorks;
     );
     border-right: var(--border-px) solid var(--fg);
   }
-  /* the coin rides the leading edge of the fill. Its X position is the rail's
-     own width scaled by --progress (left: 0 → 100%); translate(-50%) keeps it
-     centred on that point and on-rail at both ends. RESTING state: parked over
-     04 (--progress: 1). */
+  /* Static end-cap coin. The rail itself still scroll-fills via transform, but
+     the coin no longer animates left/top, which Lighthouse reports as
+     non-composited layout work. RESTING state: parked over 04 (--progress: 1). */
   .how__coin {
     position: absolute;
     top: 50%;
@@ -436,13 +435,6 @@ const { kicker, heading, lede, steps } = howItWorks;
         animation-timeline: --how-loop;
         animation-range: entry 8% cover 58%;
       }
-      /* Coin: rides from 01 to 04 along the rail. */
-      .how__coin {
-        animation: how-coin linear both;
-        animation-timeline: --how-loop;
-        animation-range: entry 8% cover 58%;
-      }
-
       /* Each numeral ignites as the fill front reaches its node. Staggered
          ranges so 01 lights first, 04 last. Numerals start dim, end lit. */
       .how__n {
@@ -468,11 +460,6 @@ const { kicker, heading, lede, steps } = howItWorks;
         animation-timeline: --how-loop;
         animation-range: cover 56% exit 30%;
       }
-      .how__token {
-        animation: how-token linear both;
-        animation-timeline: --how-loop;
-        animation-range: cover 56% exit 30%;
-      }
     }
   }
 
@@ -483,17 +470,6 @@ const { kicker, heading, lede, steps } = howItWorks;
     }
     to {
       transform: scaleX(1);
-    }
-  }
-  /* Coin travel: start of rail → end of rail. */
-  @keyframes how-coin {
-    from {
-      left: 0%;
-      opacity: 1;
-    }
-    to {
-      left: 100%;
-      opacity: 1;
     }
   }
   /* Numeral ignition: dim/desaturated → full colour. The final keyframe equals
@@ -517,19 +493,6 @@ const { kicker, heading, lede, steps } = howItWorks;
       transform: scaleX(1);
     }
   }
-  /* Token travels the feedback rail right → left, ending back "at 01". The end
-     keyframe (left: 0) matches the base state, so frozen frames rest at 01. */
-  @keyframes how-token {
-    from {
-      left: calc(100% - 10px);
-      opacity: 1;
-    }
-    to {
-      left: 0;
-      opacity: 1;
-    }
-  }
-
   /* Reduced motion: nothing animates. Base rules already render the complete
      resting state (rail full, coin at 04, numerals lit, feedback full). We only
      hard-stop the ambient spins so the ↻ glyphs sit still. */
@@ -605,9 +568,6 @@ const { kicker, heading, lede, steps } = howItWorks;
         .how__progress-fill {
           animation-name: how-fill-y;
         }
-        .how__coin {
-          animation-name: how-coin-y;
-        }
       }
     }
   }
@@ -619,17 +579,6 @@ const { kicker, heading, lede, steps } = howItWorks;
       transform: scaleY(1);
     }
   }
-  @keyframes how-coin-y {
-    from {
-      top: 0%;
-      opacity: 1;
-    }
-    to {
-      top: 100%;
-      opacity: 1;
-    }
-  }
-
   /* ---- Mobile: single column, arrows point down ---- */
   @media (max-width: 40rem) {
     .how__loop {

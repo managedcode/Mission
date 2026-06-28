@@ -1,7 +1,7 @@
 /* =================================================================
    RENT RUN — a Super-Mario-style platformer for maintainers.
-   Survive the month in a Mario world: grab GitHub ★, bump ? blocks,
-   grab a power-flower, find the secret 1-UP, and get past the whole
+   Survive the month in a Mario world: bump ? blocks for GitHub ★,
+   knock out a power-flower, find the secret 1-UP, and get past the whole
    bestiary — goombas, shell-kicking turtles, fliers, pipe piranhas
    AND your bills (RENT · GAS · LOAN) — to reach the castle and keep
    the commons alive. Launched by clicking the corner mascot.
@@ -52,61 +52,32 @@ export function createMascotGame(): Game {
     [44, 3],
     [60, 2],
   ]; // [tileX, heightTiles] (2 wide)
-  const QDEF: Array<[number, number, 'coin' | 'life' | 'hidden']> = [
+  const QDEF: Array<[number, number, 'coin' | 'power' | 'hidden']> = [
     [8, 5, 'coin'],
     [10, 5, 'coin'],
     [12, 5, 'coin'],
     [16, 5, 'hidden'],
     [32, 4, 'coin'],
-    [40, 3, 'life'],
+    [40, 3, 'power'],
     [53, 5, 'coin'],
     [57, 3, 'hidden'],
     [85, 4, 'coin'],
   ];
-  const FLOWER_TILES: Array<[number, number]> = [
-    [40, 2],
-    [84, 4],
-  ];
-  const STAR_TILES: Array<[number, number]> = [
-    [6, 7],
-    [7, 7],
-    [14, 7],
-    [15, 7],
-    [20, 2],
-    [21, 2],
-    [25, 6],
-    [26, 6],
-    [33, 4],
-    [34, 4],
-    [41, 2],
-    [45, 5],
-    [46, 5],
-    [49, 4],
-    [50, 4],
-    [55, 4],
-    [58, 2],
-    [59, 2],
-    [62, 6],
-    [67, 4],
-    [68, 4],
-    [72, 7],
-    [77, 5],
-    [81, 7],
-    [86, 4],
-  ];
   // enemies: [type, tileX, label?, tone?]
-  // a developer's monthly survival bills (the joke: expenses pile up)
+  // everything that pulls a maintainer away from the commons: the bugs & trolls
+  // (goombas/turtles/flies) plus the month's real-life pressures, spelled out on
+  // the paper "bills" — rent, the loan, the day job, family, the cloud invoice.
   const ENEMIES_DEF: Array<[string, number, string?, BillTone?]> = [
     ['goomba', 14],
     ['bill', 21, 'RENT', 'rent'],
     ['turtle', 29],
-    ['bill', 36, 'MOBILE', 'mobile'],
+    ['bill', 36, 'LOAN', 'loan'],
     ['goomba', 43],
-    ['bill', 50, 'NET', 'net'],
+    ['bill', 50, 'WORK', 'work'],
     ['fly', 55],
-    ['bill', 63, 'GAS', 'util'],
+    ['bill', 63, 'FAMILY', 'family'],
     ['turtle', 72],
-    ['bill', 76, 'GPT', 'gpt'],
+    ['bill', 76, 'CLOUD', 'util'],
     ['goomba', 82],
   ];
   const SIGNS: Array<[number, string]> = [
@@ -172,6 +143,8 @@ export function createMascotGame(): Game {
     net: '#6e87ff',
     claude: '#d97757',
     gpt: '#10a37f',
+    work: '#8a6cff',
+    family: '#e85d9b',
     goomba: '#9c5a24',
     goombaD: '#5a3414',
     shell: '#2fbf5a',
@@ -183,7 +156,16 @@ export function createMascotGame(): Game {
     pirD: '#8a241a',
     wing: '#eef3ee',
   };
-  type BillTone = 'rent' | 'util' | 'loan' | 'mobile' | 'net' | 'claude' | 'gpt';
+  type BillTone =
+    | 'rent'
+    | 'util'
+    | 'loan'
+    | 'mobile'
+    | 'net'
+    | 'claude'
+    | 'gpt'
+    | 'work'
+    | 'family';
   const billTone = (key: BillTone) => C[key];
 
   // ---- 3×5 pixel font ----
@@ -204,6 +186,9 @@ export function createMascotGame(): Game {
     M: ['101', '111', '111', '101', '101'],
     I: ['111', '010', '010', '010', '111'],
     D: ['110', '101', '101', '101', '110'],
+    F: ['111', '100', '110', '100', '100'],
+    K: ['101', '110', '100', '110', '101'],
+    Y: ['101', '101', '010', '010', '010'],
     '1': ['010', '110', '010', '010', '111'],
     '3': ['111', '001', '111', '001', '111'],
     '#': ['101', '111', '101', '111', '101'],
@@ -225,10 +210,44 @@ export function createMascotGame(): Game {
   let acc = 0;
   const STEP = 1000 / 60;
 
-  const keys = { left: false, right: false };
+  // --- input layer: keyboard and on-screen touch buttons share one path ---
+  // Horizontal uses last-pressed-wins, so holding both directions never cancels
+  // out to a dead stop — exactly how a normal platformer feels.
+  let leftHeld = false;
+  let rightHeld = false;
+  let dirLast = 0; // -1 | 0 | 1 — which side was pressed most recently
   let jumpHeld = false;
   let jumpBuf = 0;
   let coyote = 0;
+  const JUMP_BUF = 8;
+  const touchBtns: HTMLElement[] = [];
+  function setLeft(on: boolean) {
+    if (on === leftHeld) return;
+    leftHeld = on;
+    if (on) dirLast = -1;
+  }
+  function setRight(on: boolean) {
+    if (on === rightHeld) return;
+    rightHeld = on;
+    if (on) dirLast = 1;
+  }
+  function moveDir(): number {
+    if (leftHeld && rightHeld) return dirLast;
+    return leftHeld ? -1 : rightHeld ? 1 : 0;
+  }
+  // Buffer a jump only on a fresh press (rising edge). Auto-repeat keydowns and a
+  // held button never re-trigger — so a held jump extends one leap, never bunny-hops.
+  function jumpPress() {
+    if (jumpHeld) return;
+    jumpHeld = true;
+    jumpBuf = JUMP_BUF;
+  }
+  function jumpRelease() {
+    jumpHeld = false;
+  }
+  function syncTouchButtons() {
+    for (const b of touchBtns) b.dataset.on = 'false';
+  }
   const player = {
     x: START.x,
     y: START.y,
@@ -251,15 +270,13 @@ export function createMascotGame(): Game {
   type Q = {
     tx: number;
     ty: number;
-    kind: 'coin' | 'life' | 'hidden';
+    kind: 'coin' | 'power' | 'hidden';
     used: boolean;
     bump: number;
   };
   let qblocks: Q[] = [];
   const qmap = new Map<string, Q>();
-  type Star = { x: number; y: number; got: boolean };
-  let starGems: Star[] = [];
-  type Flower = { x: number; y: number; got: boolean };
+  type Flower = { x: number; y: number; got: boolean; emerge: number };
   let flowers: Flower[] = [];
   type EType = 'bill' | 'goomba' | 'turtle' | 'shell' | 'fly' | 'piranha';
   type Enemy = {
@@ -283,6 +300,28 @@ export function createMascotGame(): Game {
   type Pickup = { x: number; y: number; vx: number; vy: number; got: boolean };
   let oneups: Pickup[] = []; // GitHub "new project" 1-ups dropped by secret blocks
   let enterT = 0; // castle-entry timer for the ending scene
+  // --- victory celebration: a raised flag + fireworks over the ManagedCode HQ ---
+  type Spark = { x: number; y: number; vx: number; vy: number; life: number; color: string };
+  type Rocket = { x: number; y: number; vy: number; color: string };
+  let sparks: Spark[] = [];
+  let rockets: Rocket[] = [];
+  let celebrate = false; // spawning fireworks (true from castle-entry through the win)
+  let fwTick = 0;
+  let winFlag = 0; // 0..1 — how far the brand flag has risen up the keep
+  const FW_COLORS = [C.starHi, C.star, C.bodyHi, C.grassHi, C.mobile, C.rent, C.family, C.cream];
+
+  function clearInput() {
+    leftHeld = false;
+    rightHeld = false;
+    dirLast = 0;
+    jumpHeld = false;
+    jumpBuf = 0;
+    coyote = 0;
+    syncTouchButtons();
+  }
+  function setPlaying(on: boolean) {
+    if (root) root.dataset.playing = String(on);
+  }
 
   // ---- Physics ----
   const GRAV = 0.5;
@@ -353,20 +392,67 @@ export function createMascotGame(): Game {
     stars = 0;
     lives = 3;
     state = 'play';
-    jumpBuf = 0;
-    coyote = 0;
+    clearInput();
     qblocks = QDEF.map(([tx, ty, kind]) => ({ tx, ty, kind, used: false, bump: 0 }));
     qmap.clear();
     for (const q of qblocks) qmap.set(kk(q.tx, q.ty), q);
-    starGems = STAR_TILES.map(([x, y]) => ({ x: x * TILE + 1, y: y * TILE + 1, got: false }));
-    flowers = FLOWER_TILES.map(([x, y]) => ({ x: x * TILE + 3, y: y * TILE + 4, got: false }));
+    flowers = [];
     spawnEnemies();
     particles = [];
     blockStars = [];
     oneups = [];
     enterT = 0;
+    sparks = [];
+    rockets = [];
+    celebrate = false;
+    fwTick = 0;
+    winFlag = 0;
+    setPlaying(true);
     updateHud();
     hideMsg();
+  }
+  // ---- Fireworks ----
+  function spawnRocket() {
+    const x = camX + 36 + Math.random() * (VIEW_W - 72);
+    rockets.push({
+      x,
+      y: VIEW_H - 8,
+      vy: -(2.3 + Math.random() * 1.0),
+      color: FW_COLORS[Math.floor(Math.random() * FW_COLORS.length)],
+    });
+  }
+  function explodeRocket(x: number, y: number, color: string) {
+    const n = 16;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const sp = 0.7 + Math.random() * 0.9;
+      sparks.push({
+        x,
+        y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp - 0.3,
+        life: 30 + Math.floor(Math.random() * 18),
+        color,
+      });
+    }
+  }
+  function updateFireworks() {
+    for (const r of rockets) {
+      r.y += r.vy;
+      r.vy += 0.05;
+    }
+    const burst = rockets.filter((r) => r.vy >= -0.4 || r.y < 16);
+    for (const r of burst) explodeRocket(r.x, r.y, r.color);
+    if (burst.length) rockets = rockets.filter((r) => !(r.vy >= -0.4 || r.y < 16));
+    for (const s of sparks) {
+      s.x += s.vx;
+      s.y += s.vy;
+      s.vy += 0.05;
+      s.vx *= 0.99;
+      s.life--;
+    }
+    sparks = sparks.filter((s) => s.life > 0);
+    if (celebrate && fwTick++ % 20 === 0 && rockets.length < 5) spawnRocket();
   }
   function addParticle(x: number, y: number, text: string, color: string) {
     particles.push({ x, y, vy: -0.55, life: 52, text, color });
@@ -380,6 +466,10 @@ export function createMascotGame(): Game {
       { x: x + 5, y: y + 3, vx: 0.45, vy: -3.0, life: 58 }
     );
   }
+  function popPowerFlower(tx: number, ty: number) {
+    flowers.push({ x: tx * TILE + 3, y: ty * TILE - 4, got: false, emerge: 16 });
+    addParticle(tx * TILE - 10, ty * TILE - 4, 'POWER', C.starHi);
+  }
   function popNewProject(tx: number, ty: number) {
     oneups.push({ x: tx * TILE + 1, y: ty * TILE - 14, vx: 0.8, vy: -2.4, got: false });
     addParticle(tx * TILE - 8, ty * TILE - 4, 'NEW', C.life);
@@ -390,8 +480,8 @@ export function createMascotGame(): Game {
     if (q.kind === 'coin') {
       stars += 3;
       popGithubStars(q.tx, q.ty);
-    } else if (q.kind === 'life') {
-      popNewProject(q.tx, q.ty);
+    } else if (q.kind === 'power') {
+      popPowerFlower(q.tx, q.ty);
     } else {
       popNewProject(q.tx, q.ty);
     }
@@ -401,6 +491,7 @@ export function createMascotGame(): Game {
     lives -= 1;
     updateHud();
     if (lives <= 0) return gameOver();
+    clearInput();
     player.x = START.x;
     player.y = START.y;
     player.vx = 0;
@@ -418,7 +509,9 @@ export function createMascotGame(): Game {
     player.vx = -player.face * 3;
   }
   function updateEnding() {
-    // Mario-style castle entry: the maintainer walks into the gate, then fades in.
+    // Mario-style castle entry: the maintainer walks into the gate, then fades in,
+    // while the ManagedCode flag climbs the keep and fireworks go up.
+    if (winFlag < 1) winFlag = Math.min(1, winFlag + 0.025);
     const doorX = CASTLE_X + CASTLE_W / 2 - player.w / 2;
     if (player.x < doorX - 1) {
       player.x += 1.4;
@@ -436,14 +529,19 @@ export function createMascotGame(): Game {
   }
   function showWin() {
     state = 'win';
+    setPlaying(false);
+    // celebrate stays true → the fireworks keep bursting behind the win card.
     showMsg(
-      `LEVEL CLEAR ✓  ·  ★ ${stars}\nthe commons survived the month.\nnow go keep the real one alive →`,
+      `YOU'RE FUNDED ✓   ★ ${stars}\nthe castle is ManagedCode — you get paid\nto keep open source alive now.\nput a real maintainer on the payroll →`,
       true
     );
   }
   function gameOver() {
+    clearInput();
     state = 'over';
-    showMsg(`EVICTED  ·  ★ ${stars}\nthe bills won this month`, false);
+    setPlaying(false);
+    celebrate = false;
+    showMsg(`EVICTED  ·  ★ ${stars}\nthe month's bills won this time`, false);
   }
 
   function collide(axis: 'x' | 'y') {
@@ -585,6 +683,7 @@ export function createMascotGame(): Game {
 
   function update() {
     tick++;
+    updateFireworks();
     for (const q of qblocks) if (q.bump > 0) q.bump--;
     for (const s of blockStars) {
       s.x += s.vx;
@@ -598,6 +697,12 @@ export function createMascotGame(): Game {
       p.life--;
     }
     particles = particles.filter((p) => p.life > 0);
+    for (const f of flowers) {
+      if (!f.got && f.emerge > 0) {
+        f.y -= 0.65;
+        f.emerge--;
+      }
+    }
     if (state === 'ending') {
       updateEnding();
       return;
@@ -610,12 +715,12 @@ export function createMascotGame(): Game {
     else if (coyote > 0) coyote--;
     if (jumpBuf > 0) jumpBuf--;
 
-    const targetVX = (keys.right ? RUN : 0) - (keys.left ? RUN : 0);
-    if (targetVX !== 0) {
-      player.vx += Math.sign(targetVX) * ACCEL;
+    const dir = moveDir();
+    if (dir !== 0) {
+      player.vx += dir * ACCEL;
       if (player.vx > RUN) player.vx = RUN;
       if (player.vx < -RUN) player.vx = -RUN;
-      player.face = targetVX > 0 ? 1 : -1;
+      player.face = dir > 0 ? 1 : -1;
     } else {
       player.vx *= FRICTION;
       if (Math.abs(player.vx) < 0.08) player.vx = 0;
@@ -643,12 +748,6 @@ export function createMascotGame(): Game {
 
     if (player.y > VIEW_H + 48) return loseLifeFromStart();
 
-    for (const s of starGems)
-      if (!s.got && ov(player.x, player.y, player.w, player.h, s.x - 1, s.y - 1, 9, 9)) {
-        s.got = true;
-        stars++;
-        updateHud();
-      }
     for (const f of flowers)
       if (!f.got && ov(player.x, player.y, player.w, player.h, f.x, f.y, 10, 12)) {
         f.got = true;
@@ -689,6 +788,9 @@ export function createMascotGame(): Game {
     if (player.x + player.w >= CASTLE_X + 18) {
       state = 'ending';
       enterT = 0;
+      celebrate = true;
+      clearInput();
+      setPlaying(false);
     }
     camX = Math.max(0, Math.min(WORLD_W - VIEW_W, player.x + player.w / 2 - VIEW_W / 2));
   }
@@ -858,6 +960,19 @@ export function createMascotGame(): Game {
     block(bx + CASTLE_W - 16, top + 16, 6, 9, C.doorDark);
     block(bx + CASTLE_W / 2 - 10, GROUND_TOP - 28, 20, 28, C.doorDark);
     block(bx + CASTLE_W / 2 - 7, GROUND_TOP - 24, 14, 24, '#160f06');
+    // brand flagpole on the keep — the ManagedCode flag climbs it on victory
+    const poleX = bx + CASTLE_W / 2 - 1;
+    const poleBase = top - 8;
+    const poleTop = poleBase - 26;
+    block(poleX, poleTop, 2, poleBase - poleTop, C.stoneHi);
+    block(poleX, poleTop - 2, 2, 2, C.starHi); // finial
+    const flagH = 9;
+    const flagW = 16;
+    const fy = poleBase - flagH - winFlag * (poleBase - flagH - poleTop);
+    block(poleX + 2, fy, flagW, flagH, C.rent);
+    block(poleX + 2, fy, flagW, 1, C.starHi);
+    block(poleX + 2, fy + flagH - 1, flagW, 1, '#8a2f12');
+    text('MC', poleX + 5, fy + 2, 1, C.cream);
   }
 
   function drawWorld() {
@@ -931,8 +1046,6 @@ export function createMascotGame(): Game {
       drawStar(b.x, b.y);
       ctx.globalAlpha = 1;
     }
-    for (const s of starGems)
-      if (!s.got) drawStar(s.x, s.y - (Math.sin(tick * 0.08 + s.x) > 0 ? 1 : 0));
     for (const f of flowers) if (!f.got) drawFlower(f.x, f.y);
     for (const u of oneups) if (!u.got) drawGithub(u.x, u.y);
     for (const e of enemies) if (!e.dead && e.type !== 'piranha') drawEnemy(e);
@@ -942,6 +1055,19 @@ export function createMascotGame(): Game {
     for (const p of particles) {
       ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 40));
       text(p.text, p.x, p.y, 1, p.color);
+      ctx.globalAlpha = 1;
+    }
+    drawFireworks();
+  }
+
+  function drawFireworks() {
+    for (const r of rockets) {
+      block(r.x, r.y + 2, 1, 3, C.cream); // spark trail
+      block(r.x, r.y, 2, 2, r.color);
+    }
+    for (const s of sparks) {
+      ctx.globalAlpha = Math.max(0, Math.min(1, s.life / 20));
+      block(s.x, s.y, 2, 2, s.color);
       ctx.globalAlpha = 1;
     }
   }
@@ -1022,29 +1148,35 @@ export function createMascotGame(): Game {
     raf = requestAnimationFrame(loop);
   }
 
+  const isLeftKey = (k: string) => k === 'ArrowLeft' || k === 'a' || k === 'A';
+  const isRightKey = (k: string) => k === 'ArrowRight' || k === 'd' || k === 'D';
+  const isJumpKey = (k: string) =>
+    k === ' ' || k === 'Spacebar' || k === 'ArrowUp' || k === 'w' || k === 'W';
   function onKeyDown(e: KeyboardEvent) {
     if (!running) return;
-    const key = e.key;
-    if (key === 'ArrowLeft' || key === 'a' || key === 'A') {
-      keys.left = true;
+    const k = e.key;
+    if (isLeftKey(k)) {
+      if (state === 'play') setLeft(true);
       e.preventDefault();
-    } else if (key === 'ArrowRight' || key === 'd' || key === 'D') {
-      keys.right = true;
+    } else if (isRightKey(k)) {
+      if (state === 'play') setRight(true);
       e.preventDefault();
-    } else if (key === ' ' || key === 'ArrowUp' || key === 'w' || key === 'W') {
+    } else if (isJumpKey(k)) {
       if (state === 'play') {
-        jumpBuf = 8;
-        jumpHeld = true;
-      } else restart();
+        if (!e.repeat) jumpPress();
+      } else if (!e.repeat) restart();
       e.preventDefault();
-    } else if (key === 'Escape') close();
-    else if (key === 'Enter' && state !== 'play') restart();
+    } else if (k === 'Escape') {
+      close();
+    } else if (k === 'Enter' && state !== 'play' && !e.repeat) {
+      restart();
+    }
   }
   function onKeyUp(e: KeyboardEvent) {
-    const key = e.key;
-    if (key === 'ArrowLeft' || key === 'a' || key === 'A') keys.left = false;
-    else if (key === 'ArrowRight' || key === 'd' || key === 'D') keys.right = false;
-    else if (key === ' ' || key === 'ArrowUp' || key === 'w' || key === 'W') jumpHeld = false;
+    const k = e.key;
+    if (isLeftKey(k)) setLeft(false);
+    else if (isRightKey(k)) setRight(false);
+    else if (isJumpKey(k)) jumpRelease();
   }
 
   function build() {
@@ -1140,8 +1272,6 @@ export function createMascotGame(): Game {
       root.dataset.open = 'true';
       document.documentElement.classList.add('mgame-open');
       reset();
-      keys.left = keys.right = false;
-      jumpHeld = false;
       startLoop();
       canvas.focus();
     } catch {
@@ -1150,6 +1280,7 @@ export function createMascotGame(): Game {
   }
   function close() {
     stopLoop();
+    clearInput();
     if (root) root.dataset.open = 'false';
     document.documentElement.classList.remove('mgame-open');
   }
