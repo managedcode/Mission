@@ -11,7 +11,8 @@ const formEndpoint = site.formEndpoint as string;
 const recaptchaApiUrl = site.recaptchaApiUrl as string;
 const recaptchaSiteKey = site.recaptchaSiteKey as string;
 const recaptchaAction = site.recaptchaAction as string;
-const enabled = formEndpoint.length > 0 && recaptchaSiteKey.length > 0 && recaptchaAction.length > 0;
+const enabled =
+  formEndpoint.length > 0 && recaptchaSiteKey.length > 0 && recaptchaAction.length > 0;
 const f = apply.fields;
 const recaptchaNotice = apply.recaptchaNotice;
 ---
@@ -26,7 +27,8 @@ const recaptchaNotice = apply.recaptchaNotice;
         {
           apply.reassurance.map((item) => (
             <li>
-              <span class="apply__tick" aria-hidden="true"></span>{item}
+              <span class="apply__tick" aria-hidden="true" />
+              {item}
             </li>
           ))
         }
@@ -40,6 +42,16 @@ const recaptchaNotice = apply.recaptchaNotice;
         data-endpoint={formEndpoint}
         data-error={apply.errorBody}
         data-sending={apply.sendingLabel}
+        data-recaptcha-api-url={recaptchaApiUrl}
+        data-recaptcha-site-key={recaptchaSiteKey}
+        data-recaptcha-action={recaptchaAction}
+        data-form-type={apply.crm.formType}
+        data-service-interest={apply.crm.serviceInterest}
+        data-contact-reason={apply.crm.contactReason}
+        data-project-type={apply.crm.projectType}
+        data-initiative={apply.crm.initiative}
+        data-source-note={apply.crm.sourceNote}
+        data-form-visible-started-at="0"
         method="post"
         action={enabled ? formEndpoint : undefined}
       >
@@ -150,7 +162,26 @@ const recaptchaNotice = apply.recaptchaNotice;
           <p class="apply__status font-mono" data-apply-status role="status" aria-live="polite"></p>
         </div>
 
+        {
+          enabled && (
+            <p class="apply__recaptcha font-mono">
+              {recaptchaNotice.before}
+              <a href={recaptchaNotice.privacyUrl} rel="noreferrer">
+                {recaptchaNotice.privacyLabel}
+              </a>
+              {recaptchaNotice.middle}
+              <a href={recaptchaNotice.termsUrl} rel="noreferrer">
+                {recaptchaNotice.termsLabel}
+              </a>
+              {recaptchaNotice.after}
+            </p>
+          )
+        }
+
         {!enabled && <p class="apply__disabled font-mono">{apply.disabledNote}</p>}
+        <noscript>
+          <p class="apply__disabled font-mono">{apply.noscriptNote}</p>
+        </noscript>
       </form>
 
       <div class="apply__success card" data-apply-success hidden tabindex="-1">
@@ -327,6 +358,21 @@ const recaptchaNotice = apply.recaptchaNotice;
     padding-top: var(--space-2xs);
     border-top: 1.5px dotted var(--hairline-strong);
   }
+  .apply__recaptcha {
+    font-size: var(--step--2);
+    line-height: 1.5;
+    color: var(--fg-faint);
+    margin: calc(var(--space-2xs) * -1) 0 0;
+  }
+  .apply__recaptcha a {
+    color: currentColor;
+    text-decoration: underline;
+    text-decoration-thickness: var(--border-px);
+    text-underline-offset: 0.18em;
+  }
+  .apply__recaptcha a:hover {
+    color: var(--fg);
+  }
 
   /* ---------- Success panel ---------- */
   .apply__success {
@@ -377,11 +423,24 @@ const recaptchaNotice = apply.recaptchaNotice;
 </style>
 
 <script>
-  /* Progressive enhancement: POST the form as JSON and swap in an inline
-     success panel. Without an endpoint the form is inert (the server already
-     rendered the disabled state) and this handler never wires up. Without JS,
-     the native <form method=post action=endpoint> still submits. */
+  /* Progressive enhancement: POST the form as JSON, fetch a reCAPTCHA token
+     lazily, and swap in an inline success panel. */
   (() => {
+    interface Grecaptcha {
+      ready(cb: () => void): void;
+      execute(siteKey: string, options: { action: string }): Promise<string>;
+    }
+
+    interface GrecaptchaWindow extends Window {
+      grecaptcha?: Grecaptcha;
+    }
+
+    type Payload = Record<string, unknown>;
+
+    const grecaptchaReadyTimeoutMs = 8000;
+    const grecaptchaPollMs = 100;
+    let recaptchaScriptPromise: Promise<void> | null = null;
+
     const form = document.querySelector<HTMLFormElement>('[data-apply-form]');
     if (!form) return;
     const endpoint = form.dataset.endpoint || '';
@@ -392,12 +451,202 @@ const recaptchaNotice = apply.recaptchaNotice;
     const success = document.querySelector<HTMLElement>('[data-apply-success]');
     const sendingLabel = form.dataset.sending || 'Sending…';
     const errorMsg = form.dataset.error || 'Something went wrong. Try again.';
+    form.dataset.formVisibleStartedAt = String(Date.now());
+
+    const currentGrecaptcha = () => (window as GrecaptchaWindow).grecaptcha;
+
+    const waitForGrecaptcha = async (): Promise<Grecaptcha | null> => {
+      const current = currentGrecaptcha();
+      if (current?.execute) return current;
+
+      const deadline = Date.now() + grecaptchaReadyTimeoutMs;
+      return await new Promise((resolve) => {
+        const timer = window.setInterval(() => {
+          const candidate = currentGrecaptcha();
+          if (candidate?.execute) {
+            window.clearInterval(timer);
+            resolve(candidate);
+            return;
+          }
+          if (Date.now() > deadline) {
+            window.clearInterval(timer);
+            resolve(null);
+          }
+        }, grecaptchaPollMs);
+      });
+    };
+
+    const loadRecaptchaScript = async (apiUrl: string, siteKey: string): Promise<void> => {
+      if (currentGrecaptcha()?.execute) return;
+      if (recaptchaScriptPromise) return recaptchaScriptPromise;
+
+      recaptchaScriptPromise = new Promise((resolve, reject) => {
+        const existing = document.querySelector<HTMLScriptElement>('script[data-apply-recaptcha]');
+        if (existing) {
+          existing.addEventListener('load', () => resolve(), { once: true });
+          existing.addEventListener('error', () => reject(new Error('reCAPTCHA failed to load')), {
+            once: true,
+          });
+          return;
+        }
+
+        const script = document.createElement('script');
+        script.async = true;
+        script.defer = true;
+        script.dataset.applyRecaptcha = 'true';
+        script.src = `${apiUrl}?render=${encodeURIComponent(siteKey)}`;
+        script.addEventListener('load', () => resolve(), { once: true });
+        script.addEventListener('error', () => reject(new Error('reCAPTCHA failed to load')), {
+          once: true,
+        });
+        document.head.appendChild(script);
+      });
+
+      return recaptchaScriptPromise;
+    };
+
+    const getRecaptchaToken = async (siteKey: string, action: string): Promise<string | null> => {
+      const apiUrl = form.dataset.recaptchaApiUrl || '';
+      if (!siteKey || !action || !apiUrl) return null;
+
+      if (!currentGrecaptcha()?.execute) {
+        await loadRecaptchaScript(apiUrl, siteKey);
+      }
+
+      const grecaptcha = await waitForGrecaptcha();
+      if (!grecaptcha) return null;
+
+      return await new Promise((resolve) => {
+        grecaptcha.ready(async () => {
+          try {
+            resolve(await grecaptcha.execute(siteKey, { action }));
+          } catch {
+            resolve(null);
+          }
+        });
+      });
+    };
+
+    const trimmed = (value: unknown): string | undefined => {
+      if (typeof value !== 'string') return undefined;
+      const text = value.trim();
+      return text.length > 0 ? text : undefined;
+    };
+
+    const setIfEmpty = (payload: Payload, key: string, value: unknown) => {
+      const text = trimmed(value);
+      if (text && payload[key] === undefined) {
+        payload[key] = text;
+      }
+    };
+
+    const readLandingPageUrl = () => {
+      const key = 'mission-landing-page-url';
+      try {
+        const existing = sessionStorage.getItem(key);
+        if (existing) return existing;
+        sessionStorage.setItem(key, window.location.href);
+      } catch {
+        /* ignore */
+      }
+      return window.location.href;
+    };
+
+    const browserLocaleCountry = () => {
+      const locale = navigator.language || '';
+      const parts = locale.split('-');
+      return parts.length > 1 ? parts[parts.length - 1] : undefined;
+    };
+
+    const buildPayload = (): Payload => {
+      const payload: Payload = {};
+      for (const [key, value] of new FormData(form).entries()) {
+        if (typeof value !== 'string') continue;
+        const text = value.trim();
+        if (text.length > 0) payload[key] = text;
+      }
+
+      const stack = trimmed(payload.stack);
+      const notes = trimmed(payload.notes);
+      const grade = trimmed(payload.grade);
+      const fundingShape = trimmed(payload.budget);
+      const timeline = trimmed(payload.timeline);
+
+      setIfEmpty(payload, 'companyName', payload.company);
+      setIfEmpty(payload, 'currentStack', stack);
+      setIfEmpty(payload, 'projectDescription', stack);
+      setIfEmpty(payload, 'serviceInterest', form.dataset.serviceInterest);
+      setIfEmpty(payload, 'managedCodeFormType', form.dataset.formType);
+      setIfEmpty(payload, 'contactReason', form.dataset.contactReason);
+      setIfEmpty(payload, 'projectType', form.dataset.projectType);
+
+      const message = [
+        stack ? `Open source stack:\n${stack}` : undefined,
+        notes ? `Additional context:\n${notes}` : undefined,
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+      setIfEmpty(payload, 'message', message);
+
+      payload.metadata = {
+        initiative: form.dataset.initiative,
+        openSource: 'true',
+        sourceNote: form.dataset.sourceNote,
+        formType: form.dataset.formType,
+        stack,
+        patronageGrade: grade,
+        fundingShape,
+        timeline,
+        notes,
+      };
+
+      const startedAt = Number(form.dataset.formVisibleStartedAt || '0');
+      if (startedAt > 0) {
+        payload.formVisibleSeconds = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      setIfEmpty(payload, 'pageUrl', window.location.href);
+      setIfEmpty(payload, 'currentPageUrl', window.location.href);
+      setIfEmpty(payload, 'landingPageUrl', readLandingPageUrl());
+      setIfEmpty(payload, 'referrer', document.referrer);
+      setIfEmpty(payload, 'clientSubmittedAt', new Date().toISOString());
+      setIfEmpty(payload, 'browserLanguage', navigator.language);
+      setIfEmpty(payload, 'browserLocaleCountry', browserLocaleCountry());
+      setIfEmpty(payload, 'browserLanguages', navigator.languages?.join(','));
+      setIfEmpty(payload, 'browserPlatform', navigator.platform);
+      setIfEmpty(payload, 'timeZone', Intl.DateTimeFormat().resolvedOptions().timeZone);
+      payload.timeZoneOffsetMinutes = new Date().getTimezoneOffset();
+      payload.screenWidth = window.screen.width;
+      payload.screenHeight = window.screen.height;
+      payload.viewportWidth = window.innerWidth;
+      payload.viewportHeight = window.innerHeight;
+      payload.devicePixelRatio = String(window.devicePixelRatio);
+      payload.colorScheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light';
+      payload.cookiesEnabled = navigator.cookieEnabled;
+      payload.browserOnline = navigator.onLine;
+      setIfEmpty(
+        payload,
+        'connectionEffectiveType',
+        (navigator as Navigator & { connection?: { effectiveType?: string } }).connection
+          ?.effectiveType
+      );
+      setIfEmpty(payload, 'utmSource', params.get('utm_source'));
+      setIfEmpty(payload, 'utmMedium', params.get('utm_medium'));
+      setIfEmpty(payload, 'utmCampaign', params.get('utm_campaign'));
+      setIfEmpty(payload, 'utmTerm', params.get('utm_term'));
+      setIfEmpty(payload, 'utmContent', params.get('utm_content'));
+
+      return payload;
+    };
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (!form.reportValidity()) return;
 
-      const payload = Object.fromEntries(new FormData(form).entries());
+      const payload = buildPayload();
       const restore = submit ? submit.innerHTML : '';
       if (submit) {
         submit.disabled = true;
@@ -409,6 +658,13 @@ const recaptchaNotice = apply.recaptchaNotice;
       }
 
       try {
+        const recaptchaSiteKey = form.dataset.recaptchaSiteKey || '';
+        const recaptchaAction = form.dataset.recaptchaAction || '';
+        const recaptchaToken = await getRecaptchaToken(recaptchaSiteKey, recaptchaAction);
+        if (!recaptchaToken) throw new Error('reCAPTCHA token not available');
+        payload.recaptchaToken = recaptchaToken;
+        payload.recaptchaAction = recaptchaAction;
+
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
