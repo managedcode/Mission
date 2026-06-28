@@ -6,12 +6,13 @@ import Logo from './Logo.astro';
 
 <header class="site-header" data-header data-scrolled="false">
   <div class="wrap site-header__bar">
-    <a class="brand" href="/" aria-label={`${site.brand} ${site.name} — home`}>
-      <Logo size={34} tight />
+    <a class="brand" href="/">
+      <Logo size={34} tight decorative />
       <span class="brand__text">
         <span class="brand__name">{site.brand}</span>
-        <span class="brand__tag font-pixel">{site.name}</span>
+        <span class="brand__tag font-pixel">{site.initiativeTag}</span>
       </span>
+      <span class="visually-hidden">{site.homeLinkHint}</span>
     </a>
 
     <nav class="primary-nav" id="primary-nav" aria-label="Primary" data-nav-menu data-open="false">

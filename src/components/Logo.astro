@@ -10,8 +10,15 @@ export interface Props {
   title?: string;
   class?: string;
   tight?: boolean;
+  decorative?: boolean;
 }
-const { size = 28, title = 'ManagedCode', class: className = '', tight = false } = Astro.props;
+const {
+  size = 28,
+  title = 'ManagedCode',
+  class: className = '',
+  tight = false,
+  decorative = false,
+} = Astro.props;
 ---
 
 <svg
@@ -20,8 +27,9 @@ const { size = 28, title = 'ManagedCode', class: className = '', tight = false }
   height={size}
   viewBox={tight ? '8 8 24 24' : '0 0 40 40'}
   fill="none"
-  role="img"
-  aria-label={title}
+  role={decorative ? undefined : 'img'}
+  aria-label={decorative ? undefined : title}
+  aria-hidden={decorative ? 'true' : undefined}
   xmlns="http://www.w3.org/2000/svg"
 >
   <path

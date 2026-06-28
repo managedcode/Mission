@@ -10,6 +10,8 @@ export const site = {
   org: 'Managed Code',
   brand: 'ManagedCode',
   wordmark: 'ManagedCode',
+  initiativeTag: 'MISSION',
+  homeLinkHint: 'home',
   domain: 'mission.managed-code.com',
   url: 'https://mission.managed-code.com',
   tagline: 'Patrons of the digital commons.',

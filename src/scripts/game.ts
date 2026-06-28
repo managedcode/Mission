@@ -306,10 +306,12 @@ export function createMascotGame(): Game {
     return leftHeld ? -1 : rightHeld ? 1 : 0;
   }
   // Buffer a jump only on the rising edge from no source held. Auto-repeat
-  // keydowns (allowBuffer=false) and additional held sources never re-trigger —
-  // so a held jump extends one leap, never bunny-hops, and releasing one of
-  // several held jump inputs won't clip the rise while another is still down.
+  // keydowns (allowBuffer=false) for unknown sources are ignored; repeats for an
+  // already-held source only keep that source held. That lets a held jump extend
+  // one leap without letting repeat events latch input or bunny-hop on landing.
   function jumpDown(src: string, allowBuffer: boolean) {
+    const alreadyHeld = jumpSrc.has(src);
+    if (!allowBuffer && !alreadyHeld) return;
     const wasEmpty = jumpSrc.size === 0;
     jumpSrc.add(src);
     jumpHeld = true;

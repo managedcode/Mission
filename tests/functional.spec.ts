@@ -282,7 +282,7 @@ test.describe('Mission Run mini-game', () => {
       page.evaluate(() => {
         const state = (
           window as Window & {
-            __mgame?: () => { y: number; onGround: boolean; state: string };
+            __mgame?: () => { y: number; onGround: boolean; state: string; jumpHeld: boolean };
           }
         ).__mgame?.();
         return state ?? null;
@@ -303,7 +303,16 @@ test.describe('Mission Run mini-game', () => {
       }, 30);
     });
 
-    await page.waitForTimeout(1500);
+    await expect.poll(async () => (await readGame())?.onGround, { timeout: 1000 }).toBe(false);
+    await expect
+      .poll(
+        async () => {
+          const state = await readGame();
+          return state?.state === 'play' && state.onGround && state.jumpHeld;
+        },
+        { timeout: 5000 }
+      )
+      .toBe(true);
 
     const samples: Array<{ y: number; onGround: boolean }> = [];
     for (let i = 0; i < 4; i++) {
@@ -331,6 +340,7 @@ test.describe('Mission Run mini-game', () => {
     const repeatOnlyState = await readGame();
     expect(repeatOnlyState?.onGround).toBe(true);
     expect(repeatOnlyState?.y).toBe(restingY);
+    expect(repeatOnlyState?.jumpHeld).toBe(false);
 
     await page.evaluate(() => {
       window.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true }));
