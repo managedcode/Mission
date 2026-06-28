@@ -541,6 +541,7 @@ export const apply = {
     'We’ll read your stack and come back within two business days with a scoped proposal — a capacity band, an SLA, and a named maintainer.',
   errorBody:
     'That didn’t send. Try again in a moment, or email us directly at opensource@managed-code.com and we’ll pick it up.',
+  noscriptNote: 'Enable JavaScript to pass reCAPTCHA and send this form.',
   recaptchaNotice: {
     before: 'This site is protected by reCAPTCHA and the Google ',
     privacyLabel: 'Privacy Policy',
