@@ -163,6 +163,105 @@ test.describe('Patronage tiers', () => {
   });
 });
 
+test.describe('Apply form', () => {
+  const missionEndpoint = 'https://func-managed-code-form-crm.azurewebsites.net/api/managed-code/mission';
+
+  test('is wired to the ManagedCode Mission CRM endpoint with reCAPTCHA metadata', async ({ page }) => {
+    await page.goto('/');
+
+    const form = page.locator('[data-apply-form]');
+    await expect(form).toHaveAttribute('data-endpoint', missionEndpoint);
+    await expect(form).toHaveAttribute('action', missionEndpoint);
+    await expect(form).toHaveAttribute('data-recaptcha-action', 'mission_patronage');
+    await expect(form).toHaveAttribute('data-form-type', 'mission_patronage');
+    await expect(page.locator('[data-apply-submit]')).toBeEnabled();
+    await expect(page.locator('.apply__recaptcha')).toContainText(/protected by reCAPTCHA/i);
+  });
+
+  test('submits enriched open-source patronage payload with a reCAPTCHA token', async ({ page }) => {
+    let capturedPayload: Record<string, unknown> | undefined;
+
+    await page.addInitScript(() => {
+      const w = window as Window & {
+        grecaptcha?: {
+          ready(cb: () => void): void;
+          execute(siteKey: string, options: { action: string }): Promise<string>;
+        };
+        __missionRecaptchaCall?: { siteKey: string; action: string };
+      };
+      w.grecaptcha = {
+        ready(cb: () => void) {
+          cb();
+        },
+        async execute(siteKey: string, options: { action: string }) {
+          w.__missionRecaptchaCall = { siteKey, action: options.action };
+          return 'test-recaptcha-token';
+        },
+      };
+    });
+
+    await page.route(missionEndpoint, async (route) => {
+      const headers = {
+        'access-control-allow-origin': '*',
+        'access-control-allow-headers': 'content-type, accept',
+        'access-control-allow-methods': 'POST, OPTIONS',
+      };
+
+      if (route.request().method() === 'OPTIONS') {
+        await route.fulfill({ status: 204, headers });
+        return;
+      }
+
+      capturedPayload = JSON.parse(route.request().postData() ?? '{}');
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers,
+        body: JSON.stringify({ ok: true, submissionId: 'web_test' }),
+      });
+    });
+
+    await page.goto('/');
+    await page.locator('#apply-company').fill('Example SaaS');
+    await page.locator('#apply-email').fill('cto@example.com');
+    await page.locator('#apply-name').fill('Alex CTO');
+    await page.locator('#apply-grade').selectOption('Mid');
+    await page.locator('#apply-stack').fill('ManagedCode.Storage and Orleans.SignalR');
+    await page.locator('#apply-budget').selectOption('Recommended operating lane');
+    await page.locator('#apply-timeline').selectOption('This quarter');
+    await page.locator('#apply-notes').fill('We want a written SLA for the packages we depend on.');
+
+    await page.getByRole('button', { name: /send it to the maintainers/i }).click();
+
+    await expect(page.locator('[data-apply-success]')).toBeVisible();
+    expect(capturedPayload?.email).toBe('cto@example.com');
+    expect(capturedPayload?.companyName).toBe('Example SaaS');
+    expect(capturedPayload?.currentStack).toBe('ManagedCode.Storage and Orleans.SignalR');
+    expect(capturedPayload?.managedCodeFormType).toBe('mission_patronage');
+    expect(capturedPayload?.serviceInterest).toBe('Open-source patronage');
+    expect(capturedPayload?.recaptchaToken).toBe('test-recaptcha-token');
+    expect(capturedPayload?.recaptchaAction).toBe('mission_patronage');
+    expect(capturedPayload?.message).toContain('ManagedCode.Storage and Orleans.SignalR');
+
+    const metadata = capturedPayload?.metadata as Record<string, string | undefined>;
+    expect(metadata.initiative).toBe('open_source_patronage');
+    expect(metadata.openSource).toBe('true');
+    expect(metadata.patronageGrade).toBe('Mid');
+    expect(metadata.fundingShape).toBe('Recommended operating lane');
+
+    const recaptchaCall = await page.evaluate(
+      () =>
+        (
+          window as Window & {
+            __missionRecaptchaCall?: { siteKey: string; action: string };
+          }
+        ).__missionRecaptchaCall
+    );
+    expect(recaptchaCall?.action).toBe('mission_patronage');
+    expect(recaptchaCall?.siteKey.length ?? 0).toBeGreaterThan(0);
+  });
+});
+
 test.describe('Animated counters', () => {
   test('a counter settles on its expected formatted value once in view', async ({ page }) => {
     await page.goto('/');
