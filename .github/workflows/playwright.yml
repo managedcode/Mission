@@ -60,12 +60,14 @@ jobs:
       - name: Commit updated baselines
         if: github.event_name != 'pull_request'
         run: |
+          # Mark the checkout as a safe dir before any git command; the
+          # Playwright container runs as root while the checkout is runner-owned.
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
           if [ -n "$(git status --porcelain tests)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            # Mark the checkout as a safe dir (container runs as root).
-            git config --global --add safe.directory "$GITHUB_WORKSPACE"
-            git add tests/**/__screenshots__ || true
+            git add tests/__screenshots__
             if ! git diff --cached --quiet; then
               git commit -m "chore: update visual baselines [skip ci]"
               git push "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:${{ github.ref_name }}
