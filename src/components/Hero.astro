@@ -1,0 +1,366 @@
+---
+import { hero, site } from '../data/site';
+import GitHubMark from './GitHubMark.astro';
+
+// Precompute the headline as a trusted HTML string. Each word is its own
+// reveal target with a staggered delay. (Avoids fragile nested-map JSX.)
+// The final line is the PAIN ("nobody on call.") — its words carry the
+// .kinetic variable-weight pulse and ignite an amber phosphor on reveal.
+let wordIndex = 0;
+const lastLineIndex = hero.headlineLines.length - 1;
+const headlineHtml = hero.headlineLines
+  .map((line, lineIndex) => {
+    const isLast = lineIndex === lastLineIndex;
+    const words = line
+      .map((word) => {
+        const delay = wordIndex++ * 70;
+        const innerCls = isLast ? 'hero__word-inner kinetic' : 'hero__word-inner';
+        return `<span class="hero__word" data-reveal style="--reveal-delay:${delay}ms"><span class="${innerCls}">${word}</span></span>`;
+      })
+      .join(' ');
+    return `<span class="hero__line">${words}</span>`;
+  })
+  .join('');
+
+// Precompute the terminal body as a trusted HTML string (newlines render as
+// line breaks inside <pre>). The last line carries a blinking caret.
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const termRows = hero.terminalLines.slice(0, -1);
+const termLast = hero.terminalLines[hero.terminalLines.length - 1];
+const terminalHtml =
+  termRows
+    .map((line) => {
+      const cls = line.startsWith('$') ? 'terminal__cmd' : 'terminal__out';
+      return `<span class="${cls}">${esc(line)}\n</span>`;
+    })
+    .join('') + `<span class="terminal__out caret">${esc(termLast)}</span>`;
+
+// Marquee motto. Built as a trusted HTML string and stamped into two identical
+// halves so the -50% loop is seamless; each half repeats the motto enough times
+// to overflow the widest viewport, so the strip is never an empty green band.
+// set:html children (the ◆ separators) are styled via :global in the CSS below.
+const mottoWords = ['USE IT', 'FUND IT', 'PASS IT ON', 'KEEP THE COMMONS ALIVE'];
+const mottoHalf = Array.from({ length: 4 })
+  .map(() => mottoWords.map((w) => `${w} <i>◆</i>`).join(' '))
+  .join(' ');
+---
+
+<section class="hero grain" aria-labelledby="hero-heading">
+  <div class="hero__grid-bg" aria-hidden="true"></div>
+  <div class="wrap hero__inner">
+    <header class="hero__display">
+      <p class="kicker" data-reveal>{hero.kicker}</p>
+      <h1 class="hero__headline" id="hero-heading" set:html={headlineHtml} />
+    </header>
+
+    <div class="hero__row">
+      <div class="hero__lead">
+        <p class="hero__lede" data-reveal style="--reveal-delay:520ms">{hero.lede}</p>
+
+        <div class="hero__cta" data-reveal style="--reveal-delay:620ms">
+          <a class="btn btn--accent" href={hero.primaryCta.href}>
+            {hero.primaryCta.label}
+            <span aria-hidden="true">→</span>
+          </a>
+          <a class="btn btn--ghost" href={hero.secondaryCta.href}>{hero.secondaryCta.label}</a>
+        </div>
+
+        <ul class="hero__badges" role="list" data-reveal style="--reveal-delay:720ms">
+          {hero.badges.map((badge) => <li class="chip chip--dot">{badge}</li>)}
+        </ul>
+      </div>
+
+      <aside class="hero__crest" data-reveal style="--reveal-delay:320ms">
+        <div class="crest">
+          <GitHubMark size={160} class="crest__github-mark" />
+        </div>
+        <pre
+          class="crest__status terminal__body font-mono"
+          aria-hidden="true"><code set:html={terminalHtml} /></pre>
+        <p class="hero__madein font-mono">{site.madeIn}</p>
+      </aside>
+    </div>
+  </div>
+
+  <div class="hero__marquee" aria-hidden="true">
+    <div class="hero__marquee-track">
+      <span class="hero__marquee-group font-pixel" set:html={mottoHalf} />
+      <span class="hero__marquee-group font-pixel" set:html={mottoHalf} />
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    overflow: clip;
+    padding-block: clamp(3rem, 2rem + 7vw, 7rem) 0;
+    border-bottom: var(--border-px) solid var(--fg);
+  }
+  .hero__grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, var(--hairline) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--hairline) 1px, transparent 1px);
+    background-size: 2.5rem 2.5rem;
+    mask-image: radial-gradient(120% 80% at 70% 0%, #000 10%, transparent 70%);
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  /* Type is the hero: full-bleed display row on top, 2-col content row below.
+     This vertical structure removes any chance of the giant H1 overlapping
+     the terminal card (the headline now owns its own full-width row). */
+  .hero__inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2.5rem, 1.5rem + 4vw, 4.5rem);
+    padding-bottom: clamp(3rem, 2rem + 5vw, 5.5rem);
+  }
+  /* Row 2 — supporting text on the left, console on the right. */
+  .hero__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: clamp(2rem, 1rem + 4vw, 4.5rem);
+    align-items: center;
+  }
+
+  /* Type IS the hero — oversized display, full width, near-solid leading. */
+  .hero__display {
+    width: 100%;
+  }
+  .hero__headline {
+    font-size: var(--step-8);
+    line-height: 0.92;
+    margin-top: var(--space-m);
+    letter-spacing: -0.04em;
+  }
+  /* Keep each scripted line intact on wide screens; allow wrap on small.
+     The headline now spans the full inner width, so the longest line
+     ("everything has") has the whole row to hold on one line. Below the
+     --maxw cap the content box stops growing (~72rem), so an absolute
+     ceiling here guarantees the widest line never overflows at 1440–1920px
+     while still riding the --step-8 clamp on mid-size screens. */
+  @media (min-width: 56rem) {
+    :global(.hero__line) {
+      white-space: nowrap;
+    }
+    .hero__headline {
+      font-size: min(var(--step-8), 12.5vw, 8.8rem);
+    }
+  }
+  /* Headline words are injected via set:html, so these must be :global. */
+  :global(.hero__line) {
+    display: block;
+  }
+  :global(.hero__word) {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+  }
+  :global(.hero__word:not(:last-child)) {
+    margin-right: 0.22em;
+  }
+  :global(.hero__word-inner) {
+    display: inline-block;
+  }
+  /* Last line is the PAIN — "nobody on call." It is NOT a positive, so it
+     reads warm amber (never the phosphor green rationed to healthy signals).
+     A subtle amber phosphor glow ignites once the words reveal. */
+  :global(.hero__line:last-child .hero__word-inner) {
+    color: var(--amber);
+    text-shadow: none;
+    transition: text-shadow 0.8s var(--ease-out);
+  }
+  :global(:root[data-theme='dark'] .hero__line:last-child .hero__word-inner) {
+    color: var(--accent-2);
+  }
+  :global(:root.js .hero__line:last-child .hero__word[data-reveal].is-visible .hero__word-inner) {
+    text-shadow:
+      0 0 18px color-mix(in srgb, var(--amber) 55%, transparent),
+      0 0 4px color-mix(in srgb, var(--amber) 35%, transparent);
+  }
+  /* let the amber phosphor bleed past the reveal-mask once the slide is done */
+  :global(:root.js .hero__line:last-child .hero__word[data-reveal].is-visible) {
+    overflow: visible;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :global(.hero__line:last-child .hero__word) {
+      overflow: visible;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :global(.hero__line:last-child .hero__word-inner) {
+      text-shadow: 0 0 14px color-mix(in srgb, var(--amber) 40%, transparent);
+    }
+  }
+
+  .hero__lede {
+    font-family: var(--font-serif);
+    font-size: var(--step-1);
+    line-height: 1.5;
+    max-width: 34ch;
+    margin-top: var(--space-m);
+    color: var(--fg-soft);
+  }
+  .hero__cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s);
+    margin-top: var(--space-l);
+  }
+  .hero__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: var(--space-l);
+  }
+  .chip--dot::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    background: var(--accent);
+    flex: none;
+  }
+
+  /* ── The hero emblem — the GitHub octocat mark on a soft gold halo, with a
+     slim 3-line mono "mission status" caption below it. */
+  .hero__crest {
+    align-self: center;
+    width: 100%;
+  }
+  .crest {
+    position: relative;
+    width: 100%;
+    /* Reserve the box up-front (8 : 9 logical pixel grid) so the canvas
+       can never shift layout while it builds in. */
+    aspect-ratio: 8 / 9;
+    max-width: 24rem;
+    margin-inline: auto;
+  }
+  :global(.crest__github-mark) {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 2;
+    width: 54%;
+    height: auto;
+    color: var(--fg);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    filter: drop-shadow(0 6px 16px color-mix(in srgb, var(--gold) 30%, transparent));
+  }
+  /* a faint patron-gold halo BEHIND the canvas — a separate layer, so it never
+     blurs the pixel emblem itself */
+  .crest::before {
+    content: '';
+    position: absolute;
+    inset: 6%;
+    z-index: 0;
+    background: radial-gradient(
+      circle at 50% 46%,
+      color-mix(in srgb, var(--gold) 26%, transparent),
+      transparent 68%
+    );
+    pointer-events: none;
+  }
+  :global(:root[data-theme='dark']) .crest::before {
+    background: radial-gradient(
+      circle at 50% 46%,
+      color-mix(in srgb, var(--gold-glow) 24%, transparent),
+      transparent 68%
+    );
+  }
+
+  /* Slim mono status caption — factual "mission status" without the
+     generic-terminal chrome. Small, faint, last line keeps the caret. */
+  .crest__status {
+    margin: 1.1rem 0 0;
+    padding: 0;
+    max-width: 24rem;
+    margin-inline: auto;
+    font-size: clamp(0.66rem, 0.6rem + 0.28vw, 0.78rem);
+    line-height: 1.75;
+    letter-spacing: 0.01em;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--fg-faint);
+  }
+  /* Status lines are injected via set:html → :global. */
+  :global(.crest__status .terminal__cmd) {
+    color: var(--accent-deep);
+  }
+  :global(:root[data-theme='dark'] .crest__status .terminal__cmd) {
+    color: var(--accent);
+  }
+  :global(.crest__status .terminal__out) {
+    color: var(--fg-faint);
+  }
+  .hero__madein {
+    text-align: right;
+    margin-top: 0.7rem;
+    max-width: 24rem;
+    margin-inline: auto;
+    font-size: 0.72rem;
+    color: var(--fg-faint);
+  }
+
+  /* Marquee strip */
+  .hero__marquee {
+    border-top: var(--border-px) solid var(--fg);
+    background: var(--accent);
+    color: #08160d;
+    overflow: hidden;
+    padding-block: 0.7rem;
+  }
+  :global(:root[data-theme='dark']) .hero__marquee {
+    color: #06120a;
+  }
+  .hero__marquee-track {
+    display: flex;
+    width: max-content;
+    animation: hero-marquee 60s linear infinite;
+  }
+  .hero__marquee-group {
+    font-size: clamp(0.62rem, 0.5rem + 0.45vw, 0.8rem);
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    padding-right: 0.9em;
+  }
+  /* set:html children aren't scoped → style the ◆ separators globally */
+  :global(.hero__marquee-group i) {
+    font-style: normal;
+    opacity: 0.6;
+    margin-inline: 0.6em;
+  }
+  @keyframes hero-marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero__marquee-track {
+      animation: none;
+    }
+  }
+
+  @media (max-width: 56rem) {
+    .hero__row {
+      grid-template-columns: 1fr;
+      gap: 2.5rem;
+    }
+    .hero__crest {
+      order: 2;
+      max-width: 30rem;
+    }
+    .crest,
+    .crest__status,
+    .hero__madein {
+      max-width: 22rem;
+    }
+    .hero__lede {
+      max-width: 48ch;
+    }
+  }
+</style>

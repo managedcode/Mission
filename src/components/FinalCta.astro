@@ -1,0 +1,166 @@
+---
+import { finalCta } from '../data/site';
+
+// Marquee motto — two identical halves, each repeated enough to overflow the
+// widest viewport so the -50% loop never shows an empty strip. set:html children
+// (the ◆ separators) are styled via :global in the CSS below.
+const mottoWords = ['USE IT', 'FUND IT', 'PASS IT ON'];
+const mottoHalf = Array.from({ length: 6 })
+  .map(() => mottoWords.map((w) => `${w} <i>◆</i>`).join(' '))
+  .join(' ');
+---
+
+<section class="section final-cta invert" aria-labelledby="final-h">
+  <div class="final-cta__grid" aria-hidden="true"></div>
+  <div class="final-cta__glow" aria-hidden="true"></div>
+  <div class="starfield" aria-hidden="true"></div>
+
+  <div class="wrap final-cta__inner">
+    <p class="kicker" data-reveal>{finalCta.kicker}</p>
+
+    <h2 class="final-cta__heading" id="final-h" data-reveal style="--reveal-delay:80ms">
+      {finalCta.heading}
+    </h2>
+
+    <p class="final-cta__lede" data-reveal style="--reveal-delay:180ms">{finalCta.lede}</p>
+
+    <div class="final-cta__cta" data-reveal style="--reveal-delay:280ms">
+      <a class="btn btn--accent" href={finalCta.primary.href}>
+        {finalCta.primary.label}
+        <span aria-hidden="true">→</span>
+      </a>
+      <a class="btn btn--ghost" href={finalCta.secondary.href}>{finalCta.secondary.label}</a>
+    </div>
+  </div>
+
+  <div class="final-cta__marquee" aria-hidden="true">
+    <div class="final-cta__marquee-track">
+      <span class="final-cta__marquee-group font-pixel" set:html={mottoHalf} />
+      <span class="final-cta__marquee-group font-pixel" set:html={mottoHalf} />
+    </div>
+  </div>
+</section>
+
+<style>
+  .final-cta {
+    position: relative;
+    overflow: clip;
+    text-align: center;
+    padding-block: clamp(4rem, 2.5rem + 9vw, var(--space-3xl));
+    border-top: var(--border-px) solid var(--fg);
+  }
+
+  /* Decorative pixel grid backdrop — recedes upward */
+  .final-cta__grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, var(--hairline) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--hairline) 1px, transparent 1px);
+    background-size: 2.5rem 2.5rem;
+    mask-image: radial-gradient(120% 90% at 50% 100%, #000 5%, transparent 65%);
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  /* Soft phosphor glow rising from the band's heart */
+  .final-cta__glow {
+    position: absolute;
+    left: 50%;
+    bottom: -10%;
+    width: min(70rem, 120%);
+    aspect-ratio: 1.6 / 1;
+    transform: translateX(-50%);
+    background: radial-gradient(
+      55% 55% at 50% 60%,
+      color-mix(in oklab, var(--accent) 22%, transparent),
+      transparent 70%
+    );
+    pointer-events: none;
+    filter: blur(2px);
+  }
+
+  .final-cta__inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-m);
+  }
+
+  .final-cta__heading {
+    font-family: var(--font-display);
+    font-size: var(--step-7);
+    letter-spacing: -0.035em;
+    line-height: 1;
+    max-width: 18ch;
+    margin-top: var(--space-2xs);
+  }
+
+  .final-cta__lede {
+    font-family: var(--font-serif);
+    font-size: var(--step-1);
+    line-height: 1.55;
+    color: var(--fg-soft);
+    max-width: 48ch;
+    margin-top: var(--space-2xs);
+  }
+
+  .final-cta__cta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-s);
+    margin-top: var(--space-l);
+  }
+
+  /* Pixel marquee strip — the brand motto, slow and steady */
+  .final-cta__marquee {
+    position: relative;
+    margin-top: clamp(2.5rem, 1.5rem + 5vw, 4.5rem);
+    border-top: var(--border-px) solid var(--fg);
+    border-bottom: var(--border-px) solid var(--fg);
+    background: var(--accent);
+    color: #06120a;
+    overflow: hidden;
+    padding-block: 0.85rem;
+  }
+  .final-cta__marquee-track {
+    display: flex;
+    width: max-content;
+    animation: final-marquee 50s linear infinite;
+  }
+  .final-cta__marquee-group {
+    font-size: clamp(0.62rem, 0.5rem + 0.45vw, 0.8rem);
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    padding-right: 0.9em;
+  }
+  /* set:html children aren't scoped → style the ◆ separators globally */
+  :global(.final-cta__marquee-group i) {
+    font-style: normal;
+    opacity: 0.55;
+    margin-inline: 0.6em;
+  }
+  @keyframes final-marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .final-cta__marquee-track {
+      animation: none;
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .final-cta__cta .btn {
+      flex: 1 1 auto;
+      justify-content: center;
+    }
+    .final-cta__heading {
+      letter-spacing: -0.025em;
+    }
+  }
+</style>

@@ -1,0 +1,75 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+import Problem from '../components/Problem.astro';
+import Manifesto from '../components/Manifesto.astro';
+import HowItWorks from '../components/HowItWorks.astro';
+import Maintainers from '../components/Maintainers.astro';
+import Sla from '../components/Sla.astro';
+import Funding from '../components/Funding.astro';
+import Tiers from '../components/Tiers.astro';
+import Join from '../components/Join.astro';
+import Faq from '../components/Faq.astro';
+import FinalCta from '../components/FinalCta.astro';
+import Apply from '../components/Apply.astro';
+import Footer from '../components/Footer.astro';
+import { site, seo, faq, tiers } from '../data/site';
+
+const jsonLd = [
+  {
+    '@type': 'WebPage',
+    '@id': `${site.url}/#webpage`,
+    url: `${site.url}/`,
+    name: seo.defaultTitle,
+    isPartOf: { '@id': `${site.url}/#website` },
+    about: { '@id': `${site.url}/#org` },
+    primaryImageOfPage: new URL(seo.ogImage, site.url).href,
+    description: site.description,
+    inLanguage: 'en',
+  },
+  {
+    '@type': 'FAQPage',
+    '@id': `${site.url}/#faq`,
+    mainEntity: faq.items.map((it) => ({
+      '@type': 'Question',
+      name: it.q,
+      acceptedAnswer: { '@type': 'Answer', text: it.a },
+    })),
+  },
+  {
+    '@type': 'Service',
+    '@id': `${site.url}/#service`,
+    name: 'Open-source patronage',
+    serviceType: 'Open-source software maintenance, security and support',
+    provider: { '@id': `${site.url}/#org` },
+    areaServed: 'Worldwide',
+    description: site.shortDescription,
+    offers: tiers.plans.map((p) => ({
+      '@type': 'Offer',
+      name: `${p.name}-grade patronage`,
+      description: `${p.blurb} Salary-grade retainer at roughly ${p.salary.toLowerCase()}; exact capacity and SLA are scoped in the patronage agreement.`,
+      category: 'Open-source maintenance patronage',
+      availability: 'https://schema.org/InStock',
+      url: `${site.url}/#patronage`,
+    })),
+  },
+];
+---
+
+<BaseLayout path="/" jsonLd={jsonLd}>
+  <Header slot="header" />
+  <Hero />
+  <Problem />
+  <Manifesto />
+  <HowItWorks />
+  <Maintainers />
+  <Sla />
+  <Tiers />
+  <Funding />
+  <Apply />
+  <Join />
+  <Faq />
+  <FinalCta />
+  <Footer slot="footer" />
+</BaseLayout>

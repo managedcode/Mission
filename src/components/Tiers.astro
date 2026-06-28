@@ -1,0 +1,436 @@
+---
+import { tiers } from '../data/site';
+---
+
+<section class="section tiers" id="patronage" aria-labelledby="tiers-h">
+  <div class="wrap">
+    <header class="tiers__intro">
+      <p class="kicker" data-reveal>{tiers.kicker}</p>
+      <h2 class="tiers__heading" id="tiers-h" data-reveal style="--reveal-delay:80ms">
+        {tiers.heading}
+      </h2>
+      <p class="tiers__lede font-serif" data-reveal style="--reveal-delay:160ms">
+        {tiers.lede}
+      </p>
+    </header>
+
+    <ul class="tiers__grid" role="list">
+      {
+        tiers.plans.map((plan, i) => (
+          <li
+            class:list={['tiers__plan', { 'is-featured': plan.featured }]}
+            role="listitem"
+            data-plan={plan.id}
+            data-reveal
+            style={`--reveal-delay:${240 + i * 90}ms`}
+          >
+            <article class="plan card">
+              {'badge' in plan && plan.badge && (
+                <span class="plan__badge font-pixel">{plan.badge}</span>
+              )}
+
+              <span class="plan__symbol-row">
+                <span class="plan__symbol font-display" aria-hidden="true">
+                  {plan.symbol}
+                </span>
+              </span>
+
+              <h3 class="plan__name font-display">{plan.name}</h3>
+
+              <p class="plan__price">
+                <span class="visually-hidden">
+                  {`${plan.name}-grade patronage, roughly ${plan.salary}.`}
+                </span>
+                <span class="plan__amount font-mono" aria-hidden="true">
+                  ≈ {plan.salary.toLowerCase()}
+                </span>
+                <span class="plan__period font-mono" aria-hidden="true">
+                  {tiers.cardCaption}
+                </span>
+              </p>
+
+              <p class="plan__blurb font-serif">{plan.blurb}</p>
+
+              <hr class="rule rule--dotted plan__rule" />
+
+              <ul class="plan__features" role="list">
+                {plan.features.map((f) => (
+                  <li class="plan__feature">
+                    <span class="plan__tick" aria-hidden="true" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <a
+                class:list={['btn', 'plan__cta', plan.featured ? 'btn--accent' : 'btn--ghost']}
+                href="#apply"
+              >
+                {plan.cta}
+                <span aria-hidden="true">→</span>
+              </a>
+            </article>
+          </li>
+        ))
+      }
+    </ul>
+
+    <ol class="tiers__steps" data-reveal aria-label="How patronage starts">
+      {
+        tiers.nextSteps.map((step, i) => (
+          <li class="tiers__step">
+            <span class="tiers__step-n font-pixel">{String(i + 1).padStart(2, '0')}</span>
+            <span class="tiers__step-t">{step}</span>
+          </li>
+        ))
+      }
+    </ol>
+
+    <p class="tiers__note font-mono" data-reveal>{tiers.note}</p>
+  </div>
+</section>
+
+<style>
+  .tiers {
+    border-top: var(--border-px) solid var(--fg);
+    background: var(--bg-sunken);
+  }
+
+  /* ---------- Intro ---------- */
+  .tiers__intro {
+    max-width: 52rem;
+    margin-inline: auto;
+    text-align: center;
+    display: grid;
+    justify-items: center;
+    gap: var(--space-s);
+  }
+  .tiers__heading {
+    font-size: var(--step-5);
+    letter-spacing: -0.028em;
+  }
+  .tiers__lede {
+    font-size: var(--step-1);
+    line-height: 1.5;
+    color: var(--fg-soft);
+    max-width: 46ch;
+  }
+
+  /* ---------- Grid ---------- */
+  .tiers__grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(0.9rem, 0.45rem + 1.35vw, 1.45rem);
+    align-items: start;
+    margin-top: clamp(2.25rem, 1.4rem + 3.4vw, 4rem);
+  }
+  .tiers__plan {
+    display: block;
+  }
+
+  @media (min-width: 64rem) {
+    .tiers__plan.is-featured {
+      z-index: 1;
+    }
+  }
+
+  /* ---------- Card ---------- */
+  .plan {
+    --plan-tone: var(--fg);
+    --plan-line: color-mix(in srgb, var(--fg) 72%, var(--bg));
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: clamp(0.7rem, 0.45rem + 0.8vw, 1rem);
+    padding: clamp(1.15rem, 0.9rem + 1.05vw, 1.65rem);
+    background: color-mix(in srgb, var(--bg-raised) 94%, var(--bg) 6%);
+    border-color: var(--plan-line);
+    box-shadow: 4px 4px 0 color-mix(in srgb, var(--fg) 70%, transparent);
+    overflow: visible;
+    transition:
+      transform 0.16s var(--ease-out),
+      box-shadow 0.16s var(--ease-out);
+  }
+  .plan::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 4px;
+    background: var(--plan-tone);
+  }
+  .plan:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 color-mix(in srgb, var(--fg) 74%, transparent);
+  }
+
+  [data-plan='trainee'] .plan {
+    --plan-tone: color-mix(in srgb, var(--tier-gold) 42%, var(--fg));
+  }
+  [data-plan='junior'] .plan {
+    --plan-tone: color-mix(in srgb, var(--fg-soft) 76%, var(--fg));
+  }
+  .is-featured .plan {
+    --plan-tone: var(--accent);
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 6%, var(--bg-raised));
+    box-shadow: 5px 5px 0 color-mix(in srgb, var(--accent) 50%, var(--fg));
+  }
+  [data-plan='senior'] .plan {
+    --plan-tone: var(--tier-gold);
+    border-color: color-mix(in srgb, var(--tier-gold) 78%, var(--fg));
+    background: color-mix(in srgb, var(--tier-gold) 4%, var(--bg-raised));
+  }
+
+  /* ---------- Badge ribbon ---------- */
+  .plan__badge {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    font-size: 0.5rem;
+    line-height: 1.4;
+    letter-spacing: 0.02em;
+    color: #0b1a10;
+    background: var(--accent);
+    padding: 0.5em 0.7em;
+    border: var(--border-px) solid var(--fg);
+    box-shadow: var(--shadow-px-sm);
+    max-width: 8.5rem;
+    text-align: center;
+  }
+  :global(:root[data-theme='dark']) .plan__badge,
+  :global(.invert) .plan__badge {
+    color: #07140c;
+  }
+
+  /* ---------- Symbol glyph ---------- */
+  .plan__symbol-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 2.45rem;
+    margin-bottom: var(--space-2xs);
+  }
+  .plan__symbol {
+    display: inline-grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border: var(--border-px) solid var(--plan-tone);
+    box-shadow: 2px 2px 0 var(--plan-tone);
+    background: color-mix(in srgb, var(--bg) 72%, transparent);
+    font-family: var(--font-pixel);
+    font-size: 0.58rem;
+    line-height: 1;
+    color: var(--plan-tone);
+  }
+
+  /* ---------- Name / salary ---------- */
+  .plan__name {
+    font-size: clamp(2rem, 1.45rem + 1.25vw, 2.75rem);
+    letter-spacing: -0.018em;
+  }
+  .plan__price {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15em;
+    margin-top: 0;
+    padding-left: 0.85rem;
+    border-left: var(--border-px) solid var(--plan-tone);
+  }
+  /* The grade NAME is the hero; the salary reads as a quiet mono caption —
+     never a giant display number (there is no sticker price). */
+  .plan__amount {
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.3;
+    color: var(--fg-soft);
+  }
+  .is-featured .plan__amount,
+  [data-plan='senior'] .plan__amount {
+    color: var(--plan-tone);
+  }
+  .plan__period {
+    font-size: var(--step--2);
+    color: var(--fg-faint);
+    text-transform: none;
+    letter-spacing: 0.01em;
+    line-height: 1.4;
+  }
+
+  .plan__blurb {
+    font-size: var(--step-0);
+    line-height: 1.45;
+    color: var(--fg-soft);
+    margin-top: 0;
+  }
+
+  .plan__rule {
+    margin-block: var(--space-xs);
+    border: 0;
+    height: var(--border-px);
+    background: color-mix(in srgb, var(--fg) 34%, transparent);
+  }
+
+  /* ---------- Features ---------- */
+  .plan__features {
+    display: grid;
+    gap: 0.62rem;
+    margin: 0;
+    align-content: start;
+  }
+  .plan__feature {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.65em;
+    align-items: start;
+    font-size: var(--step--1);
+    line-height: 1.35;
+    color: var(--fg-soft);
+  }
+  .plan__tick {
+    width: 0.6em;
+    height: 0.6em;
+    margin-top: 0.4em;
+    border: var(--border-px) solid var(--plan-tone);
+    background: color-mix(in srgb, var(--plan-tone) 72%, var(--bg-raised));
+    box-shadow: 2px 2px 0 color-mix(in srgb, var(--plan-tone) 40%, var(--fg));
+    flex: none;
+  }
+  .is-featured .plan__feature {
+    color: var(--fg);
+  }
+
+  /* ---------- CTA ---------- */
+  .plan__cta {
+    width: 100%;
+    justify-content: space-between;
+    margin-top: var(--space-s);
+  }
+  [data-plan='senior'] .plan__cta {
+    border-color: var(--plan-tone);
+    box-shadow: 3px 3px 0 var(--plan-tone);
+  }
+  [data-plan='senior'] .plan__cta:hover {
+    box-shadow: 5px 5px 0 var(--plan-tone);
+  }
+
+  /* ---------- How it starts ---------- */
+  .tiers__steps {
+    list-style: none;
+    padding: 0;
+    margin: clamp(2.25rem, 1.4rem + 3vw, 3.5rem) auto 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: stretch;
+    gap: var(--space-s);
+    max-width: 60rem;
+  }
+  .tiers__step {
+    flex: 1 1 14rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border: var(--border-px) solid var(--fg);
+    box-shadow: var(--shadow-px-sm);
+    background: var(--bg-raised);
+    position: relative;
+  }
+  /* pixel arrow between steps on wider screens */
+  .tiers__step:not(:last-child)::after {
+    content: '→';
+    position: absolute;
+    right: -1.05rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--font-mono);
+    color: var(--accent-deep);
+    z-index: 1;
+  }
+  .tiers__step-n {
+    font-size: 0.62rem;
+    color: var(--accent-deep);
+    flex: none;
+  }
+  .tiers__step-t {
+    font-size: var(--step--1);
+    color: var(--fg-soft);
+    line-height: 1.35;
+  }
+  :global(:root[data-theme='dark']) .tiers__step-n {
+    color: var(--accent);
+  }
+  @media (max-width: 52rem) {
+    .tiers__steps {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .tiers__step {
+      flex: none;
+    }
+    .tiers__step:not(:last-child)::after {
+      content: '↓';
+      right: auto;
+      left: 50%;
+      top: auto;
+      bottom: -1.05rem;
+      transform: translateX(-50%);
+    }
+  }
+
+  /* ---------- Note ---------- */
+  .tiers__note {
+    text-align: center;
+    max-width: 46rem;
+    margin: clamp(1.75rem, 1.2rem + 2vw, 2.5rem) auto 0;
+    font-size: var(--step--2);
+    line-height: 1.7;
+    color: var(--fg-faint);
+  }
+
+  /* ---------- Responsive ---------- */
+  /* Tablet: collapse to a 2x2 grid. Cap the width so cards don't stretch. */
+  @media (max-width: 64rem) {
+    .tiers__grid {
+      grid-template-columns: repeat(2, 1fr);
+      max-width: 44rem;
+      margin-inline: auto;
+    }
+    .tiers__plan.is-featured {
+      transform: none;
+    }
+    .is-featured .plan {
+      box-shadow: 5px 5px 0 color-mix(in srgb, var(--accent) 50%, var(--fg));
+    }
+  }
+
+  /* Mobile: single column. */
+  @media (max-width: 40rem) {
+    .tiers__grid {
+      grid-template-columns: 1fr;
+      max-width: 30rem;
+    }
+  }
+
+  /* Respect reduced motion: no hover transforms. */
+  @media (prefers-reduced-motion: reduce) {
+    .plan,
+    .tiers__plan.is-featured {
+      transition: none;
+    }
+    .plan:hover {
+      transform: none;
+      box-shadow: 4px 4px 0 color-mix(in srgb, var(--fg) 70%, transparent);
+    }
+    .is-featured .plan:hover {
+      box-shadow: 5px 5px 0 color-mix(in srgb, var(--accent) 50%, var(--fg));
+    }
+    [data-plan='senior'] .plan:hover {
+      box-shadow: 4px 4px 0 color-mix(in srgb, var(--fg) 70%, transparent);
+    }
+  }
+</style>

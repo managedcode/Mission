@@ -1,0 +1,360 @@
+---
+import { team, site } from '../data/site';
+---
+
+<section class="section team" id="maintainers" aria-labelledby="maintainers-h">
+  <div class="wrap">
+    <!-- Intro -->
+    <header class="team__intro stack" data-reveal>
+      <p class="kicker">{team.kicker}</p>
+      <h2 class="team__heading" id="maintainers-h">{team.heading}</h2>
+      <p class="team__lede font-serif">{team.lede}</p>
+      <p class="team__bio font-mono">{team.orgBio}</p>
+      <p class="team__orglink">
+        <a href={site.github} target="_blank" rel="noopener" class="team__orglink-a font-mono">
+          View the org on GitHub
+          <span aria-hidden="true">→</span>
+        </a>
+      </p>
+    </header>
+
+    <!-- Project grid -->
+    <h3 class="visually-hidden">Repositories maintained by {site.org}</h3>
+    <ul class="team__grid" role="list">
+      {
+        team.projects.map((project, i) => (
+          <li data-reveal style={`--reveal-delay:${i * 70}ms`}>
+            <a
+              class="repo card"
+              href={`https://github.com/managedcode/${project.slug}`}
+              target="_blank"
+              rel="noopener"
+            >
+              <span class="repo__top">
+                <span class="repo__name font-mono">{project.name}</span>
+                <span
+                  class="repo__downloads font-mono"
+                  aria-label={`${project.downloads} for ${project.name}`}
+                >
+                  NuGet {project.downloads.replace(' NuGet downloads', '')}
+                </span>
+              </span>
+
+              <p class="repo__desc">{project.desc}</p>
+
+              <span class="repo__meta">
+                <span class="chip repo__lang">
+                  <span class="repo__lang-dot" aria-hidden="true" />
+                  {project.lang}
+                </span>
+                <span class="repo__go font-mono" aria-hidden="true">
+                  →
+                </span>
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+
+    <hr class="rule rule--dotted team__divider" />
+  </div>
+
+  <!-- Org stat strip (inverted band) -->
+  <div class="team__strip invert" data-reveal>
+    <div class="wrap">
+      <dl class="team__stats">
+        {
+          team.orgStats.map((stat) => (
+            <div class="team__stat">
+              <dt class="team__stat-value font-display">{stat.value}</dt>
+              <dd class="team__stat-label">{stat.label}</dd>
+            </div>
+          ))
+        }
+      </dl>
+      <p class="team__stats-note font-mono">{team.statsNote}</p>
+    </div>
+  </div>
+
+  <!-- Who we hire -->
+  <div class="wrap">
+    <div class="team__hire" data-reveal>
+      <div class="team__hire-text stack">
+        <h3 class="team__hire-h">{team.whoWeHire.heading}</h3>
+        <p class="team__hire-body font-serif">{team.whoWeHire.body}</p>
+      </div>
+      <ul class="team__traits" role="list">
+        {
+          team.whoWeHire.traits.map((trait) => (
+            <li class="team__trait">
+              <span class="team__trait-mark font-pixel" aria-hidden="true">
+                ▸
+              </span>
+              <span>{trait}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  .team {
+    border-bottom: var(--border-px) solid var(--fg);
+  }
+
+  /* ---------- Intro ---------- */
+  .team__intro {
+    --flow: var(--space-s);
+    max-width: 52rem;
+  }
+  .team__heading {
+    font-size: var(--step-4);
+    max-width: 20ch;
+  }
+  .team__lede {
+    font-size: var(--step-1);
+    line-height: 1.5;
+    color: var(--fg-soft);
+    max-width: 56ch;
+  }
+  .team__bio {
+    font-size: var(--step--1);
+    color: var(--fg-faint);
+    padding-left: 0.9rem;
+    border-left: var(--border-px) solid var(--accent);
+  }
+  .team__orglink {
+    margin-top: var(--space-xs);
+  }
+  .team__orglink-a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    font-size: var(--step--1);
+    font-weight: 600;
+    color: var(--accent-deep);
+    border-bottom: 2px solid transparent;
+    transition:
+      border-color 0.18s var(--ease-out),
+      gap 0.18s var(--ease-out);
+  }
+  :global(:root[data-theme='dark']) .team__orglink-a {
+    color: var(--accent);
+  }
+  .team__orglink-a:hover {
+    border-color: currentColor;
+    gap: 0.7em;
+  }
+
+  /* ---------- Project grid ---------- */
+  .team__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(1rem, 0.6rem + 1.4vw, 1.6rem);
+    margin-top: var(--space-xl);
+  }
+  .team__grid > li {
+    display: flex;
+  }
+
+  .repo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+    width: 100%;
+    box-shadow: var(--shadow-px-sm);
+    transition:
+      transform 0.14s var(--ease-out),
+      box-shadow 0.14s var(--ease-out);
+  }
+  .repo:hover,
+  .repo:focus-visible {
+    transform: translate(-3px, -3px);
+    box-shadow: 6px 6px 0 var(--fg);
+  }
+  .repo:focus-visible {
+    outline-offset: 5px;
+  }
+
+  .repo__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-s);
+  }
+  .repo__name {
+    font-size: var(--step-0);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+  .repo:hover .repo__name,
+  .repo:focus-visible .repo__name {
+    color: var(--accent-deep);
+  }
+  :global(:root[data-theme='dark']) .repo:hover .repo__name,
+  :global(:root[data-theme='dark']) .repo:focus-visible .repo__name {
+    color: var(--accent);
+  }
+
+  .repo__downloads {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    font-size: var(--step--2);
+    font-weight: 600;
+    color: color-mix(in srgb, var(--accent-deep) 72%, var(--fg));
+    border: 1.5px solid var(--hairline-strong);
+    padding: 0.2em 0.5em;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  :global(:root[data-theme='dark']) .repo__downloads {
+    color: var(--accent);
+  }
+
+  .repo__desc {
+    font-size: var(--step--1);
+    line-height: 1.55;
+    color: var(--fg-soft);
+    flex: 1 1 auto;
+  }
+
+  .repo__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .repo__lang-dot {
+    width: 9px;
+    height: 9px;
+    background: var(--accent-3);
+    flex: none;
+  }
+  .repo__go {
+    margin-left: auto;
+    font-weight: 700;
+    color: var(--fg-faint);
+    transition:
+      transform 0.14s var(--ease-out),
+      color 0.14s var(--ease-out);
+  }
+  .repo:hover .repo__go,
+  .repo:focus-visible .repo__go {
+    transform: translateX(3px);
+    color: var(--accent-deep);
+  }
+  :global(:root[data-theme='dark']) .repo:hover .repo__go,
+  :global(:root[data-theme='dark']) .repo:focus-visible .repo__go {
+    color: var(--accent);
+  }
+
+  .team__divider {
+    margin-top: var(--space-xl);
+  }
+
+  /* ---------- Org stat strip ---------- */
+  .team__strip {
+    border-block: var(--border-px) solid var(--fg);
+    padding-block: clamp(1.75rem, 1rem + 3vw, 3rem);
+    margin-block: var(--space-xl);
+  }
+  .team__stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-l) var(--space-m);
+  }
+  .team__stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding-left: var(--space-s);
+    border-left: var(--border-px) solid var(--hairline-strong);
+  }
+  .team__stat-value {
+    font-size: var(--step-4);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--accent);
+  }
+  .team__stat-label {
+    font-size: var(--step--1);
+    line-height: 1.4;
+    color: var(--fg-soft);
+  }
+  .team__stats-note {
+    margin-top: var(--space-m);
+    font-size: var(--step--2);
+    color: var(--fg-faint);
+    text-align: center;
+  }
+
+  /* ---------- Who we hire ---------- */
+  .team__hire {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: clamp(1.5rem, 0.5rem + 4vw, 4rem);
+    align-items: start;
+  }
+  .team__hire-text {
+    --flow: var(--space-s);
+  }
+  .team__hire-h {
+    font-size: var(--step-3);
+    letter-spacing: -0.02em;
+  }
+  .team__hire-body {
+    font-size: var(--step-1);
+    line-height: 1.55;
+    color: var(--fg-soft);
+    max-width: 44ch;
+  }
+  .team__traits {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+  .team__trait {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    padding: 0.85em 1em;
+    background: var(--bg-raised);
+    border: var(--border-px) solid var(--fg);
+    box-shadow: var(--shadow-px-sm);
+  }
+  .team__trait-mark {
+    font-size: 0.5rem;
+    line-height: 1.7;
+    color: var(--accent-2);
+    flex: none;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 60rem) {
+    .team__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .team__hire {
+      grid-template-columns: 1fr;
+      gap: var(--space-l);
+    }
+  }
+  @media (max-width: 40rem) {
+    .team__grid {
+      grid-template-columns: 1fr;
+    }
+    .team__stats {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>

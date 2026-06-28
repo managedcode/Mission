@@ -1,0 +1,10 @@
+dist
+node_modules
+.astro
+playwright-report
+test-results
+tests/__screenshots__
+package-lock.json
+*.png
+*.ico
+*.svg

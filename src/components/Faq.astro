@@ -1,0 +1,191 @@
+---
+import { faq } from '../data/site';
+---
+
+<section class="section faq" id="faq" aria-labelledby="faq-h">
+  <div class="wrap faq__inner">
+    <header class="faq__head">
+      <p class="kicker" data-reveal>{faq.kicker}</p>
+      <h2 class="faq__heading" id="faq-h" data-reveal style="--reveal-delay:80ms">{faq.heading}</h2>
+    </header>
+
+    <div class="faq__list" data-reveal style="--reveal-delay:160ms">
+      {
+        faq.items.map((item, i) => (
+          <details class="faq__item" open={i === 0}>
+            <summary class="faq__summary">
+              <span class="faq__q font-display">{item.q}</span>
+              <span class="faq__sign" aria-hidden="true" />
+            </summary>
+            <div class="faq__answer">
+              <p class="faq__a">{item.a}</p>
+            </div>
+          </details>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq {
+    border-top: var(--border-px) solid var(--fg);
+  }
+  .faq__inner {
+    display: grid;
+    gap: clamp(2rem, 1.4rem + 2.4vw, 3.5rem);
+  }
+  .faq__head {
+    display: grid;
+    gap: var(--space-s);
+  }
+  .faq__heading {
+    font-size: var(--step-4);
+    max-width: 22ch;
+  }
+  @media (min-width: 56rem) {
+    .faq__heading {
+      font-size: var(--step-5);
+    }
+  }
+
+  /* Single readable column */
+  .faq__list {
+    width: 100%;
+    max-width: 52rem;
+    /* chunky frame top — items each carry their own bottom rule */
+    border-top: var(--border-px) solid var(--fg);
+  }
+
+  .faq__item {
+    border-bottom: var(--border-px) solid var(--fg);
+  }
+
+  /* Disclosure control */
+  .faq__summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: baseline;
+    gap: clamp(1rem, 0.6rem + 1.6vw, 2rem);
+    padding: clamp(1rem, 0.8rem + 0.9vw, 1.4rem) var(--space-xs) clamp(1rem, 0.8rem + 0.9vw, 1.4rem)
+      0;
+    transition:
+      background-color 0.18s var(--ease-out),
+      color 0.18s var(--ease-out);
+  }
+  .faq__summary::-webkit-details-marker {
+    display: none;
+  }
+  .faq__summary::marker {
+    content: '';
+  }
+
+  .faq__summary:hover {
+    background: var(--bg-raised);
+    color: var(--accent-deep);
+  }
+  :global(:root[data-theme='dark']) .faq__summary:hover,
+  :global(.invert) .faq__summary:hover {
+    color: var(--accent);
+  }
+
+  /* keyboard focus lands on the summary natively */
+  .faq__summary:focus-visible {
+    outline: var(--border-px) solid var(--accent);
+    outline-offset: -4px;
+  }
+
+  .faq__q {
+    font-size: var(--step-1);
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: -0.012em;
+    text-wrap: balance;
+  }
+
+  /* Pixel +/- indicator — two square bars that cross */
+  .faq__sign {
+    position: relative;
+    flex: none;
+    width: 0.9em;
+    height: 0.9em;
+    margin-left: auto;
+    align-self: center;
+    color: var(--accent-deep);
+    translate: 0 0.1em;
+  }
+  :global(:root[data-theme='dark']) .faq__sign,
+  :global(.invert) .faq__sign {
+    color: var(--accent);
+  }
+  .faq__sign::before,
+  .faq__sign::after {
+    content: '';
+    position: absolute;
+    background: currentColor;
+  }
+  /* horizontal bar (always shown) */
+  .faq__sign::before {
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 3px;
+    translate: 0 -50%;
+  }
+  /* vertical bar — hidden when open, turning + into − */
+  .faq__sign::after {
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    translate: -50% 0;
+    transition:
+      opacity 0.18s var(--ease-pixel),
+      transform 0.18s var(--ease-pixel);
+  }
+  .faq__item[open] .faq__sign::after {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  .faq__summary:hover .faq__sign {
+    color: inherit;
+  }
+
+  /* Answer */
+  .faq__answer {
+    overflow: hidden;
+    padding: 0 var(--space-xs) 0 0;
+  }
+  .faq__a {
+    font-family: var(--font-serif);
+    font-size: var(--step-0);
+    line-height: 1.6;
+    color: var(--fg-soft);
+    max-width: 64ch;
+    padding-bottom: clamp(1.1rem, 0.85rem + 1.1vw, 1.6rem);
+  }
+
+  /* Subtle open animation — guarded for reduced motion below */
+  .faq__answer {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.32s var(--ease-out);
+  }
+  .faq__answer > .faq__a {
+    min-height: 0;
+  }
+  .faq__item[open] .faq__answer {
+    grid-template-rows: 1fr;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .faq__answer {
+      transition: none;
+    }
+  }
+
+  /* Fallback for browsers that don't support details content animation:
+     when closed, native details already hides content; the grid trick
+     degrades gracefully because [open] forces 1fr. */
+</style>

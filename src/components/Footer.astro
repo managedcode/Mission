@@ -1,0 +1,195 @@
+---
+import { site, nav } from '../data/site';
+import Logo from './Logo.astro';
+const year = 2026;
+---
+
+<footer class="site-footer invert">
+  <div class="dither" aria-hidden="true"></div>
+  <div class="wrap site-footer__inner">
+    <div class="site-footer__brand">
+      <a class="brand" href="/" aria-label={`${site.brand} ${site.name} — home`}>
+        <Logo size={32} />
+        <span class="site-footer__word">{site.brand}</span>
+        <span class="site-footer__word-tag font-pixel">{site.name}</span>
+      </a>
+      <p class="site-footer__tag font-serif">{site.tagline}</p>
+      <p class="site-footer__madein font-mono">{site.madeIn}</p>
+    </div>
+
+    <nav class="site-footer__nav" aria-label="Footer">
+      <div>
+        <h2 class="site-footer__h font-mono">Mission</h2>
+        <ul role="list">
+          {
+            nav.map((item) => (
+              <li>
+                <a href={item.href}>{item.label}</a>
+              </li>
+            ))
+          }
+          <li><a href="/patrons">Patrons</a></li>
+          <li><a href="/team">Team</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2 class="site-footer__h font-mono">Build</h2>
+        <ul role="list">
+          <li><a href={site.github} target="_blank" rel="noopener">GitHub org</a></li>
+          <li><a href={site.repo} target="_blank" rel="noopener">This repo</a></li>
+          <li><a href="/projects">Projects</a></li>
+          <li><a href={site.parentSite} target="_blank" rel="noopener">managed-code.com</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2 class="site-footer__h font-mono">Talk</h2>
+        <ul role="list">
+          <li><a href={`mailto:${site.email}`}>{site.email}</a></li>
+          <li><a href="/#apply">Become a patron</a></li>
+          <li><a href="/#join">Join the team</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <div class="site-footer__cta card">
+      <p class="kicker">Carry the torch</p>
+      <p class="font-serif site-footer__cta-text">
+        Fund the people who keep your dependencies alive.
+      </p>
+      <a class="btn btn--accent" href="/#apply">Become a patron →</a>
+    </div>
+  </div>
+
+  <div class="wrap site-footer__base">
+    <p class="font-mono site-footer__legal">
+      Mission is an open initiative in launch — patron grades, response windows, and funding figures
+      shown here are illustrative until set in a patronage agreement.
+    </p>
+    <p class="font-mono">© {year} {site.org}. Built in the open.</p>
+    <p class="font-mono">
+      <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener"
+        >CC BY 4.0</a
+      >
+      <span aria-hidden="true">·</span>
+      <a href="/404">not all who wander are 404</a>
+    </p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    position: relative;
+    padding-top: var(--space-2xl);
+  }
+  .site-footer__inner {
+    display: grid;
+    grid-template-columns: 1.2fr 1.6fr 1fr;
+    gap: clamp(2rem, 1rem + 4vw, 4rem);
+    padding-bottom: var(--space-xl);
+  }
+  .brand {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+  .brand .mc-logo {
+    color: var(--fg);
+    align-self: center;
+  }
+  .site-footer__word {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.35rem;
+    letter-spacing: -0.015em;
+  }
+  .site-footer__word-tag {
+    font-size: 0.5rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    align-self: center;
+  }
+  .site-footer__tag {
+    font-size: var(--step-1);
+    margin-top: var(--space-m);
+    max-width: 22ch;
+    color: var(--fg);
+  }
+  .site-footer__madein {
+    margin-top: var(--space-s);
+    color: var(--fg-faint);
+    font-size: 0.75rem;
+  }
+
+  .site-footer__nav {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-m);
+  }
+  .site-footer__h {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin-bottom: var(--space-s);
+  }
+  .site-footer__nav ul {
+    display: grid;
+    gap: 0.6rem;
+  }
+  .site-footer__nav a {
+    font-size: var(--step--1);
+    color: var(--fg-soft);
+    transition: color 0.2s;
+  }
+  .site-footer__nav a:hover {
+    color: var(--fg);
+  }
+
+  .site-footer__cta {
+    align-self: start;
+  }
+  .site-footer__cta-text {
+    font-size: var(--step-1);
+    margin: var(--space-s) 0 var(--space-m);
+  }
+
+  .site-footer__base {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-s);
+    padding-block: var(--space-m);
+    border-top: var(--border-px) solid var(--hairline-strong);
+    font-size: 0.74rem;
+    color: var(--fg-faint);
+  }
+  .site-footer__base a {
+    color: var(--fg-soft);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .site-footer__base a:hover {
+    color: var(--accent);
+  }
+  .site-footer__legal {
+    flex-basis: 100%;
+    max-width: 60ch;
+    color: var(--fg-soft);
+    line-height: 1.55;
+    margin-bottom: var(--space-2xs);
+  }
+
+  @media (max-width: 56rem) {
+    .site-footer__inner {
+      grid-template-columns: 1fr;
+    }
+    .site-footer__nav {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  @media (max-width: 30rem) {
+    .site-footer__nav {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>

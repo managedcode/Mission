@@ -1,0 +1,8 @@
+# Found a hole in something we maintain? This is the door.
+# We staff a team that keeps open source patched — responsible disclosure is welcome and appreciated.
+
+Contact: mailto:hi@managed-code.com
+Expires: 2027-06-28T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://mission.managed-code.com/.well-known/security.txt
+# the code: https://github.com/managedcode

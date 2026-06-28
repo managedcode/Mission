@@ -1,0 +1,407 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { patronsPage, funding } from '../data/site';
+
+// Deterministic ghost slots — no random/time-based values (screenshot-stable).
+// Slot No. 01 is the hero "founding" seat (spans 2 cells); the rest are
+// numbered "empty sockets" — reserved seats waiting to be filled.
+const SLOT_COUNT = 12;
+const slots = Array.from({ length: SLOT_COUNT }, (_, i) => i + 1);
+
+// ── Founding-seats meter ──────────────────────────────────────────────
+// Same maths + visual language as Funding.astro, derived once in the
+// frontmatter so the RESTING (animation-disabled) state already paints
+// the bar at the correct width.
+const pct = Math.round((funding.committed / funding.goal) * 100);
+
+// Segmented 8-bit cells: discrete lit/unlit blocks. Lit count is computed
+// here (not via animation) so the static screenshot is correct.
+const CELLS = 24;
+const litCells = Math.round((pct / 100) * CELLS);
+const cells = Array.from({ length: CELLS }, (_, i) => i < litCells);
+
+const meterLabel = `Founding momentum: ${pct}% toward launch, with ${funding.committedShort} per month committed`;
+---
+
+<BaseLayout title={patronsPage.title} path="/patrons" noindex={patronsPage.noindex}>
+  <Header slot="header" />
+
+  <section class="patrons section" aria-labelledby="patrons-h">
+    <div class="wrap">
+      <p class="kicker" data-reveal>{patronsPage.kicker}</p>
+
+      <h1 class="patrons__heading" id="patrons-h" data-reveal style="--reveal-delay:80ms">
+        {patronsPage.heading}
+      </h1>
+
+      <p class="patrons__lede font-serif" data-reveal style="--reveal-delay:160ms">
+        {patronsPage.lede}
+      </p>
+
+      <!-- The wall — one open hero seat, the rest reserved sockets. -->
+      <ul class="patrons__wall" role="list" data-reveal style="--reveal-delay:240ms">
+        {
+          slots.map((n) =>
+            n === 1 ? (
+              <li
+                class="slot slot--first"
+                aria-label="Seat No. 01 — the first founding patron seat, open"
+              >
+                <span class="slot__rank font-mono" aria-hidden="true">
+                  No. 01
+                </span>
+                <span class="slot__mark" aria-hidden="true">
+                  ✦
+                </span>
+                <span class="slot__line font-pixel">Be the first</span>
+                <span class="slot__sub font-mono">founding patron</span>
+              </li>
+            ) : (
+              <li class="slot slot--socket" aria-hidden="true">
+                <span class="slot__dither" />
+                <span class="slot__rank font-mono">No. {String(n).padStart(2, '0')}</span>
+                <span class="slot__line font-mono">reserved</span>
+              </li>
+            )
+          )
+        }
+      </ul>
+
+      <!-- Founding-seats meter — matches Funding.astro's 8-bit segmented bar. -->
+      <figure class="patrons__meter" data-reveal style="--reveal-delay:300ms">
+        <figcaption class="patrons__meter-head">
+          <span class="patrons__meter-pct font-mono tnum" aria-hidden="true">{pct}%</span>
+          <span class="patrons__meter-text font-mono">
+            {funding.committedShort}/mo committed — the wall fills as launch momentum grows
+          </span>
+        </figcaption>
+
+        <div
+          class="patrons__bar"
+          style={`--fill:${pct}%`}
+          role="progressbar"
+          aria-valuenow={pct}
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-label={meterLabel}
+        >
+          <div class="patrons__cells" aria-hidden="true">
+            {
+              cells.map((lit) => (
+                <span class={`patrons__cell${lit ? ' patrons__cell--lit' : ''}`} />
+              ))
+            }
+          </div>
+          <span class="patrons__fill" aria-hidden="true"></span>
+        </div>
+      </figure>
+
+      <p class="patrons__caption font-mono" data-reveal style="--reveal-delay:360ms">
+        <span class="patrons__pulse" aria-hidden="true"></span>
+        {patronsPage.comingSoon}
+      </p>
+
+      <div class="patrons__cta" data-reveal style="--reveal-delay:420ms">
+        <a class="btn btn--accent" href={patronsPage.primary.href}> Take seat No. 01 </a>
+        <a class="btn btn--ghost" href={patronsPage.secondary.href}>
+          {patronsPage.secondary.label}
+        </a>
+      </div>
+
+      <a class="patrons__back font-mono" href={patronsPage.back.href}>
+        {patronsPage.back.label}
+      </a>
+    </div>
+  </section>
+
+  <Footer slot="footer" />
+</BaseLayout>
+
+<style>
+  .patrons {
+    min-height: calc(100svh - 4.25rem);
+  }
+
+  .patrons__heading {
+    font-size: var(--step-6);
+    margin-top: var(--space-s);
+    max-width: 16ch;
+    line-height: 1.07;
+    text-wrap: balance;
+  }
+
+  .patrons__lede {
+    margin-top: var(--space-m);
+    max-width: 56ch;
+    color: var(--fg-soft);
+    font-size: var(--step-1);
+    line-height: 1.5;
+  }
+
+  /* ---------- The wall ---------- */
+  .patrons__wall {
+    margin-top: var(--space-l);
+    display: grid;
+    gap: var(--space-s);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  @media (min-width: 38rem) {
+    .patrons__wall {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 60rem) {
+    .patrons__wall {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .slot {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: var(--space-2xs);
+    aspect-ratio: 16 / 10;
+    padding: var(--space-s);
+    overflow: hidden;
+  }
+
+  .slot__rank {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.6rem;
+    z-index: 1;
+    font-size: var(--step--2);
+    color: var(--fg-faint);
+    letter-spacing: 0.04em;
+  }
+
+  .slot__line {
+    position: relative;
+    z-index: 1;
+    font-size: var(--step--1);
+    color: var(--fg-faint);
+    letter-spacing: 0.02em;
+  }
+
+  /* ---------- Empty sockets — reserved seats, not blanks ---------- */
+  /* Sunken well + faint 8-bit dither hatch so the emptiness reads as a
+     seat held open, waiting to be filled. */
+  .slot--socket {
+    border: var(--border-px) solid var(--hairline-strong);
+    background: var(--bg-sunken);
+    box-shadow: inset 2px 2px 0 color-mix(in srgb, var(--fg) 12%, transparent);
+    transition: border-color 0.2s var(--ease-out);
+  }
+  .slot--socket .slot__line {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: var(--step--2);
+    opacity: 0.7;
+  }
+  /* The dither: a faint checker/hatch the size of pixel cells. Decorative. */
+  .slot__dither {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-image:
+      repeating-linear-gradient(
+        45deg,
+        color-mix(in srgb, var(--fg) 6%, transparent) 0,
+        color-mix(in srgb, var(--fg) 6%, transparent) 1px,
+        transparent 1px,
+        transparent 7px
+      ),
+      repeating-linear-gradient(
+        -45deg,
+        color-mix(in srgb, var(--fg) 6%, transparent) 0,
+        color-mix(in srgb, var(--fg) 6%, transparent) 1px,
+        transparent 1px,
+        transparent 7px
+      );
+  }
+  .slot--socket:hover {
+    border-color: var(--fg-soft);
+  }
+
+  /* ---------- No. 01 — the hero / founding seat (spans 2 cells) ---------- */
+  .slot--first {
+    grid-column: span 2;
+    aspect-ratio: auto;
+    min-height: 100%;
+    gap: var(--space-3xs);
+    border: var(--border-px) solid var(--accent);
+    background: var(--bg-raised);
+    box-shadow: var(--shadow-px);
+  }
+  .slot--first .slot__rank {
+    color: var(--accent-deep);
+    font-size: var(--step--1);
+    letter-spacing: 0.06em;
+  }
+  :root[data-theme='dark'] .slot--first .slot__rank {
+    color: var(--accent);
+  }
+  .slot__mark {
+    font-size: var(--step-3);
+    line-height: 1;
+    color: var(--tier-gold);
+  }
+  .slot__line.font-pixel {
+    font-size: clamp(0.6rem, 0.48rem + 0.6vw, 0.85rem);
+    color: var(--fg);
+    line-height: 1.4;
+  }
+  .slot__sub {
+    font-size: var(--step--1);
+    color: var(--fg-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* =========================================================
+     FOUNDING-SEATS METER — mirrors Funding.astro's 8-bit bar.
+     Static (animation-disabled) state already shows --fill.
+     ========================================================= */
+  .patrons__meter {
+    margin: var(--space-l) 0 0;
+    max-width: 44rem;
+    display: grid;
+    gap: var(--space-xs);
+  }
+  .patrons__meter-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75em;
+    flex-wrap: wrap;
+  }
+  .patrons__meter-pct {
+    font-size: var(--step-1);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--accent-deep);
+  }
+  :root[data-theme='dark'] .patrons__meter-pct {
+    color: var(--accent);
+  }
+  .patrons__meter-text {
+    font-size: var(--step--1);
+    color: var(--fg-soft);
+  }
+
+  .patrons__bar {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: clamp(1.6rem, 1.3rem + 1.4vw, 2.1rem);
+    padding: 4px;
+    background: var(--bg-sunken);
+    border: var(--border-px) solid var(--fg);
+    box-shadow: var(--shadow-px);
+    overflow: hidden;
+  }
+  .patrons__cells {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    gap: 3px;
+    width: 100%;
+    height: 100%;
+  }
+  .patrons__cell {
+    background: color-mix(in srgb, var(--fg) 7%, var(--bg-sunken));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent);
+  }
+  .patrons__cell--lit {
+    background: var(--accent);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--fg) 22%, transparent),
+      inset -2px 0 0 color-mix(in srgb, #000 26%, transparent);
+  }
+  .patrons__fill {
+    position: absolute;
+    inset: 4px auto 4px 4px;
+    z-index: 1;
+    width: calc(var(--fill) - 0px);
+    max-width: calc(100% - 8px);
+    background: color-mix(in srgb, var(--accent) 28%, transparent);
+    transform-origin: left center;
+  }
+
+  /* Motion — enhancement only; resting state is already the final percentage.
+     Mirrors Funding.astro: fill grows 0 → --fill on reveal. */
+  :root.js .patrons__meter[data-reveal] .patrons__fill {
+    transform: scaleX(0);
+  }
+  :root.js .patrons__meter[data-reveal].is-visible .patrons__fill {
+    transform: scaleX(1);
+    transition: transform 1.1s var(--ease-out) 0.15s;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root.js .patrons__meter[data-reveal] .patrons__fill,
+    :root.js .patrons__meter[data-reveal].is-visible .patrons__fill {
+      transform: none;
+      transition: none;
+    }
+  }
+
+  /* ---------- Caption under the meter ---------- */
+  .patrons__caption {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    margin-top: var(--space-l);
+    font-size: var(--step--1);
+    color: var(--fg-faint);
+    letter-spacing: 0.01em;
+    border-top: 1px dashed var(--hairline-strong);
+    padding-top: var(--space-s);
+  }
+  .patrons__pulse {
+    flex: none;
+    width: 0.55em;
+    height: 0.55em;
+    background: var(--accent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent);
+    animation: patrons-pulse 2.4s var(--ease-out) infinite;
+  }
+  @keyframes patrons-pulse {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
+    }
+    70%,
+    100% {
+      box-shadow: 0 0 0 0.5em transparent;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .patrons__pulse {
+      animation: none;
+    }
+  }
+
+  /* ---------- CTAs ---------- */
+  .patrons__cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s);
+    margin-top: var(--space-xl);
+  }
+
+  .patrons__back {
+    display: inline-block;
+    margin-top: var(--space-l);
+    font-size: var(--step--1);
+    color: var(--fg-faint);
+    transition: color 0.2s var(--ease-out);
+  }
+  .patrons__back:hover {
+    color: var(--fg);
+  }
+</style>

@@ -1,0 +1,211 @@
+---
+/* =================================================================
+   Mascot — "The Maintainer": a scribe-meets-sysadmin pixel sprite.
+   Crisp 8-bit art drawn as <rect>s on a 16×16 grid, scaled up with
+   image-rendering: pixelated. Decorative only (aria-hidden) and a
+   tasteful fixed-corner companion. Idle bob is motion-gated and
+   settles to a deterministic rest state for visual tests.
+   ================================================================= */
+export interface Props {
+  /** 'corner' = fixed bottom-left companion; 'inline' = seam ornament. */
+  variant?: 'corner' | 'inline';
+}
+const { variant = 'corner' } = Astro.props;
+
+// 16×16 sprite. Each entry: [x, y, w, h, token]. Colours are design tokens
+// so the sprite re-themes in light/dark. Drawn pixel-by-pixel, NES-palette feel.
+type Px = [number, number, number, number, string];
+const ink = 'var(--mascot-ink)'; // eyes / legs
+const skin = 'var(--mascot-skin)'; // face + hands (neutral tone)
+const robe = 'var(--mascot-robe)'; // hoodie (green)
+const robeHi = 'var(--mascot-robe-hi)';
+
+// A dev in a hoodie — hood up (hides hair, so it reads as anyone), neutral face,
+// two eyes. Matches the in-game player so it's easy to read yourself into it.
+const pixels: Px[] = [
+  // ---- hood (green) — covers the hair ----
+  [5, 1, 6, 1, robe],
+  [4, 2, 8, 1, robe],
+  [3, 3, 2, 4, robe],
+  [11, 3, 2, 4, robe],
+  [5, 3, 6, 1, robe],
+  // ---- face (neutral) + two eyes ----
+  [5, 4, 6, 3, skin],
+  [6, 5, 1, 1, ink],
+  [9, 5, 1, 1, ink],
+  // ---- hoodie body ----
+  [4, 7, 8, 1, robeHi],
+  [3, 8, 10, 4, robe],
+  [7, 9, 2, 3, robeHi],
+  // ---- hands (neutral) ----
+  [3, 11, 1, 1, skin],
+  [12, 11, 1, 1, skin],
+  // ---- legs ----
+  [5, 12, 2, 3, ink],
+  [9, 12, 2, 3, ink],
+];
+
+const cells = pixels
+  .map(
+    ([x, y, w, h, fill]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}"/>`
+  )
+  .join('');
+---
+
+<div class={`mascot mascot--${variant}`} aria-hidden="true" data-mascot>
+  <svg
+    class="mascot__sprite"
+    viewBox="0 0 16 16"
+    width="16"
+    height="16"
+    shape-rendering="crispEdges"
+    role="presentation"
+    focusable="false"
+    set:html={cells}
+  />
+</div>
+
+<style>
+  .mascot {
+    --mascot-ink: var(--fg);
+    --mascot-skin: #cf9b76;
+    --mascot-robe: var(--green-deep);
+    --mascot-robe-hi: var(--green);
+    --mascot-gold: var(--gold);
+    --mascot-amber: var(--amber);
+    pointer-events: none;
+    line-height: 0;
+  }
+  :global(:root[data-theme='dark']) .mascot {
+    --mascot-robe: var(--green);
+    --mascot-robe-hi: var(--green-glow);
+    --mascot-gold: var(--gold-glow);
+  }
+
+  .mascot__sprite {
+    display: block;
+    width: var(--mascot-size, 56px);
+    height: var(--mascot-size, 56px);
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+
+  /* Fixed bottom-left companion. Sits clear of the cursor + scroll bits. */
+  .mascot--corner {
+    position: fixed;
+    left: 0.5rem;
+    bottom: clamp(0.6rem, 1.6vw, 1.4rem);
+    z-index: 8500;
+    --mascot-size: 52px;
+    filter: drop-shadow(2px 2px 0 color-mix(in srgb, var(--fg) 28%, transparent));
+    opacity: 0;
+    transform: translateY(8px);
+    transition:
+      opacity 0.6s var(--ease-out),
+      transform 0.6s var(--ease-out);
+  }
+  /* Reveal once the page is interactive (set by app.ts after intro). */
+  :global(:root.mascot-ready) .mascot--corner {
+    opacity: 0.92;
+    transform: none;
+    animation: mascot-bob 3.4s ease-in-out infinite;
+  }
+
+  /* Inline seam ornament. */
+  .mascot--inline {
+    display: inline-flex;
+    --mascot-size: 40px;
+  }
+  :global(:root.mascot-ready) .mascot--inline .mascot__sprite {
+    animation: mascot-bob 3.4s ease-in-out infinite;
+  }
+
+  /* hide the corner companion on small screens — keep it from cluttering */
+  @media (max-width: 48rem) {
+    .mascot--corner {
+      display: none;
+    }
+  }
+
+  /* ---------- Roaming RPG companion (desktop, motion-safe; class added by
+     app.ts initMascot only when it's allowed to run). JS drives x via --mx and
+     the bob/hop via --my; the sprite flips to face travel via --face. ---------- */
+  :global(:root.mascot-ready) .mascot--corner.mascot--roaming,
+  .mascot--corner.mascot--roaming {
+    left: 0;
+    right: auto;
+    bottom: clamp(0.4rem, 1.4vw, 1rem);
+    transform: translate3d(calc(var(--mx, 0) * 1px), calc(var(--my, 0) * 1px), 0);
+    animation: none;
+    transition: opacity 0.6s var(--ease-out);
+  }
+  .mascot--roaming .mascot__sprite {
+    transform: scaleX(var(--face, 1));
+    transition: transform 0.12s var(--ease-out);
+  }
+
+  /* Tiny RPG speech bubble */
+  .mascot__say {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%) translateY(4px);
+    white-space: nowrap;
+    font-size: 0.46rem;
+    line-height: 1.5;
+    padding: 0.55em 0.7em;
+    background: var(--bg-raised);
+    color: var(--fg);
+    border: var(--border-px) solid var(--fg);
+    box-shadow: var(--shadow-px-sm);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity 0.2s var(--ease-out),
+      transform 0.2s var(--ease-out);
+  }
+  .mascot__say[data-show='true'] {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .mascot__say::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--fg);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mascot__say {
+      transition: none;
+    }
+  }
+
+  @keyframes mascot-bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-3px);
+    }
+  }
+
+  /* Deterministic rest state: no motion, fully placed.
+     The visual test helper also force-disables all animation; this block
+     guarantees the resting sprite looks correct without it. */
+  @media (prefers-reduced-motion: reduce) {
+    .mascot--corner {
+      opacity: 0.92;
+      transform: none;
+      animation: none;
+      transition: none;
+    }
+    :global(:root.mascot-ready) .mascot--corner,
+    :global(:root.mascot-ready) .mascot--inline .mascot__sprite {
+      animation: none;
+    }
+  }
+</style>

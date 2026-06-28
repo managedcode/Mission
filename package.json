@@ -1,0 +1,49 @@
+{
+  "name": "managed-code-mission",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Mission by Managed Code — patrons of the digital commons. A landing page for an open-source patronage initiative.",
+  "license": "CC-BY-4.0",
+  "scripts": {
+    "dev": "astro dev --port 4323",
+    "start": "astro dev --port 4323",
+    "build": "node scripts/generate-icons.mjs && astro build",
+    "preview": "astro preview --port 4323",
+    "preview:test": "astro preview",
+    "astro": "astro",
+    "icons": "node scripts/generate-icons.mjs",
+    "og": "node scripts/generate-og.mjs",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:update": "playwright test --update-snapshots",
+    "check": "astro check",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "validate": "astro check && eslint ."
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.6.0",
+    "astro": "^5.14.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@eslint/js": "^10.0.1",
+    "@fontsource-variable/jetbrains-mono": "^5.2.5",
+    "@fontsource-variable/newsreader": "^5.2.5",
+    "@fontsource-variable/space-grotesk": "^5.2.6",
+    "@fontsource/press-start-2p": "^5.2.5",
+    "@playwright/test": "^1.55.0",
+    "astro-eslint-parser": "^1.4.0",
+    "eslint": "^10.6.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-astro": "^1.7.0",
+    "globals": "^17.7.0",
+    "prettier": "^3.9.0",
+    "prettier-plugin-astro": "^0.14.1",
+    "sharp": "^0.34.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.62.0"
+  }
+}

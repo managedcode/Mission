@@ -1,0 +1,673 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { teamPage, funding } from '../data/site';
+
+/* Unlock maths — derived once, in frontmatter, so the RESTING (animation-
+   disabled) state already paints the bar to the correct width AND the big
+   readout to the correct number. No JS-/time-/random-dependent values: the
+   static frame is correct on its own (crawlers / reduced motion / Playwright). */
+const pct = Math.round((funding.committed / funding.goal) * 100);
+
+/* Segmented pixel bar — SAME treatment as the home Funding meter: a fixed
+   number of discrete cells, with the LIT count computed here (not via
+   animation) so the static state is correct. Funding.astro uses 24 cells. */
+const CELLS = 24;
+const litCells = Math.round((pct / 100) * CELLS);
+const cells = Array.from({ length: CELLS }, (_, i) => i < litCells);
+
+const barLabel = `Team unlocks at the funding goal — ${pct}% of the way there`;
+
+/* Deterministic sealed maintainer slots — no random/time-based values.
+   The first slot is varied to read as the "first hire". */
+const SEAL_COUNT = 6;
+const seals = Array.from({ length: SEAL_COUNT }, (_, i) => i + 1);
+---
+
+<BaseLayout title={teamPage.title} path="/team" noindex={teamPage.noindex}>
+  <Header slot="header" />
+
+  <!-- Hero / locked -->
+  <section class="team section" aria-labelledby="team-h">
+    <div class="wrap">
+      <p class="kicker" data-reveal>{teamPage.kicker}</p>
+
+      <div class="team__lockwrap" data-reveal style="--reveal-delay:80ms">
+        <!-- Pixel padlock + SEALED stamp (decorative) -->
+        <span class="team__lock" aria-hidden="true">
+          <svg viewBox="0 0 22 22" width="22" height="22" role="presentation" focusable="false">
+            <!-- shackle -->
+            <path
+              class="team__lock-shackle"
+              d="M6 9 V6 a5 5 0 0 1 10 0 V9"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"></path>
+            <!-- body -->
+            <rect class="team__lock-body" x="4" y="9" width="14" height="10" fill="currentColor"
+            ></rect>
+            <!-- keyhole -->
+            <rect x="10" y="12" width="2" height="4" fill="var(--bg-raised)"></rect>
+          </svg>
+        </span>
+        <span class="team__stamp font-pixel" aria-hidden="true">SEALED</span>
+        <span class="chip team__chip font-mono">{teamPage.lockedLabel}</span>
+      </div>
+
+      <h1 class="team__heading" id="team-h" data-reveal style="--reveal-delay:160ms">
+        {teamPage.heading}
+      </h1>
+
+      <p class="team__lede font-serif" data-reveal style="--reveal-delay:240ms">
+        {teamPage.lede}
+      </p>
+
+      <!-- ===================================================================
+           UNLOCK METER — promoted to the hero as the single biggest motivator.
+           SAME visual language as src/components/Funding.astro: display-size
+           readout in --accent-deep / --accent, segmented 8-bit cells over an
+           accent fill underlay, --bg-sunken track. Resting state already shows
+           the current unlocked percentage + the bar filled to --fill (no JS required).
+           =================================================================== -->
+      <div class="team__unlock" data-reveal style="--reveal-delay:320ms">
+        <div class="team__readout">
+          <p class="team__pct font-display tnum">
+            {pct}<span class="team__pct-sign" aria-hidden="true">%</span>
+            <span class="team__pct-word" aria-hidden="true">unlocked</span>
+          </p>
+        </div>
+
+        <!-- 8-bit unlock bar (echoes the home funding meter) -->
+        <div
+          class="team__bar"
+          style={`--fill:${pct}%`}
+          role="progressbar"
+          aria-valuenow={pct}
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-label={barLabel}
+        >
+          <div class="team__cells" aria-hidden="true">
+            {cells.map((lit) => <span class={`team__cell${lit ? ' team__cell--lit' : ''}`} />)}
+          </div>
+          <!-- Continuous fill underlay — its width IS --fill (animates 0 → --fill
+               on reveal), tinting the lit region beneath the discrete cells. -->
+          <span class="team__fill" aria-hidden="true"></span>
+        </div>
+
+        <p class="team__unlock-caption font-mono tnum">
+          <span class="team__cap-from">{funding.committedShort}</span>
+          <span class="team__cap-arrow" aria-hidden="true">→</span>
+          <span class="team__cap-to">{funding.goalShort}</span>
+          <span class="team__cap-rest">monthly launch goal</span>
+        </p>
+      </div>
+
+      <!-- Locked team tease — sealed maintainer slots ("empty sockets") -->
+      <ul class="team__roster" role="list" aria-hidden="true">
+        {
+          seals.map((n) => (
+            <li class={`seal${n === 1 ? ' seal--first' : ''}`}>
+              <span class="seal__no font-mono">
+                {n === 1 ? 'No. 01' : `No. ${String(n).padStart(2, '0')}`}
+              </span>
+
+              {/* Faint pixelated silhouette behind the socket */}
+              <span class="seal__socket">
+                <span class="seal__silhouette" aria-hidden="true" />
+                <span class="seal__glyph">
+                  {n === 1 ? (
+                    /* Wax-seal mark for the first hire */
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="20"
+                      height="20"
+                      role="presentation"
+                      focusable="false"
+                    >
+                      <rect x="4" y="4" width="16" height="16" fill="currentColor" />
+                      <rect x="8" y="8" width="8" height="8" fill="var(--bg-sunken)" />
+                      <rect x="11" y="2" width="2" height="4" fill="currentColor" />
+                      <rect x="11" y="18" width="2" height="4" fill="currentColor" />
+                      <rect x="2" y="11" width="4" height="2" fill="currentColor" />
+                      <rect x="18" y="11" width="4" height="2" fill="currentColor" />
+                    </svg>
+                  ) : (
+                    /* Pixel padlock for the rest */
+                    <svg
+                      viewBox="0 0 22 22"
+                      width="18"
+                      height="18"
+                      role="presentation"
+                      focusable="false"
+                    >
+                      <path
+                        d="M6 9 V6 a5 5 0 0 1 10 0 V9"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      />
+                      <rect x="4" y="9" width="14" height="10" fill="currentColor" />
+                      <rect x="10" y="12" width="2" height="4" fill="var(--bg-sunken)" />
+                    </svg>
+                  )}
+                </span>
+              </span>
+
+              <span class={`seal__name${n === 1 ? ' seal__name--first' : ''}`}>
+                {n === 1 ? 'first hire' : 'maintainer · sealed'}
+              </span>
+
+              <span class="seal__bars">
+                <span class="seal__bar" />
+                <span class="seal__bar" />
+              </span>
+            </li>
+          ))
+        }
+      </ul>
+
+      <p class="team__caption font-mono" data-reveal>
+        Names, faces, and the library each maintainer owns appear here the day the goal is met.
+      </p>
+    </div>
+  </section>
+
+  <!-- Why locked (inverted band) -->
+  <section class="team-why invert" aria-labelledby="team-why-h">
+    <div class="wrap">
+      <header class="team-why__intro stack" data-reveal>
+        <p class="kicker">{teamPage.whyKicker}</p>
+        <h2 class="team-why__heading" id="team-why-h">{teamPage.whyHeading}</h2>
+        <p class="team-why__body font-serif">{teamPage.why}</p>
+      </header>
+
+      <div class="team-why__cta" data-reveal style="--reveal-delay:120ms">
+        <a class="btn btn--accent" href={teamPage.primary.href}>
+          {teamPage.primary.label}
+          <span aria-hidden="true">→</span>
+        </a>
+        <a class="btn btn--ghost" href={teamPage.secondary.href}>
+          {teamPage.secondary.label}
+        </a>
+      </div>
+
+      <a class="team-why__back font-mono" href={teamPage.back.href}>
+        {teamPage.back.label}
+      </a>
+    </div>
+  </section>
+
+  <Footer slot="footer" />
+</BaseLayout>
+
+<style>
+  /* ---------- Hero / locked ---------- */
+  .team {
+    border-bottom: var(--border-px) solid var(--fg);
+  }
+
+  .team__lockwrap {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s);
+    margin-top: var(--space-m);
+  }
+
+  .team__lock {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    flex: none;
+    color: var(--accent);
+    background: var(--bg-raised);
+    border: var(--border-px) solid var(--fg);
+    box-shadow: var(--shadow-px-sm);
+  }
+  .team__lock svg {
+    /* crisp, pixel-y edges on the padlock */
+    shape-rendering: crispEdges;
+  }
+
+  .team__stamp {
+    font-size: clamp(0.7rem, 0.55rem + 0.7vw, 1rem);
+    letter-spacing: 0.12em;
+    /* darkened so the small pixel stamp clears WCAG AA on the light page bg */
+    color: color-mix(in srgb, var(--accent-2) 60%, var(--fg));
+    border: var(--border-px) solid var(--accent-2);
+    padding: 0.45em 0.7em;
+    transform: rotate(-3deg);
+    transform-origin: left center;
+  }
+
+  .team__chip {
+    color: var(--fg-soft);
+  }
+
+  /* H1 — tightened to the home pixel-headline cadence. */
+  .team__heading {
+    font-size: var(--step-6);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin-top: var(--space-l);
+    max-width: 17ch;
+  }
+
+  .team__lede {
+    margin-top: var(--space-m);
+    max-width: 56ch;
+    color: var(--fg-soft);
+    font-size: var(--step-1);
+    line-height: 1.55;
+  }
+
+  /* =========================================================
+     UNLOCK METER — hero focal point.
+     Matches src/components/Funding.astro: display readout in
+     --accent-deep/--accent, --bg-sunken segmented track, accent
+     cells + fill underlay. Static state already shows pct.
+     ========================================================= */
+  .team__unlock {
+    display: grid;
+    gap: var(--space-s);
+    margin-top: var(--space-xl);
+    max-width: 56rem;
+  }
+
+  /* Big readout — same scale + colour as the home meter's percentage. */
+  .team__readout {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: var(--space-m);
+  }
+  .team__pct {
+    display: inline-flex;
+    align-items: baseline;
+    font-size: var(--step-7);
+    font-weight: 700;
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    color: var(--accent-deep);
+  }
+  :global(:root[data-theme='dark']) .team__pct {
+    color: var(--accent);
+  }
+  .team__pct-sign {
+    font-size: 0.5em;
+    margin-left: 0.06em;
+  }
+  .team__pct-word {
+    align-self: flex-end;
+    margin-left: 0.35em;
+    font-family: var(--font-pixel);
+    font-size: clamp(0.85rem, 0.55rem + 1.4vw, 1.4rem);
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    color: var(--fg);
+  }
+
+  /* The bar — taller, with real presence, an outlined unfilled track. */
+  .team__bar {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: clamp(1.1rem, 0.7rem + 2.2vw, 1.5rem);
+    padding: 4px;
+    background: var(--bg-sunken);
+    border: var(--border-px) solid var(--fg);
+    box-shadow: var(--shadow-px);
+    overflow: hidden;
+  }
+
+  /* Segmented pixel cells — IDENTICAL treatment to Funding.astro. They sit
+     ABOVE the fill underlay so the lit ones read as discrete 8-bit blocks. */
+  .team__cells {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    gap: 3px;
+    width: 100%;
+    height: 100%;
+  }
+  .team__cell {
+    background: color-mix(in srgb, var(--fg) 7%, var(--bg-sunken));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent);
+  }
+  .team__cell--lit {
+    background: var(--accent);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--fg) 22%, transparent),
+      inset -2px 0 0 color-mix(in srgb, #000 26%, transparent);
+  }
+
+  /* Continuous fill underlay — width IS --fill, so the resting (animation-off)
+     state already shows the correct level under the segmented cells. */
+  .team__fill {
+    position: absolute;
+    inset: 4px auto 4px 4px;
+    z-index: 1;
+    width: var(--fill);
+    max-width: calc(100% - 8px);
+    background: color-mix(in srgb, var(--accent) 28%, transparent);
+    transform-origin: left center;
+  }
+
+  /* Small mono caption: current funding -> launch goal. */
+  .team__unlock-caption {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    margin: 0;
+    font-size: var(--step--1);
+    line-height: 1.5;
+    color: var(--fg-faint);
+  }
+  .team__cap-from {
+    font-weight: 600;
+    color: var(--accent-deep);
+  }
+  :global(:root[data-theme='dark']) .team__cap-from {
+    color: var(--accent);
+  }
+  .team__cap-arrow {
+    color: var(--fg-faint);
+  }
+  .team__cap-to {
+    font-weight: 600;
+    color: var(--fg-soft);
+  }
+  .team__cap-rest {
+    color: var(--fg-faint);
+  }
+
+  /* ---------- Sealed roster tease — "empty sockets" ---------- */
+  .team__roster {
+    margin-top: var(--space-xl);
+    display: grid;
+    gap: var(--space-s);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  @media (min-width: 38rem) {
+    .team__roster {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 60rem) {
+    .team__roster {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+  }
+
+  .seal {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-2xs);
+    padding: var(--space-m) var(--space-s) var(--space-s);
+    border: var(--border-px) dashed var(--hairline-strong);
+    /* sunken / "empty slot" feel */
+    background: var(--bg-sunken);
+    box-shadow: inset 0 2px 0 color-mix(in srgb, #000 14%, transparent);
+  }
+  /* The first hire reads as the next slot to fill — solid frame + accent tint. */
+  .seal--first {
+    border-style: solid;
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, var(--bg-sunken));
+  }
+
+  .seal__no {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.6rem;
+    font-size: var(--step--2);
+    color: var(--fg-faint);
+    letter-spacing: 0.04em;
+  }
+  .seal--first .seal__no {
+    color: color-mix(in srgb, var(--accent-deep) 72%, var(--fg));
+  }
+  :global(:root[data-theme='dark']) .seal--first .seal__no {
+    color: var(--accent);
+  }
+
+  /* The empty socket: a sunken square holding a silhouette + a lock/seal glyph. */
+  .seal__socket {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.85rem;
+    height: 2.85rem;
+    margin-top: var(--space-xs);
+    overflow: hidden;
+    background: color-mix(in srgb, var(--fg) 8%, var(--bg-sunken));
+    border: var(--border-px) solid var(--hairline-strong);
+    box-shadow: inset 0 0 0 2px var(--bg-sunken);
+  }
+  .seal--first .seal__socket {
+    border-color: var(--accent);
+  }
+
+  /* Faint pixelated head-and-shoulders silhouette, drawn with box-shadow blocks. */
+  .seal__silhouette {
+    position: absolute;
+    bottom: -0.35rem;
+    left: 50%;
+    width: 0.45rem;
+    height: 0.45rem;
+    transform: translateX(-50%);
+    background: var(--hairline-strong);
+    opacity: 0.55;
+    box-shadow:
+      /* head */
+      0 -1.1rem 0 0.05rem var(--hairline-strong),
+      /* shoulders */ -0.55rem 0.1rem 0 0.1rem var(--hairline-strong),
+      0.55rem 0.1rem 0 0.1rem var(--hairline-strong),
+      -0.3rem -0.2rem 0 0.1rem var(--hairline-strong),
+      0.3rem -0.2rem 0 0.1rem var(--hairline-strong);
+  }
+  .seal--first .seal__silhouette {
+    background: color-mix(in srgb, var(--accent) 40%, transparent);
+    box-shadow:
+      0 -1.1rem 0 0.05rem color-mix(in srgb, var(--accent) 40%, transparent),
+      -0.55rem 0.1rem 0 0.1rem color-mix(in srgb, var(--accent) 40%, transparent),
+      0.55rem 0.1rem 0 0.1rem color-mix(in srgb, var(--accent) 40%, transparent),
+      -0.3rem -0.2rem 0 0.1rem color-mix(in srgb, var(--accent) 40%, transparent),
+      0.3rem -0.2rem 0 0.1rem color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+
+  .seal__glyph {
+    position: relative;
+    z-index: 1;
+    color: var(--fg-faint);
+    line-height: 0;
+  }
+  .seal--first .seal__glyph {
+    color: var(--accent-deep);
+  }
+  :global(:root[data-theme='dark']) .seal--first .seal__glyph {
+    color: var(--accent);
+  }
+  .seal__glyph svg {
+    shape-rendering: crispEdges;
+  }
+
+  .seal__name {
+    font-family: var(--font-pixel);
+    font-size: clamp(0.42rem, 0.36rem + 0.32vw, 0.55rem);
+    line-height: 1.5;
+    color: var(--fg-faint);
+    letter-spacing: 0.02em;
+  }
+  .seal__name--first {
+    color: color-mix(in srgb, var(--accent-deep) 72%, var(--fg));
+  }
+  :global(:root[data-theme='dark']) .seal__name--first {
+    color: var(--accent);
+  }
+
+  .seal__bars {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    width: 70%;
+    margin-top: var(--space-2xs);
+  }
+  .seal__bar {
+    height: 0.45rem;
+    background: var(--hairline-strong);
+    opacity: 0.6;
+  }
+  .seal__bar:nth-child(1) {
+    width: 90%;
+  }
+  .seal__bar:nth-child(2) {
+    width: 60%;
+  }
+  .seal--first .seal__bar {
+    background: color-mix(in srgb, var(--accent) 45%, var(--hairline-strong));
+  }
+
+  .team__caption {
+    margin-top: var(--space-l);
+    font-size: var(--step--1);
+    color: var(--fg-faint);
+    letter-spacing: 0.01em;
+    border-top: 1px dashed var(--hairline-strong);
+    padding-top: var(--space-s);
+    max-width: 60ch;
+  }
+
+  /* ---------- Why locked (inverted band) ---------- */
+  .team-why {
+    padding-block: clamp(3.5rem, 2rem + 7vw, var(--space-3xl));
+    border-bottom: var(--border-px) solid var(--fg);
+  }
+  .team-why__intro {
+    --flow: var(--space-s);
+    max-width: 52rem;
+  }
+  .team-why__heading {
+    font-size: var(--step-4);
+    letter-spacing: -0.02em;
+    max-width: 20ch;
+  }
+  .team-why__body {
+    font-size: var(--step-1);
+    line-height: 1.55;
+    color: var(--fg-soft);
+    max-width: 56ch;
+  }
+
+  .team-why__cta {
+    margin-top: var(--space-xl);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s);
+  }
+
+  .team-why__back {
+    display: inline-block;
+    margin-top: var(--space-l);
+    font-size: var(--step--1);
+    font-weight: 600;
+    color: var(--fg-faint);
+    border-bottom: 2px solid transparent;
+    transition:
+      color 0.18s var(--ease-out),
+      border-color 0.18s var(--ease-out);
+  }
+  .team-why__back:hover {
+    color: var(--fg);
+    border-color: currentColor;
+  }
+
+  /* =========================================================
+     MOTION — enhancement only. Resting state is already final.
+     The fill underlay grows 0 → --fill and the lit cells pop in,
+     ONLY when JS reveals the meter; both settle to the static
+     frame, so animation-disabled = correct picture. Mirrors the
+     home Funding meter's motion exactly.
+     ========================================================= */
+  :global(:root.js) .team__unlock[data-reveal] .team__fill {
+    transform: scaleX(0);
+  }
+  :global(:root.js) .team__unlock[data-reveal].is-visible .team__fill {
+    transform: scaleX(1);
+    transition: transform 1.1s var(--ease-out) 0.15s;
+  }
+  :global(:root.js) .team__unlock[data-reveal] .team__cell--lit {
+    opacity: 0.001;
+  }
+  :global(:root.js) .team__unlock[data-reveal].is-visible .team__cell--lit {
+    opacity: 1;
+    animation: team-cell-pop 0.18s var(--ease-pixel) both;
+  }
+  /* Stagger the lit cells so they charge left → right like an XP bar. */
+  .team__cell--lit:nth-child(1) {
+    animation-delay: 0.18s;
+  }
+  .team__cell--lit:nth-child(2) {
+    animation-delay: 0.27s;
+  }
+  .team__cell--lit:nth-child(3) {
+    animation-delay: 0.36s;
+  }
+  .team__cell--lit:nth-child(n + 4) {
+    animation-delay: 0.45s;
+  }
+  @keyframes team-cell-pop {
+    from {
+      opacity: 0.001;
+      transform: translateY(2px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Reduced motion → show the final state immediately. */
+  @media (prefers-reduced-motion: reduce) {
+    :global(:root.js) .team__unlock[data-reveal] .team__fill,
+    :global(:root.js) .team__unlock[data-reveal].is-visible .team__fill {
+      transform: none;
+      transition: none;
+    }
+    :global(:root.js) .team__unlock[data-reveal] .team__cell--lit,
+    :global(:root.js) .team__unlock[data-reveal].is-visible .team__cell--lit {
+      opacity: 1;
+      animation: none;
+    }
+    .team__stamp {
+      /* keep the stamp readable when motion is reduced */
+      transform: rotate(-3deg);
+    }
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 40rem) {
+    .team__pct {
+      font-size: var(--step-6);
+    }
+    .team__roster {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .team-why__cta {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>

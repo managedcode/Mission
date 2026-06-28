@@ -1,0 +1,284 @@
+---
+import { manifesto } from '../data/site';
+
+// Split the heading so one key word can carry the accent.
+// "Patrons of the digital commons" → accent the final word.
+const headingWords = manifesto.heading.split(' ');
+const headingLead = headingWords.slice(0, -1).join(' ');
+const headingAccent = headingWords.at(-1);
+
+// The first paragraph carries the illuminated drop-cap via CSS ::first-letter,
+// so every paragraph keeps its full, real text — no character is ever split off.
+
+// Split the signoff into stamped clauses for the closing flourish.
+const signoffParts = manifesto.signoff
+  .split('.')
+  .map((s) => s.trim())
+  .filter(Boolean);
+---
+
+<section class="section manifesto invert" id="manifesto" aria-labelledby="manifesto-h">
+  <div class="manifesto__scanlines" aria-hidden="true"></div>
+
+  <span class="manifesto__ghost font-pixel" aria-hidden="true">COMMONS</span>
+
+  <div class="wrap manifesto__inner">
+    <header class="manifesto__head">
+      <p class="kicker" data-reveal>{manifesto.kicker}</p>
+      <h2 class="manifesto__heading" id="manifesto-h" data-reveal style="--reveal-delay:80ms">
+        {headingLead}{' '}<em class="manifesto__heading-accent">{headingAccent}</em>
+      </h2>
+    </header>
+
+    <div class="manifesto__prose">
+      {
+        manifesto.paragraphs.map((text, i) => (
+          <p
+            class:list={['manifesto__p', i === 0 && 'manifesto__p--lead']}
+            data-reveal
+            style={`--reveal-delay:${i * 120}ms`}
+          >
+            {text}
+          </p>
+        ))
+      }
+    </div>
+
+    <footer class="manifesto__signoff" data-reveal style="--reveal-delay:300ms">
+      <div class="dither manifesto__dither" aria-hidden="true"></div>
+      <p class="manifesto__stamp font-pixel">
+        {
+          signoffParts.map((part, i) => (
+            <>
+              <span class="manifesto__stamp-word">{part}.</span>
+              {i < signoffParts.length - 1 && (
+                <i class="manifesto__stamp-sep" aria-hidden="true">
+                  ◆
+                </i>
+              )}
+            </>
+          ))
+        }
+      </p>
+
+      <svg
+        class="manifesto__seal"
+        viewBox="0 0 32 32"
+        width="64"
+        height="64"
+        aria-hidden="true"
+        shape-rendering="crispEdges"
+      >
+        {/* Pixel wax-seal crest: a blocky rosette closing the charter. */}
+        <rect x="6" y="6" width="20" height="20" class="manifesto__seal-bg"></rect>
+        <path class="manifesto__seal-ring" d="M6 6h20v2H6zM6 24h20v2H6zM6 6h2v20H6zM24 6h2v20h-2z"
+        ></path>
+        <path
+          class="manifesto__seal-mark"
+          d="M14 10h4v2h-4zM12 12h8v2h-8zM10 14h12v4H10zM12 18h8v2h-8zM14 20h4v2h-4zM15 13h2v6h-2zM13 15h6v2h-6z"
+        ></path>
+      </svg>
+    </footer>
+  </div>
+</section>
+
+<style>
+  .manifesto {
+    /* deep ink band — extra-generous breathing room */
+    position: relative;
+    padding-block: clamp(5rem, 3rem + 10vw, 11rem);
+    /* clip both the scanlines and the bleeding ghost word so neither
+       can ever introduce horizontal scroll */
+    overflow: clip;
+    border-block: var(--border-px) solid var(--fg);
+  }
+
+  /* ---- Giant ghosted pixel word bleeding off the right edge ---- */
+  .manifesto__ghost {
+    position: absolute;
+    right: -0.12em;
+    bottom: -0.04em;
+    margin: 0;
+    font-size: clamp(20vw, 16vw + 4rem, 28vw);
+    line-height: 0.78;
+    letter-spacing: -0.02em;
+    color: var(--fg);
+    opacity: 0.05;
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+    z-index: 0;
+  }
+  @media (max-width: 48rem) {
+    .manifesto__ghost {
+      bottom: auto;
+      top: 0.2em;
+      opacity: 0.04;
+    }
+  }
+
+  /* very subtle CRT scanline atmosphere, scoped to this band */
+  .manifesto__scanlines {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.5;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(243, 238, 221, 0.035) 0px,
+      rgba(243, 238, 221, 0.035) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+    z-index: 0;
+  }
+  @media (max-width: 48rem) {
+    .manifesto__scanlines {
+      display: none;
+    }
+  }
+
+  .manifesto__inner {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ---- Intro ---- */
+  .manifesto__head {
+    max-width: 22ch;
+    margin-bottom: clamp(2.5rem, 1.5rem + 4vw, 4.5rem);
+  }
+  .manifesto__heading {
+    font-family: var(--font-display);
+    font-size: var(--step-6);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    margin-top: var(--space-m);
+  }
+  .manifesto__heading-accent {
+    font-style: normal;
+    color: var(--tier-gold);
+  }
+
+  /* ---- Editorial prose column ---- */
+  .manifesto__prose {
+    position: relative;
+    z-index: 1;
+    max-width: 62ch;
+    hanging-punctuation: first;
+    /* faint vertical accent rule running down the left margin */
+    border-left: var(--border-px) solid var(--hairline-strong);
+    padding-left: clamp(1.25rem, 0.5rem + 3vw, 3rem);
+  }
+  .manifesto__prose::before {
+    content: '';
+    position: absolute;
+    left: calc(var(--border-px) * -1);
+    top: 0;
+    width: var(--border-px);
+    height: clamp(3rem, 6vw, 5.5rem);
+    background: var(--accent);
+  }
+
+  .manifesto__p {
+    font-family: var(--font-serif);
+    font-size: var(--step-2);
+    line-height: 1.55;
+    color: var(--fg-soft);
+    text-wrap: pretty;
+  }
+  .manifesto__p + .manifesto__p {
+    margin-top: clamp(1.5rem, 1rem + 2vw, 2.75rem);
+  }
+
+  /* ---- Illuminated drop-cap on the FIRST paragraph only ----
+     Driven entirely by ::first-letter so the real text is never split:
+     the paragraph still reads "In the Renaissance…" to eyes, selection,
+     print and screen readers. The big gold "I" is purely presentational. */
+  .manifesto__p--lead::first-letter {
+    initial-letter: 3;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    color: var(--tier-gold);
+    margin-right: 0.08em;
+    text-shadow: 0 0 22px rgba(232, 185, 74, 0.28);
+  }
+  /* Float fallback for engines without initial-letter (e.g. Firefox). */
+  @supports not (initial-letter: 3) {
+    .manifesto__p--lead::first-letter {
+      float: left;
+      font-size: 3.4em;
+      line-height: 0.8;
+      padding-right: 0.08em;
+    }
+  }
+
+  /* ---- Sign-off: lands like a stamp ---- */
+  .manifesto__signoff {
+    position: relative;
+    z-index: 1;
+    margin-top: clamp(3rem, 2rem + 5vw, 5.5rem);
+    text-align: center;
+  }
+  .manifesto__dither {
+    width: clamp(8rem, 30vw, 18rem);
+    margin: 0 auto clamp(1.5rem, 1rem + 2vw, 2.5rem);
+    opacity: 0.22;
+    /* dither tiles read brighter on the dark ink band */
+    background-image:
+      linear-gradient(45deg, var(--fg) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--fg) 25%, transparent 25%);
+  }
+  .manifesto__stamp {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4em 0.9em;
+    font-size: clamp(0.72rem, 0.55rem + 0.85vw, 1.05rem);
+    line-height: 1.7;
+    color: var(--accent);
+    text-shadow: 0 0 22px rgba(61, 224, 122, 0.28);
+  }
+  .manifesto__stamp-word {
+    white-space: nowrap;
+  }
+  .manifesto__stamp-sep {
+    font-style: normal;
+    color: var(--accent-2);
+    font-size: 0.7em;
+    opacity: 0.8;
+  }
+
+  /* ---- Pixel wax-seal crest: signs off the charter ---- */
+  .manifesto__seal {
+    width: clamp(3rem, 2.4rem + 2.6vw, 4.25rem);
+    height: auto;
+    margin: clamp(1.5rem, 1rem + 2vw, 2.5rem) auto 0;
+    filter: drop-shadow(0 0 18px rgba(232, 185, 74, 0.22));
+  }
+  .manifesto__seal-bg {
+    fill: var(--bg-raised);
+  }
+  .manifesto__seal-ring,
+  .manifesto__seal-mark {
+    fill: var(--tier-gold);
+  }
+  .manifesto__seal-mark {
+    opacity: 0.92;
+  }
+
+  @media (max-width: 40rem) {
+    .manifesto__prose {
+      padding-left: clamp(1rem, 4vw, 1.5rem);
+    }
+    .manifesto__p--lead::first-letter {
+      margin-right: 0.06em;
+    }
+    @supports not (initial-letter: 3) {
+      .manifesto__p--lead::first-letter {
+        font-size: 2.9em;
+      }
+    }
+  }
+</style>

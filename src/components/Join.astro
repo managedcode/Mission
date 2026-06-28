@@ -1,0 +1,224 @@
+---
+import { join, site } from '../data/site';
+
+/* Derive a short, warm mail subject from each card title.
+   Keeps the invitation human and specific without inventing visible copy. */
+const subjectFor = (title: string) => {
+  const role = title
+    .replace(/^Recovering from /i, '')
+    .replace(/ with fire$/i, '')
+    .trim();
+  const tidy = role.charAt(0).toUpperCase() + role.slice(1);
+  return `Joining the team — ${tidy}`;
+};
+
+const mailto = (subject: string) => `mailto:${site.email}?subject=${encodeURIComponent(subject)}`;
+---
+
+<section class="section join" id="join" aria-labelledby="join-h">
+  <div class="wrap join__inner">
+    <header class="join__intro">
+      <p class="kicker" data-reveal>{join.kicker}</p>
+      <h2 class="join__heading" id="join-h" data-reveal style="--reveal-delay:80ms">
+        {join.heading}
+      </h2>
+      <p class="join__lede font-serif" data-reveal style="--reveal-delay:160ms">
+        {join.lede}
+      </p>
+    </header>
+
+    <ul class="join__grid" role="list">
+      {
+        join.cards.map((card, i) => (
+          <li class="join__card" data-reveal style={`--reveal-delay:${260 + i * 90}ms`}>
+            <span class="join__pixel" aria-hidden="true">
+              <svg viewBox="0 0 16 16" width="22" height="22" aria-hidden="true" focusable="false">
+                {/* a tiny open door — a place to walk in */}
+                <g fill="currentColor" shape-rendering="crispEdges">
+                  <rect x="2" y="1" width="9" height="14" />
+                  <rect x="3" y="2" width="7" height="12" fill="var(--bg-raised)" />
+                  <rect x="8" y="7" width="1" height="2" />
+                  <rect x="11" y="6" width="3" height="9" />
+                </g>
+              </svg>
+            </span>
+
+            <h3 class="join__card-title">{card.title}</h3>
+            <p class="join__card-body">{card.body}</p>
+
+            <a class="btn btn--ghost join__card-cta" href={mailto(subjectFor(card.title))}>
+              {card.cta}
+              <span aria-hidden="true">→</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+
+    <div class="join__knock" data-reveal>
+      <hr class="rule--dotted join__knock-rule" />
+      <p class="join__knock-line">
+        <span class="join__knock-label font-pixel">Knock on the door</span>
+        <a class="join__knock-mail font-mono" href={`mailto:${site.email}`}>
+          {join.ctaEmailLabel}
+          <span class="join__knock-caret caret" aria-hidden="true"></span>
+        </a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .join {
+    border-bottom: var(--border-px) solid var(--fg);
+    background: var(--bg);
+  }
+
+  .join__inner {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2.25rem, 1.5rem + 3vw, 3.75rem);
+  }
+
+  /* ---------- Intro ---------- */
+  .join__intro {
+    max-width: 52ch;
+  }
+  .join__heading {
+    font-size: var(--step-4);
+    margin-top: var(--space-m);
+    max-width: 18ch;
+  }
+  .join__lede {
+    font-size: var(--step-1);
+    line-height: 1.55;
+    margin-top: var(--space-m);
+    color: var(--fg-soft);
+    max-width: 56ch;
+  }
+
+  /* ---------- Cards ---------- */
+  .join__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(1rem, 0.6rem + 1.6vw, 1.75rem);
+  }
+  .join__card {
+    /* Softer than the pricing tiers: raised fill, light hairline, gentle lift. */
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+    background: var(--bg-raised);
+    border: 1.5px solid var(--hairline-strong);
+    box-shadow: var(--shadow-px-sm);
+    padding: clamp(1.4rem, 1.1rem + 1.4vw, 2rem);
+    transition:
+      transform 0.2s var(--ease-out),
+      box-shadow 0.2s var(--ease-out),
+      border-color 0.2s var(--ease-out);
+  }
+  .join__card:hover {
+    transform: translateY(-3px);
+    border-color: var(--fg);
+    box-shadow: var(--shadow-px);
+  }
+
+  .join__pixel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    color: var(--accent-deep);
+    background: var(--bg-sunken);
+    border: 1.5px solid var(--hairline-strong);
+  }
+  :global(:root[data-theme='dark']) .join__pixel {
+    color: var(--accent);
+  }
+
+  .join__card-title {
+    font-size: var(--step-2);
+    letter-spacing: -0.02em;
+  }
+  .join__card-body {
+    color: var(--fg-soft);
+    font-size: var(--step-0);
+    line-height: 1.6;
+    max-width: 38ch;
+    /* push the CTA to the foot so cards align */
+    margin-bottom: auto;
+  }
+  .join__card-cta {
+    align-self: flex-start;
+    margin-top: var(--space-2xs);
+  }
+  .join__card-cta span {
+    transition: transform 0.18s var(--ease-out);
+  }
+  .join__card-cta:hover span {
+    transform: translateX(3px);
+  }
+
+  /* ---------- Knock on the door ---------- */
+  .join__knock {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(1.25rem, 0.9rem + 1.4vw, 2rem);
+  }
+  .join__knock-rule {
+    width: 100%;
+    max-width: 40rem;
+    margin: 0;
+  }
+  .join__knock-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+  .join__knock-label {
+    font-size: clamp(0.5rem, 0.42rem + 0.35vw, 0.62rem);
+    letter-spacing: 0.04em;
+    color: var(--fg-faint);
+  }
+  .join__knock-mail {
+    font-size: var(--step-3);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--fg);
+    padding-bottom: 0.12em;
+    background-image: linear-gradient(var(--accent), var(--accent));
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    background-size: 100% 2px;
+    transition:
+      background-size 0.25s var(--ease-out),
+      color 0.2s var(--ease-out);
+    word-break: break-word;
+  }
+  .join__knock-mail:hover,
+  .join__knock-mail:focus-visible {
+    color: var(--accent-deep);
+    background-size: 100% 100%;
+  }
+  :global(:root[data-theme='dark']) .join__knock-mail:hover,
+  :global(:root[data-theme='dark']) .join__knock-mail:focus-visible {
+    color: var(--bg);
+  }
+  .join__knock-caret {
+    display: inline-block;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 56rem) {
+    .join__grid {
+      grid-template-columns: 1fr;
+    }
+    .join__card-body {
+      max-width: none;
+    }
+  }
+</style>

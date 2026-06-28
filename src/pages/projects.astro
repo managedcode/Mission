@@ -1,0 +1,436 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { projectsPage, teamPage, team, site } from '../data/site';
+
+/* Deterministic sealed "redacted line" widths for the case-study slip — no
+   random/time-based values, so the resting (animation-off) frame is final. */
+const slipLines = [92, 78, 64] as const;
+---
+
+<BaseLayout title={projectsPage.title} path="/projects" noindex={projectsPage.noindex}>
+  <Header slot="header" />
+
+  <!-- Intro -->
+  <section class="section pj" aria-labelledby="pj-h">
+    <div class="wrap">
+      <header class="pj__intro stack" data-reveal>
+        <p class="kicker">{projectsPage.kicker}</p>
+        <h1 class="pj__heading" id="pj-h">{projectsPage.heading}</h1>
+        <p class="pj__lede font-serif">{projectsPage.lede}</p>
+      </header>
+
+      <!-- Projects grid -->
+      <h2 class="visually-hidden">Repositories maintained by {site.org}</h2>
+      <ul class="pj__grid" role="list">
+        {
+          team.projects.map((project, i) => (
+            <li data-reveal style={`--reveal-delay:${i * 70}ms`}>
+              <a
+                class="repo card"
+                href={`https://github.com/managedcode/${project.slug}`}
+                target="_blank"
+                rel="noopener"
+              >
+                <span class="repo__top">
+                  <span class="repo__name font-mono">{project.name}</span>
+                  <span
+                    class="repo__downloads font-mono"
+                    aria-label={`${project.downloads} for ${project.name}`}
+                  >
+                    NuGet {project.downloads.replace(' NuGet downloads', '')}
+                  </span>
+                </span>
+
+                <p class="repo__desc">{project.desc}</p>
+
+                <span class="repo__meta">
+                  <span class="chip repo__lang">
+                    <span class="repo__lang-dot" aria-hidden="true" />
+                    {project.lang}
+                  </span>
+                  <span class="repo__go font-mono" aria-hidden="true">
+                    →
+                  </span>
+                </span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+
+      <p class="pj__orglink">
+        <a href={site.github} target="_blank" rel="noopener" class="pj__orglink-a font-mono">
+          See the whole org on GitHub
+          <span aria-hidden="true">→</span>
+        </a>
+      </p>
+    </div>
+  </section>
+
+  <!-- Case studies (inverted band) -->
+  <section class="pj-cases invert" aria-labelledby="pj-cases-h">
+    <div class="wrap">
+      <header class="pj-cases__intro stack" data-reveal>
+        <p class="kicker">{projectsPage.caseStudiesKicker}</p>
+        <h2 class="pj-cases__heading" id="pj-cases-h">{projectsPage.caseStudiesHeading}</h2>
+        <p class="pj-cases__lede font-serif">{projectsPage.caseStudies}</p>
+      </header>
+
+      <!-- One sealed editorial panel — same lock language as /team -->
+      <article class="sealed" data-reveal style="--reveal-delay:120ms">
+        <div class="sealed__lockwrap">
+          <!-- Pixel padlock (decorative) — identical to /team -->
+          <span class="sealed__lock" aria-hidden="true">
+            <svg viewBox="0 0 22 22" width="22" height="22" role="presentation" focusable="false">
+              <path
+                d="M6 9 V6 a5 5 0 0 1 10 0 V9"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"></path>
+              <rect x="4" y="9" width="14" height="10" fill="currentColor"></rect>
+              <rect x="10" y="12" width="2" height="4" fill="var(--bg-raised)"></rect>
+            </svg>
+          </span>
+          <span class="sealed__stamp font-pixel" aria-hidden="true">SEALED</span>
+          <span class="chip sealed__chip font-mono">{teamPage.lockedLabel}</span>
+        </div>
+
+        <h3 class="sealed__heading">The first case study lands here</h3>
+
+        <p class="sealed__body font-serif">
+          This panel stays sealed until the first patronages land — then it opens with names, before
+          and after, and the hours saved.
+        </p>
+
+        <!-- Redacted "case study filing" tease (decorative) -->
+        <div class="sealed__slip" aria-hidden="true">
+          <span class="sealed__slip-label font-mono">case study · no. 01</span>
+          <span class="sealed__slip-lines">
+            {slipLines.map((w) => <span class="sealed__slip-line" style={`width:${w}%`} />)}
+          </span>
+        </div>
+      </article>
+
+      <div class="pj-cases__cta" data-reveal>
+        <a class="btn btn--accent" href={projectsPage.primary.href}>
+          {projectsPage.primary.label}
+          <span aria-hidden="true">→</span>
+        </a>
+        <a class="pj-cases__back font-mono" href={projectsPage.back.href}>
+          {projectsPage.back.label}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <Footer slot="footer" />
+</BaseLayout>
+
+<style>
+  /* ---------- Intro ---------- */
+  .pj {
+    border-bottom: var(--border-px) solid var(--fg);
+  }
+  .pj__intro {
+    --flow: var(--space-s);
+    max-width: 52rem;
+  }
+  .pj__heading {
+    font-size: var(--step-6);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    max-width: 18ch;
+  }
+  .pj__lede {
+    font-size: var(--step-1);
+    line-height: 1.5;
+    color: var(--fg-soft);
+    max-width: 56ch;
+  }
+
+  /* ---------- Project grid (matches the maintainers repo cards) ---------- */
+  .pj__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(1rem, 0.6rem + 1.4vw, 1.6rem);
+    margin-top: var(--space-xl);
+  }
+  .pj__grid > li {
+    display: flex;
+  }
+
+  .repo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+    width: 100%;
+    box-shadow: var(--shadow-px-sm);
+    transition:
+      transform 0.14s var(--ease-out),
+      box-shadow 0.14s var(--ease-out);
+  }
+  .repo:hover,
+  .repo:focus-visible {
+    transform: translate(-3px, -3px);
+    box-shadow: 6px 6px 0 var(--fg);
+  }
+  .repo:focus-visible {
+    outline-offset: 5px;
+  }
+
+  .repo__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-s);
+  }
+  .repo__name {
+    font-size: var(--step-0);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+  .repo:hover .repo__name,
+  .repo:focus-visible .repo__name {
+    color: var(--accent-deep);
+  }
+  :global(:root[data-theme='dark']) .repo:hover .repo__name,
+  :global(:root[data-theme='dark']) .repo:focus-visible .repo__name {
+    color: var(--accent);
+  }
+
+  .repo__downloads {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    font-size: var(--step--2);
+    font-weight: 600;
+    color: color-mix(in srgb, var(--accent-deep) 72%, var(--fg));
+    border: 1.5px solid var(--hairline-strong);
+    padding: 0.2em 0.5em;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  :global(:root[data-theme='dark']) .repo__downloads {
+    color: var(--accent);
+  }
+
+  .repo__desc {
+    font-size: var(--step--1);
+    line-height: 1.55;
+    color: var(--fg-soft);
+    flex: 1 1 auto;
+  }
+
+  .repo__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .repo__lang-dot {
+    width: 9px;
+    height: 9px;
+    background: var(--accent-3);
+    flex: none;
+  }
+  .repo__go {
+    margin-left: auto;
+    font-weight: 700;
+    color: var(--fg-faint);
+    transition:
+      transform 0.14s var(--ease-out),
+      color 0.14s var(--ease-out);
+  }
+  .repo:hover .repo__go,
+  .repo:focus-visible .repo__go {
+    transform: translateX(3px);
+    color: var(--accent-deep);
+  }
+  :global(:root[data-theme='dark']) .repo:hover .repo__go,
+  :global(:root[data-theme='dark']) .repo:focus-visible .repo__go {
+    color: var(--accent);
+  }
+
+  /* ---------- Org link ---------- */
+  .pj__orglink {
+    margin-top: var(--space-l);
+  }
+  .pj__orglink-a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    font-size: var(--step--1);
+    font-weight: 600;
+    color: var(--accent-deep);
+    border-bottom: 2px solid transparent;
+    transition:
+      border-color 0.18s var(--ease-out),
+      gap 0.18s var(--ease-out);
+  }
+  :global(:root[data-theme='dark']) .pj__orglink-a {
+    color: var(--accent);
+  }
+  .pj__orglink-a:hover {
+    border-color: currentColor;
+    gap: 0.7em;
+  }
+
+  /* ---------- Case studies band ---------- */
+  .pj-cases {
+    padding-block: clamp(3.5rem, 2rem + 7vw, var(--space-3xl));
+    border-bottom: var(--border-px) solid var(--fg);
+  }
+  .pj-cases__intro {
+    --flow: var(--space-s);
+    max-width: 52rem;
+  }
+  .pj-cases__heading {
+    font-size: var(--step-4);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    max-width: 20ch;
+  }
+  .pj-cases__lede {
+    font-size: var(--step-1);
+    line-height: 1.5;
+    color: var(--fg-soft);
+    max-width: 56ch;
+  }
+
+  /* ---------- Sealed editorial panel (one system with /team) ---------- */
+  .sealed {
+    margin-top: var(--space-xl);
+    max-width: 52rem;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-m);
+    padding: clamp(1.5rem, 1.1rem + 2vw, 2.5rem);
+    background: color-mix(in srgb, var(--bg-raised) 55%, transparent);
+    border: var(--border-px) dashed var(--hairline-strong);
+    box-shadow: var(--shadow-px-sm);
+  }
+
+  .sealed__lockwrap {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s);
+  }
+  /* Pixel padlock chip — mirrors .team__lock on /team */
+  .sealed__lock {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    flex: none;
+    color: var(--accent);
+    background: var(--bg-raised);
+    border: var(--border-px) solid var(--fg);
+    box-shadow: var(--shadow-px-sm);
+  }
+  .sealed__lock svg {
+    shape-rendering: crispEdges;
+  }
+  /* Wax-seal stamp — mirrors .team__stamp on /team */
+  .sealed__stamp {
+    font-size: clamp(0.7rem, 0.55rem + 0.7vw, 1rem);
+    letter-spacing: 0.12em;
+    color: var(--accent-2);
+    border: var(--border-px) solid var(--accent-2);
+    padding: 0.45em 0.7em;
+    transform: rotate(-3deg);
+    transform-origin: left center;
+  }
+  .sealed__chip {
+    color: var(--fg-soft);
+  }
+
+  .sealed__heading {
+    font-size: var(--step-2);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    max-width: 22ch;
+  }
+  .sealed__body {
+    font-size: var(--step-0);
+    line-height: 1.55;
+    color: var(--fg-soft);
+    max-width: 54ch;
+  }
+
+  /* Redacted "filing" tease — deliberate, not a loading state */
+  .sealed__slip {
+    margin-top: var(--space-2xs);
+    padding-top: var(--space-m);
+    border-top: 1px dashed var(--hairline-strong);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+  }
+  .sealed__slip-label {
+    font-size: var(--step--2);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg-faint);
+  }
+  .sealed__slip-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+  .sealed__slip-line {
+    height: 0.6rem;
+    background: var(--hairline-strong);
+    opacity: 0.55;
+  }
+
+  /* ---------- CTA ---------- */
+  .pj-cases__cta {
+    margin-top: var(--space-xl);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-m);
+  }
+  .pj-cases__back {
+    font-size: var(--step--1);
+    font-weight: 600;
+    color: var(--fg-faint);
+    border-bottom: 2px solid transparent;
+    transition:
+      color 0.18s var(--ease-out),
+      border-color 0.18s var(--ease-out);
+  }
+  .pj-cases__back:hover {
+    color: var(--fg);
+    border-color: currentColor;
+  }
+
+  /* Keep the wax-seal stamp readable when motion is reduced (match /team). */
+  @media (prefers-reduced-motion: reduce) {
+    .sealed__stamp {
+      transform: rotate(-3deg);
+    }
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 60rem) {
+    .pj__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 40rem) {
+    .pj__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,42 @@
+# Mission by Managed Code — patrons of the digital commons.
+# We welcome search engines and AI / answer-engine crawlers alike.
+# Structured summary for LLMs: https://mission.managed-code.com/llms.txt
+#
+#   Hello, robot. If you're a crawler: welcome, mi casa es su casa.
+#   If you're a human reading robots.txt for fun — you're our kind of weird.
+#   We're hiring maintainers → opensource@managed-code.com  ·  also: /humans.txt
+#   ↑ ↑ ↓ ↓ ← → ← → B A — start
+
+# --- AI / answer-engine crawlers (explicitly welcome) ---
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# --- Everyone else ---
+User-agent: *
+Allow: /
+
+Sitemap: https://mission.managed-code.com/sitemap-index.xml

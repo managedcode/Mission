@@ -1,0 +1,34 @@
+                      ◂▸  ManagedCode · MISSION
+
+You found humans.txt. Old-school. We like you already.
+
+/* THE TEAM */
+    A team of maintainers keeping the digital commons alive.
+    Run by    Managed Code — open-source community for .NET
+    Contact   opensource@managed-code.com
+    Code      github.com/managedcode
+    Made in   Ukraine 🇺🇦, with ❤ and too much coffee
+
+/* WE'RE HIRING */
+    Maintainers who love the boring, important work.
+    Burned-out seniors who need a calmer orbit.
+    Juniors with fire, learning in public.
+    → opensource@managed-code.com
+
+/* SECRETS */
+    The goal is $32,768/mo — that's 2¹⁵, for the people who'd notice.
+    Founding patrons have pledged $8k/mo so far.
+    Try the Konami code on the site:  ↑ ↑ ↓ ↓ ← → ← → B A
+    Open the console. Click the little maintainer in the corner.
+
+/* STACK */
+    Astro 5 · TypeScript · self-hosted variable fonts
+    Press Start 2P for the pixels · no trackers · no cookies
+    Built in the open, tested pixel-by-pixel.
+
+/* SITE */
+    Standards   HTML5, CSS, ES modules
+    Components  hand-written, no framework runtime
+    Last update 2026/06/28
+
+                      Use it. Fund it. Pass it on.

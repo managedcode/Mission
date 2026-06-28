@@ -1,0 +1,179 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import Logo from '../components/Logo.astro';
+import { notFound } from '../data/site';
+---
+
+<BaseLayout title="404 — This route was never merged" path="/404" noindex={true}>
+  <Header slot="header" />
+
+  <section class="nf invert grain" aria-labelledby="nf-h">
+    <div class="nf__grid" aria-hidden="true"></div>
+    <div class="wrap nf__inner">
+      <p class="kicker" data-reveal>{notFound.kicker}</p>
+
+      <div class="nf__code" aria-hidden="true" data-reveal>
+        <span class="nf__digit">4</span>
+        <span class="nf__zero"><Logo size={112} title="0" /></span>
+        <span class="nf__digit">4</span>
+      </div>
+
+      <h1 class="nf__heading" id="nf-h" data-reveal style="--reveal-delay:120ms">
+        {notFound.heading}
+      </h1>
+
+      <div class="nf__story prose" data-reveal style="--reveal-delay:220ms">
+        {notFound.story.map((p) => <p>{p}</p>)}
+      </div>
+
+      <div class="nf__cta" data-reveal style="--reveal-delay:320ms">
+        <a class="btn btn--accent" href={notFound.cta.href}>
+          <span aria-hidden="true">←</span>
+          {notFound.cta.label}
+        </a>
+      </div>
+
+      <p class="nf__links font-mono" data-reveal style="--reveal-delay:380ms">
+        or try:
+        <a href="/projects">projects</a> · <a href="/patrons">patrons</a> ·
+        <a href="/#manifesto">manifesto</a>
+      </p>
+
+      <p class="nf__konami font-mono" data-reveal style="--reveal-delay:420ms">
+        <span class="nf__konami-label">// hint:</span>
+        {notFound.konami}
+      </p>
+    </div>
+
+    <div class="nf__scan" aria-hidden="true"></div>
+  </section>
+
+  <Footer slot="footer" />
+</BaseLayout>
+
+<style>
+  .nf {
+    position: relative;
+    min-height: calc(100svh - 4.25rem);
+    display: grid;
+    place-items: center;
+    padding-block: clamp(3rem, 2rem + 6vw, 6rem);
+    overflow: clip;
+  }
+  .nf__grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, var(--hairline) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--hairline) 1px, transparent 1px);
+    background-size: 2.5rem 2.5rem;
+    mask-image: radial-gradient(110% 70% at 50% 35%, #000 5%, transparent 72%);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .nf__inner {
+    position: relative;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .nf__code {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(0.5rem, 2vw, 1.5rem);
+    margin: var(--space-m) 0 var(--space-s);
+    line-height: 1;
+  }
+  .nf__digit {
+    font-family: var(--font-pixel);
+    font-size: clamp(3.5rem, 2rem + 12vw, 9rem);
+    color: var(--fg);
+    text-shadow:
+      6px 6px 0 var(--accent),
+      12px 12px 0 color-mix(in srgb, var(--amber) 60%, transparent);
+  }
+  .nf__zero {
+    display: grid;
+    place-items: center;
+    animation: nf-bob 2.6s var(--ease-out) infinite;
+  }
+  @keyframes nf-bob {
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nf__zero {
+      animation: none;
+    }
+  }
+
+  .nf__heading {
+    font-size: var(--step-5);
+    margin-top: var(--space-s);
+    max-width: 18ch;
+  }
+  .nf__story {
+    max-width: 52ch;
+    margin-top: var(--space-m);
+    color: var(--fg-soft);
+    font-family: var(--font-serif);
+    font-size: var(--step-1);
+  }
+  .nf__story > * + * {
+    margin-top: 1em;
+  }
+  .nf__story p:last-child {
+    font-family: var(--font-display);
+    color: var(--fg);
+    font-weight: 600;
+  }
+
+  .nf__cta {
+    margin-top: var(--space-l);
+  }
+
+  .nf__links {
+    margin-top: var(--space-m);
+    font-size: var(--step--1);
+    color: var(--fg-faint);
+  }
+  .nf__links a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .nf__links a:hover {
+    color: var(--fg);
+  }
+  .nf__konami {
+    margin-top: var(--space-l);
+    font-size: var(--step--1);
+    color: var(--fg-faint);
+    letter-spacing: 0.02em;
+    border-top: 1px dashed var(--hairline-strong);
+    padding-top: var(--space-s);
+  }
+  .nf__konami-label {
+    color: var(--accent);
+  }
+
+  .nf__scan {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.025) 0px,
+      rgba(255, 255, 255, 0.025) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    mix-blend-mode: screen;
+  }
+</style>

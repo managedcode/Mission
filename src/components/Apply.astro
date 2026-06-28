@@ -1,0 +1,436 @@
+---
+/* =================================================================
+   Apply — the patron application form (#apply).
+   Submissions POST as JSON to site.formEndpoint. While that endpoint
+   is empty the form renders in a disabled state — there is NO mailto
+   fallback by design; the button is simply inert until the API lands.
+   ================================================================= */
+import { apply, site } from '../data/site';
+
+const formEndpoint = site.formEndpoint as string;
+const recaptchaApiUrl = site.recaptchaApiUrl as string;
+const recaptchaSiteKey = site.recaptchaSiteKey as string;
+const recaptchaAction = site.recaptchaAction as string;
+const enabled = formEndpoint.length > 0 && recaptchaSiteKey.length > 0 && recaptchaAction.length > 0;
+const f = apply.fields;
+const recaptchaNotice = apply.recaptchaNotice;
+---
+
+<section class="section apply" id="apply" aria-labelledby="apply-h">
+  <div class="wrap apply__inner">
+    <header class="apply__intro" data-reveal>
+      <p class="kicker">{apply.kicker}</p>
+      <h2 class="apply__heading" id="apply-h">{apply.heading}</h2>
+      <p class="apply__lede font-serif">{apply.lede}</p>
+      <ul class="apply__reassure" role="list">
+        {
+          apply.reassurance.map((item) => (
+            <li>
+              <span class="apply__tick" aria-hidden="true"></span>{item}
+            </li>
+          ))
+        }
+      </ul>
+    </header>
+
+    <div class="apply__panel" data-reveal style="--reveal-delay:120ms">
+      <form
+        class="apply__form card"
+        data-apply-form
+        data-endpoint={formEndpoint}
+        data-error={apply.errorBody}
+        data-sending={apply.sendingLabel}
+        method="post"
+        action={enabled ? formEndpoint : undefined}
+      >
+        <div class="apply__grid">
+          <div class="field field--half">
+            <label class="field__label" for="apply-company">
+              {f.company.label}<span class="field__req" aria-hidden="true">*</span>
+            </label>
+            <input
+              class="field__input"
+              id="apply-company"
+              name={f.company.name}
+              type="text"
+              placeholder={f.company.placeholder}
+              autocomplete="organization"
+              required
+            />
+          </div>
+
+          <div class="field field--half">
+            <label class="field__label" for="apply-email">
+              {f.email.label}<span class="field__req" aria-hidden="true">*</span>
+            </label>
+            <input
+              class="field__input"
+              id="apply-email"
+              name={f.email.name}
+              type="email"
+              placeholder={f.email.placeholder}
+              autocomplete="email"
+              required
+            />
+          </div>
+
+          <div class="field field--half">
+            <label class="field__label" for="apply-name">{f.name.label}</label>
+            <input
+              class="field__input"
+              id="apply-name"
+              name={f.name.name}
+              type="text"
+              placeholder={f.name.placeholder}
+              autocomplete="name"
+            />
+          </div>
+
+          <div class="field field--half">
+            <label class="field__label" for="apply-grade">{f.grade.label}</label>
+            <span class="field__select">
+              <select class="field__input" id="apply-grade" name={f.grade.name}>
+                {f.grade.options.map((o) => <option value={o}>{o}</option>)}
+              </select>
+            </span>
+          </div>
+
+          <div class="field field--full">
+            <label class="field__label" for="apply-stack">
+              {f.stack.label}<span class="field__req" aria-hidden="true">*</span>
+            </label>
+            <textarea
+              class="field__input field__textarea"
+              id="apply-stack"
+              name={f.stack.name}
+              rows="3"
+              placeholder={f.stack.placeholder}
+              required></textarea>
+          </div>
+
+          <div class="field field--half">
+            <label class="field__label" for="apply-budget">{f.budget.label}</label>
+            <span class="field__select">
+              <select class="field__input" id="apply-budget" name={f.budget.name}>
+                {f.budget.options.map((o) => <option value={o}>{o}</option>)}
+              </select>
+            </span>
+          </div>
+
+          <div class="field field--half">
+            <label class="field__label" for="apply-timeline">{f.timeline.label}</label>
+            <span class="field__select">
+              <select class="field__input" id="apply-timeline" name={f.timeline.name}>
+                {f.timeline.options.map((o) => <option value={o}>{o}</option>)}
+              </select>
+            </span>
+          </div>
+
+          <div class="field field--full">
+            <label class="field__label" for="apply-notes">{f.notes.label}</label>
+            <textarea
+              class="field__input field__textarea"
+              id="apply-notes"
+              name={f.notes.name}
+              rows="2"
+              placeholder={f.notes.placeholder}></textarea>
+          </div>
+        </div>
+
+        <div class="apply__actions">
+          <button
+            class="btn btn--accent apply__submit"
+            type="submit"
+            data-apply-submit
+            disabled={!enabled}
+          >
+            {enabled ? apply.submitLabel : apply.disabledLabel}
+            {enabled && <span aria-hidden="true">→</span>}
+          </button>
+          <p class="apply__status font-mono" data-apply-status role="status" aria-live="polite"></p>
+        </div>
+
+        {!enabled && <p class="apply__disabled font-mono">{apply.disabledNote}</p>}
+      </form>
+
+      <div class="apply__success card" data-apply-success hidden tabindex="-1">
+        <p class="apply__success-mark font-pixel" aria-hidden="true">✓</p>
+        <h3 class="apply__success-h font-display">{apply.successHeading}</h3>
+        <p class="apply__success-body font-serif">{apply.successBody}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .apply {
+    border-top: var(--border-px) solid var(--fg);
+    background: var(--bg-sunken);
+  }
+  .apply__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    gap: clamp(2rem, 1rem + 4vw, 4.5rem);
+    align-items: start;
+  }
+
+  /* ---------- Intro ---------- */
+  .apply__intro {
+    display: grid;
+    gap: var(--space-s);
+    align-content: start;
+    position: sticky;
+    top: 5.5rem;
+  }
+  .apply__heading {
+    font-size: var(--step-4);
+    letter-spacing: -0.025em;
+    max-width: 16ch;
+  }
+  .apply__lede {
+    font-size: var(--step-1);
+    line-height: 1.5;
+    color: var(--fg-soft);
+    max-width: 42ch;
+  }
+  .apply__reassure {
+    display: grid;
+    gap: var(--space-2xs);
+    margin-top: var(--space-xs);
+  }
+  .apply__reassure li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.7em;
+    align-items: start;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    line-height: 1.45;
+    color: var(--fg-soft);
+  }
+  .apply__tick {
+    width: 0.7em;
+    height: 0.7em;
+    margin-top: 0.4em;
+    background: var(--accent);
+    box-shadow: var(--shadow-px-sm);
+    flex: none;
+  }
+
+  /* ---------- Form ---------- */
+  .apply__form {
+    display: grid;
+    gap: var(--space-m);
+  }
+  .apply__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-s) var(--space-m);
+  }
+  .field {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0;
+  }
+  .field--full {
+    grid-column: 1 / -1;
+  }
+  .field__label {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--fg-soft);
+  }
+  .field__req {
+    color: var(--accent-2);
+    margin-left: 0.25em;
+  }
+  .field__input {
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    line-height: 1.4;
+    padding: 0.7em 0.85em;
+    background: var(--bg);
+    color: var(--fg);
+    border: var(--border-px) solid var(--hairline-strong);
+    border-radius: 0;
+    transition:
+      border-color 0.15s var(--ease-out),
+      box-shadow 0.15s var(--ease-out);
+  }
+  .field__input::placeholder {
+    color: var(--fg-faint);
+  }
+  .field__input:focus {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-px-sm);
+    outline: none;
+  }
+  .field__textarea {
+    resize: vertical;
+    min-height: 3.2em;
+  }
+  /* Custom select chrome — strip the native arrow, add a pixel caret */
+  .field__select {
+    position: relative;
+    display: block;
+  }
+  .field__select .field__input {
+    appearance: none;
+    padding-right: 2.2em;
+    cursor: pointer;
+  }
+  .field__select::after {
+    content: '▾';
+    position: absolute;
+    right: 0.85em;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    font-family: var(--font-mono);
+    color: var(--fg-faint);
+  }
+
+  /* ---------- Actions / status ---------- */
+  .apply__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-m);
+    flex-wrap: wrap;
+  }
+  .apply__submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .apply__submit:disabled:hover {
+    transform: none;
+    box-shadow: var(--shadow-px);
+  }
+  .apply__status {
+    font-size: var(--step--2);
+    color: var(--fg-faint);
+    margin: 0;
+  }
+  .apply__status[data-state='error'] {
+    color: var(--amber-deep);
+  }
+  :global(:root[data-theme='dark']) .apply__status[data-state='error'] {
+    color: var(--accent-2);
+  }
+  .apply__disabled {
+    font-size: var(--step--2);
+    line-height: 1.5;
+    color: var(--fg-faint);
+    margin: 0;
+    padding-top: var(--space-2xs);
+    border-top: 1.5px dotted var(--hairline-strong);
+  }
+
+  /* ---------- Success panel ---------- */
+  .apply__success {
+    display: grid;
+    gap: var(--space-2xs);
+    justify-items: start;
+  }
+  .apply__success[hidden] {
+    display: none;
+  }
+  .apply__success-mark {
+    font-size: 1.1rem;
+    color: var(--accent);
+    text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .apply__success-h {
+    font-size: var(--step-3);
+    letter-spacing: -0.02em;
+  }
+  .apply__success-body {
+    font-size: var(--step-0);
+    line-height: 1.55;
+    color: var(--fg-soft);
+    max-width: 48ch;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 56rem) {
+    .apply__inner {
+      grid-template-columns: 1fr;
+      gap: var(--space-l);
+    }
+    .apply__intro {
+      position: static;
+    }
+    .apply__heading {
+      max-width: none;
+    }
+  }
+  @media (max-width: 30rem) {
+    .apply__grid {
+      grid-template-columns: 1fr;
+    }
+    .field--half {
+      grid-column: 1 / -1;
+    }
+  }
+</style>
+
+<script>
+  /* Progressive enhancement: POST the form as JSON and swap in an inline
+     success panel. Without an endpoint the form is inert (the server already
+     rendered the disabled state) and this handler never wires up. Without JS,
+     the native <form method=post action=endpoint> still submits. */
+  (() => {
+    const form = document.querySelector<HTMLFormElement>('[data-apply-form]');
+    if (!form) return;
+    const endpoint = form.dataset.endpoint || '';
+    if (!endpoint) return;
+
+    const submit = form.querySelector<HTMLButtonElement>('[data-apply-submit]');
+    const status = form.querySelector<HTMLElement>('[data-apply-status]');
+    const success = document.querySelector<HTMLElement>('[data-apply-success]');
+    const sendingLabel = form.dataset.sending || 'Sending…';
+    const errorMsg = form.dataset.error || 'Something went wrong. Try again.';
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+
+      const payload = Object.fromEntries(new FormData(form).entries());
+      const restore = submit ? submit.innerHTML : '';
+      if (submit) {
+        submit.disabled = true;
+        submit.textContent = sendingLabel;
+      }
+      if (status) {
+        status.dataset.state = 'sending';
+        status.textContent = '';
+      }
+
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error(String(res.status));
+        form.hidden = true;
+        if (success) {
+          success.hidden = false;
+          success.focus();
+          success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } catch {
+        if (status) {
+          status.dataset.state = 'error';
+          status.textContent = errorMsg;
+        }
+        if (submit) {
+          submit.disabled = false;
+          submit.innerHTML = restore;
+        }
+      }
+    });
+  })();
+</script>

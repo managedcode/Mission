@@ -1,0 +1,306 @@
+---
+import { funding } from '../data/site';
+
+/* Fill maths — derived once, in the frontmatter, so the RESTING (animation-
+   disabled) state already paints the bar to the correct width. */
+const pct = Math.round((funding.committed / funding.goal) * 100);
+
+/* Segmented pixel bar: a fixed number of discrete cells. The number of LIT
+   cells is computed here (not via animation) so the static state is correct. */
+const CELLS = 24;
+const litCells = Math.round((pct / 100) * CELLS);
+const cells = Array.from({ length: CELLS }, (_, i) => i < litCells);
+
+const barLabel = `${pct}% of the launch funding goal committed`;
+---
+
+<section class="section funding" id="funding" aria-labelledby="funding-h">
+  <div class="wrap">
+    <!-- Intro -->
+    <header class="funding__intro stack" data-reveal>
+      <p class="kicker">{funding.kicker}</p>
+      <h2 class="funding__heading" id="funding-h">{funding.heading}</h2>
+      <p class="funding__lede font-serif">{funding.body}</p>
+    </header>
+
+    <!-- The meter -->
+    <div class="funding__meter" data-reveal style={`--reveal-delay:120ms`}>
+      <!-- Big readout -->
+      <div class="funding__readout">
+        <p class="funding__pct font-display tnum">
+          {pct}<span class="funding__pct-sign" aria-hidden="true">%</span>
+        </p>
+        <p class="funding__readout-sub font-mono tnum">
+          {funding.committedShort} committed toward launch
+        </p>
+      </div>
+
+      <!-- 8-bit XP / health bar -->
+      <div
+        class="funding__bar"
+        style={`--fill:${pct}%`}
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-label={barLabel}
+      >
+        <div class="funding__cells" aria-hidden="true">
+          {cells.map((lit) => <span class={`funding__cell${lit ? ' funding__cell--lit' : ''}`} />)}
+        </div>
+        <!-- Continuous fill underlay (drives the grow animation + width = --fill) -->
+        <span class="funding__fill" aria-hidden="true"></span>
+      </div>
+
+      <!-- End labels -->
+      <div class="funding__labels">
+        <span class="funding__label funding__label--committed font-mono tnum">
+          <span class="funding__label-dot" aria-hidden="true"></span>
+          {funding.committedLabel}
+        </span>
+        <span class="funding__label funding__label--goal font-mono tnum">
+          {funding.goalLabel}
+        </span>
+      </div>
+
+      <!-- CTA + disclaimer -->
+      <div class="funding__action">
+        <a class="btn btn--accent" href={funding.cta.href}>{funding.cta.label}</a>
+        <p class="funding__note font-mono">{funding.note}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .funding {
+    border-bottom: var(--border-px) solid var(--fg);
+  }
+
+  /* ---------- Intro ---------- */
+  .funding__intro {
+    --flow: var(--space-s);
+    max-width: 50rem;
+    margin-bottom: clamp(2rem, 1rem + 4vw, 3.25rem);
+  }
+  .funding__heading {
+    font-size: var(--step-4);
+    max-width: 18ch;
+  }
+  .funding__lede {
+    font-size: var(--step-1);
+    line-height: 1.55;
+    color: var(--fg-soft);
+    max-width: 54ch;
+  }
+
+  /* ---------- Meter shell ---------- */
+  .funding__meter {
+    display: grid;
+    gap: var(--space-m);
+    max-width: 56rem;
+  }
+
+  /* ---------- Big readout ---------- */
+  .funding__readout {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-m);
+    flex-wrap: wrap;
+  }
+  .funding__pct {
+    font-size: var(--step-7);
+    font-weight: 700;
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    color: var(--accent-deep);
+  }
+  :global(:root[data-theme='dark']) .funding__pct {
+    color: var(--accent);
+  }
+  .funding__pct-sign {
+    font-size: 0.5em;
+    margin-left: 0.06em;
+  }
+  .funding__readout-sub {
+    font-size: var(--step-0);
+    font-weight: 500;
+    color: var(--fg-soft);
+  }
+
+  /* =========================================================
+     8-BIT XP / HEALTH BAR
+     Static state (animations disabled) already shows --fill.
+     ========================================================= */
+  .funding__bar {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: clamp(2.1rem, 1.6rem + 2vw, 2.9rem);
+    padding: 4px;
+    background: var(--bg-sunken);
+    border: var(--border-px) solid var(--fg);
+    box-shadow: var(--shadow-px);
+    overflow: hidden;
+  }
+
+  /* The segmented pixel cells — sit ABOVE the fill underlay so the lit ones
+     read as discrete blocks. Empty cells are muted; lit cells are accent. */
+  .funding__cells {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    gap: 3px;
+    width: 100%;
+    height: 100%;
+  }
+  .funding__cell {
+    background: color-mix(in srgb, var(--fg) 7%, var(--bg-sunken));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent);
+  }
+  .funding__cell--lit {
+    background: var(--accent);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--fg) 22%, transparent),
+      inset -2px 0 0 color-mix(in srgb, #000 26%, transparent);
+  }
+
+  /* Continuous fill underlay — its width IS --fill, and it is what animates
+     (grows 0 → --fill on reveal). It sits beneath the cells, tinting the lit
+     region so the meter still reads correctly between cell boundaries. */
+  .funding__fill {
+    position: absolute;
+    inset: 4px auto 4px 4px;
+    z-index: 1;
+    width: calc(var(--fill) - 0px);
+    /* keep the underlay inside the 4px padding box on the right edge too */
+    max-width: calc(100% - 8px);
+    background: color-mix(in srgb, var(--accent) 28%, transparent);
+    transform-origin: left center;
+  }
+
+  /* ---------- End labels ---------- */
+  .funding__labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-m);
+    flex-wrap: wrap;
+  }
+  .funding__label {
+    font-size: var(--step--1);
+    font-weight: 600;
+  }
+  .funding__label--committed {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    color: var(--accent-deep);
+  }
+  :global(:root[data-theme='dark']) .funding__label--committed {
+    color: var(--accent);
+  }
+  .funding__label-dot {
+    width: 0.62em;
+    height: 0.62em;
+    flex: none;
+    background: var(--accent);
+    box-shadow: 1.5px 1.5px 0 color-mix(in srgb, var(--fg) 55%, transparent);
+  }
+  .funding__label--goal {
+    color: var(--fg-faint);
+    text-align: right;
+  }
+
+  /* ---------- CTA + note ---------- */
+  .funding__action {
+    display: flex;
+    align-items: center;
+    gap: var(--space-m);
+    flex-wrap: wrap;
+    margin-top: var(--space-s);
+  }
+  .funding__note {
+    font-size: var(--step--2);
+    line-height: 1.5;
+    color: var(--fg-faint);
+    max-width: 44ch;
+  }
+
+  /* =========================================================
+     MOTION — enhancement only. Resting state is already final.
+     The fill underlay grows from 0 → --fill, and the cells light
+     up in sequence, ONLY when JS reveals the band. Both settle to
+     the exact static state, so disabling animation = correct frame.
+     ========================================================= */
+  :global(:root.js) .funding__meter[data-reveal] .funding__fill {
+    transform: scaleX(0);
+  }
+  :global(:root.js) .funding__meter[data-reveal].is-visible .funding__fill {
+    transform: scaleX(1);
+    transition: transform 1.1s var(--ease-out) 0.15s;
+  }
+  :global(:root.js) .funding__meter[data-reveal] .funding__cell--lit {
+    opacity: 0.001;
+  }
+  :global(:root.js) .funding__meter[data-reveal].is-visible .funding__cell--lit {
+    opacity: 1;
+    animation: funding-cell-pop 0.18s var(--ease-pixel) both;
+  }
+  /* Stagger the lit cells so they fill left → right like an XP bar charging. */
+  .funding__cell--lit:nth-child(1) {
+    animation-delay: 0.18s;
+  }
+  .funding__cell--lit:nth-child(2) {
+    animation-delay: 0.27s;
+  }
+  .funding__cell--lit:nth-child(3) {
+    animation-delay: 0.36s;
+  }
+  .funding__cell--lit:nth-child(n + 4) {
+    animation-delay: 0.45s;
+  }
+  @keyframes funding-cell-pop {
+    from {
+      opacity: 0.001;
+      transform: translateY(2px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Reduced motion → show the final state immediately (no grow / pop). */
+  @media (prefers-reduced-motion: reduce) {
+    :global(:root.js) .funding__meter[data-reveal] .funding__fill,
+    :global(:root.js) .funding__meter[data-reveal].is-visible .funding__fill {
+      transform: none;
+      transition: none;
+    }
+    :global(:root.js) .funding__meter[data-reveal] .funding__cell--lit,
+    :global(:root.js) .funding__meter[data-reveal].is-visible .funding__cell--lit {
+      opacity: 1;
+      animation: none;
+    }
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 40rem) {
+    .funding__pct {
+      font-size: var(--step-6);
+    }
+    .funding__labels {
+      flex-direction: column;
+      gap: var(--space-2xs);
+    }
+    .funding__label--goal {
+      text-align: left;
+    }
+    .funding__action {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>

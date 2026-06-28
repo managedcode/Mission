@@ -1,0 +1,659 @@
+---
+import { howItWorks } from '../data/site';
+const { kicker, heading, lede, steps } = howItWorks;
+---
+
+<section class="section how" id="how" aria-labelledby="how-h">
+  <div class="wrap">
+    <header class="how__intro stack">
+      <p class="kicker" data-reveal>{kicker}</p>
+      <h2 class="how__heading" id="how-h" data-reveal style="--reveal-delay:80ms">{heading}</h2>
+      <p class="how__lede font-serif" data-reveal style="--reveal-delay:160ms">{lede}</p>
+    </header>
+
+    <div class="how__loopwrap">
+      {
+        /* Scroll-scrubbed progress rail: fills 01→04 as the section passes through
+          the viewport, with a pixel coin riding the leading edge. Purely
+          decorative — the cards below carry the real content. */
+      }
+      <div class="how__progress" aria-hidden="true">
+        <span class="how__progress-track"></span>
+        <span class="how__progress-fill"></span>
+        <span class="how__coin"></span>
+      </div>
+
+      <ol class="how__loop" role="list" aria-label="The patronage loop">
+        {
+          steps.map((step, i) => (
+            <li class="how__node" style={`--node-i:${i}`}>
+              <article
+                class="card how__card"
+                data-reveal
+                style={`--reveal-delay:${240 + i * 110}ms`}
+              >
+                <div class="how__card-top">
+                  <span class="how__n font-pixel" data-i={i} aria-hidden="true">
+                    {step.n}
+                  </span>
+                  <span class="chip how__chip font-mono">
+                    <span class="how__chip-mark" aria-hidden="true">
+                      ▸
+                    </span>
+                    {step.tag}
+                  </span>
+                </div>
+                <h3 class="how__title">{step.title}</h3>
+                <p class="how__body">{step.body}</p>
+              </article>
+
+              {i < steps.length - 1 && (
+                <span
+                  class="how__arrow"
+                  data-reveal
+                  style={`--reveal-delay:${300 + i * 110}ms`}
+                  aria-hidden="true"
+                >
+                  <span class="how__arrow-x">
+                    <span class="how__arrow-px" />
+                    <span class="how__arrow-head">▶</span>
+                  </span>
+                  <span class="how__arrow-y">
+                    <span class="how__arrow-head">▼</span>
+                  </span>
+                </span>
+              )}
+            </li>
+          ))
+        }
+      </ol>
+
+      {/* The feedback edge: step 04 loops back to step 01. This is the whole point. */}
+      <div class="how__feedback" data-reveal style="--reveal-delay:680ms" aria-hidden="true">
+        <span class="how__feedback-rail">
+          <span class="how__feedback-fill"></span>
+          <span class="how__token"></span>
+        </span>
+        <span class="how__feedback-label font-mono">
+          <span class="how__feedback-glyph">↻</span>
+          back to 01 — funded again
+        </span>
+      </div>
+    </div>
+
+    <div class="how__return" data-reveal style="--reveal-delay:760ms" aria-hidden="true">
+      <span class="how__return-pill font-pixel">
+        <span class="how__return-mark">↻</span>
+        the loop pays for itself
+      </span>
+    </div>
+
+    <p class="visually-hidden">
+      The four steps form a continuous loop: step four feeds back into step one, so the patronage
+      keeps funding itself.
+    </p>
+  </div>
+</section>
+
+<style>
+  .how {
+    border-bottom: var(--border-px) solid var(--fg);
+  }
+
+  /* ---- Intro ---- */
+  .how__intro {
+    --flow: var(--space-s);
+    max-width: var(--maxw-prose);
+    margin-bottom: clamp(2.5rem, 1.5rem + 3.5vw, var(--space-2xl));
+  }
+  .how__heading {
+    font-size: var(--step-5);
+    letter-spacing: -0.028em;
+  }
+  .how__lede {
+    font-size: var(--step-1);
+    line-height: 1.5;
+    color: var(--fg-soft);
+    max-width: 52ch;
+  }
+
+  /* ---- The loop: 4 across → 2×2 → 1 col ---- */
+  .how__loopwrap {
+    position: relative;
+  }
+  .how__loop {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(1rem, 0.4rem + 2.4vw, 2.4rem);
+    margin: 0;
+  }
+  .how__node {
+    position: relative;
+    display: flex;
+  }
+
+  /* ---- The scroll-scrubbed progress rail (01 → 04) ----
+     A single horizontal track running behind/above the four cards on desktop.
+     `--progress` (0 → 1) drives both the fill width and the coin position.
+     RESTING / animation-disabled state: rail FULL (--progress: 1), coin parked
+     at the far end (over 04). The scroll timeline only re-creates the fill as
+     you read. Decorative → aria-hidden. */
+  .how__progress {
+    --progress: 1;
+    position: absolute;
+    /* sit just above the row of cards, centred on the numerals' band */
+    top: calc(-1 * clamp(1.1rem, 0.7rem + 1.2vw, 1.7rem));
+    left: 0;
+    right: 0;
+    height: 12px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .how__progress-track {
+    position: absolute;
+    inset: 0;
+    border: var(--border-px) solid var(--fg);
+    background: var(--bg-sunken);
+    /* pixel-dashed track so it reads as an 8-bit wire, not a plain bar */
+    background-image: repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--fg) 20%, transparent) 0 7px,
+      transparent 7px 14px
+    );
+  }
+  .how__progress-fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    /* scaleX is GPU-cheap and scrubs smoothly; transform-origin pins it at 01 */
+    width: 100%;
+    transform-origin: left center;
+    transform: scaleX(var(--progress));
+    background: var(--amber);
+    background-image: repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--fg) 16%, transparent) 0 6px,
+      transparent 6px 12px
+    );
+    border-right: var(--border-px) solid var(--fg);
+  }
+  /* the coin rides the leading edge of the fill. Its X position is the rail's
+     own width scaled by --progress (left: 0 → 100%); translate(-50%) keeps it
+     centred on that point and on-rail at both ends. RESTING state: parked over
+     04 (--progress: 1). */
+  .how__coin {
+    position: absolute;
+    top: 50%;
+    left: calc(var(--progress) * 100%);
+    width: 14px;
+    height: 14px;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle at 50% 38%, var(--gold-glow) 0 32%, var(--amber) 33% 100%);
+    box-shadow: 0 0 0 2px var(--fg);
+    image-rendering: pixelated;
+  }
+
+  /* ---- Pixel card ---- */
+  .how__card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+    width: 100%;
+    background: var(--bg-raised);
+    transition:
+      transform 0.14s var(--ease-out),
+      box-shadow 0.14s var(--ease-out);
+    will-change: transform;
+  }
+  .how__card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 7px 7px 0 var(--fg);
+  }
+  /* the funding step (01) is where money enters the loop — quietly mark it amber */
+  .how__node:first-child .how__card {
+    box-shadow: var(--shadow-px);
+  }
+
+  .how__card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-xs);
+  }
+
+  /* ---- 8-bit numerals: the visual anchor of every card ----
+     Each numeral "ignites" once the scroll progress passes its node. In the
+     RESTING / animation-disabled state every numeral is fully ignited (lit),
+     so the frozen screenshot shows all four 01–04 in full colour. */
+  .how__n {
+    /* real Press Start 2P, large + confident */
+    font-family: var(--font-pixel);
+    font-size: clamp(1.7rem, 1.2rem + 2.3vw, 2.85rem);
+    line-height: 1;
+    letter-spacing: 0;
+    color: var(--amber);
+    /* chunky pixel weight via a hard offset shadow rather than a blur */
+    text-shadow: 3px 3px 0 color-mix(in srgb, var(--amber) 26%, transparent);
+    -webkit-text-stroke: 0;
+    transform: translateY(-0.04em);
+  }
+  /* alternate amber → gold → amber → green so 04 reads "alive / ecosystem 1-UP" */
+  .how__n[data-i='1'] {
+    color: var(--gold);
+    text-shadow: 3px 3px 0 color-mix(in srgb, var(--gold) 28%, transparent);
+  }
+  .how__n[data-i='3'] {
+    color: var(--accent);
+    text-shadow: 3px 3px 0 color-mix(in srgb, var(--accent) 26%, transparent);
+  }
+  :global(:root[data-theme='dark']) .how__n[data-i='1'],
+  :global(.invert) .how__n[data-i='1'] {
+    color: var(--tier-gold);
+  }
+
+  .how__chip {
+    border-color: var(--hairline-strong);
+    color: var(--fg-soft);
+    text-transform: lowercase;
+  }
+  .how__chip-mark {
+    color: var(--accent-2);
+  }
+
+  .how__title {
+    font-size: var(--step-2);
+    letter-spacing: -0.02em;
+  }
+  .how__body {
+    font-size: var(--step-0);
+    line-height: 1.55;
+    color: var(--fg-soft);
+  }
+
+  /* ---- Connectors between nodes: chunky pixel arrows ---- */
+  .how__arrow {
+    position: absolute;
+    color: var(--accent-2);
+    line-height: 1;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .how__arrow-x {
+    display: inline-flex;
+    align-items: center;
+  }
+  .how__arrow-y {
+    display: none;
+  }
+  .how__arrow-head {
+    font-size: var(--step-1);
+    line-height: 1;
+  }
+  /* a short pixel-dashed shaft so the arrow reads as a wire, not a single glyph */
+  .how__arrow-px {
+    display: inline-block;
+    width: clamp(0.7rem, 0.2rem + 1.4vw, 1.4rem);
+    height: 3px;
+    background-image: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px);
+  }
+  /* Horizontal arrow sits in the gutter to the right (desktop). */
+  .how__arrow {
+    top: calc(var(--space-l) - 0.05em);
+    right: clamp(-1.6rem, -0.3rem - 1.5vw, -0.7rem);
+    transform: translateX(50%);
+  }
+
+  /* ---- The feedback edge (04 → 01): a real loop, not a funnel ---- */
+  .how__feedback {
+    margin-top: clamp(1.5rem, 0.9rem + 2vw, 2.5rem);
+  }
+  .how__feedback-rail {
+    position: relative;
+    display: block;
+    height: 14px;
+    border: var(--border-px) solid var(--fg);
+    background: var(--bg-sunken);
+    /* pixel-dashed track that visually points right→left, back toward 01 */
+    background-image: repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--fg) 22%, transparent) 0 7px,
+      transparent 7px 14px
+    );
+    overflow: hidden;
+  }
+  /* the feedback rail fills the same way — pinned at the RIGHT (the 04 end),
+     paying back toward 01 on the left. RESTING state: full. */
+  .how__feedback-fill {
+    --fb: 1;
+    position: absolute;
+    inset: 0;
+    transform-origin: right center;
+    transform: scaleX(var(--fb));
+    background: var(--amber);
+    opacity: 0.6;
+  }
+  /* a pixel "token / coin" that travels the rail, paying back into 01 */
+  .how__token {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 10px;
+    height: 10px;
+    background: var(--amber);
+    box-shadow: 0 0 0 1.5px var(--fg);
+    transform: translate(0, -50%);
+    z-index: 1;
+  }
+  .how__feedback-label {
+    display: flex;
+    align-items: center;
+    gap: 0.55em;
+    margin-top: 0.7em;
+    font-size: var(--step--1);
+    color: var(--accent-deep);
+    text-transform: lowercase;
+    letter-spacing: 0.01em;
+  }
+  :global(:root[data-theme='dark']) .how__feedback-label,
+  :global(.invert) .how__feedback-label {
+    color: var(--accent);
+  }
+  .how__feedback-glyph {
+    font-size: 1.25em;
+    line-height: 1;
+    color: var(--accent-2);
+  }
+
+  /* ---- Loop-back indicator (prominent) ---- */
+  .how__return {
+    display: flex;
+    justify-content: center;
+    margin-top: clamp(1.75rem, 1rem + 2.5vw, 3rem);
+  }
+  .how__return-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7em;
+    font-size: clamp(0.5rem, 0.42rem + 0.4vw, 0.72rem);
+    line-height: 1.4;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--accent-deep);
+    background: var(--bg-raised);
+    border: var(--border-px) solid var(--fg);
+    box-shadow: var(--shadow-px);
+    padding: 0.95em 1.4em;
+  }
+  :global(:root[data-theme='dark']) .how__return-pill,
+  :global(.invert) .how__return-pill {
+    color: var(--accent);
+  }
+  .how__return-mark {
+    font-size: 1.5em;
+    line-height: 1;
+    color: var(--accent-2);
+  }
+
+  /* =================================================================
+     MOTION — everything below only *re-creates* the resting state from
+     an empty start. The base rules above already paint the finished loop,
+     so when the test helper sets `animation: none !important` (and on
+     reduced-motion / unsupported browsers) the section rests COMPLETE:
+     rail full, coin parked at 04, every numeral lit, feedback edge full.
+     ================================================================= */
+
+  /* --- Idle ambient spin on the ↻ glyphs (legacy, kept) --- */
+  @media (prefers-reduced-motion: no-preference) {
+    .how__feedback-glyph {
+      animation: how-spin 6s linear infinite;
+    }
+    .how__return-mark {
+      animation: how-spin 6s linear infinite;
+    }
+  }
+  @keyframes how-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* --- Scroll-driven set-piece (native CSS scroll-driven animations) ---
+     Gated behind @supports so unsupported browsers keep the static layout,
+     and behind no-preference so reduced-motion users get the resting state. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      /* The whole loop is the named view timeline. As it scrolls through the
+         viewport, `entry 5% → exit 60%` maps to the animation's 0 → 100%. */
+      .how__loopwrap {
+        view-timeline-name: --how-loop;
+        view-timeline-axis: block;
+      }
+
+      /* Rail fill: empty → full as you read 01 → 04. */
+      .how__progress-fill {
+        animation: how-fill linear both;
+        animation-timeline: --how-loop;
+        animation-range: entry 8% cover 58%;
+      }
+      /* Coin: rides from 01 to 04 along the rail. */
+      .how__coin {
+        animation: how-coin linear both;
+        animation-timeline: --how-loop;
+        animation-range: entry 8% cover 58%;
+      }
+
+      /* Each numeral ignites as the fill front reaches its node. Staggered
+         ranges so 01 lights first, 04 last. Numerals start dim, end lit. */
+      .how__n {
+        animation: how-ignite linear both;
+        animation-timeline: --how-loop;
+      }
+      .how__node:nth-child(1) .how__n {
+        animation-range: entry 6% cover 18%;
+      }
+      .how__node:nth-child(2) .how__n {
+        animation-range: entry 18% cover 32%;
+      }
+      .how__node:nth-child(3) .how__n {
+        animation-range: cover 30% cover 46%;
+      }
+      .how__node:nth-child(4) .how__n {
+        animation-range: cover 44% cover 58%;
+      }
+
+      /* Feedback edge: pays back 04 → 01 right as the loop completes. */
+      .how__feedback-fill {
+        animation: how-feedback linear both;
+        animation-timeline: --how-loop;
+        animation-range: cover 56% exit 30%;
+      }
+      .how__token {
+        animation: how-token linear both;
+        animation-timeline: --how-loop;
+        animation-range: cover 56% exit 30%;
+      }
+    }
+  }
+
+  /* Progress rail fill: 0 → full. */
+  @keyframes how-fill {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+  /* Coin travel: start of rail → end of rail. */
+  @keyframes how-coin {
+    from {
+      left: 0%;
+      opacity: 1;
+    }
+    to {
+      left: 100%;
+      opacity: 1;
+    }
+  }
+  /* Numeral ignition: dim/desaturated → full colour. The final keyframe equals
+     the CSS base state, so disabling animations leaves it lit. */
+  @keyframes how-ignite {
+    from {
+      opacity: 0.34;
+      filter: grayscale(0.85) brightness(0.85);
+    }
+    to {
+      opacity: 1;
+      filter: none;
+    }
+  }
+  /* Feedback fill: empty → full (pinned at the 04 end via transform-origin). */
+  @keyframes how-feedback {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+  /* Token travels the feedback rail right → left, ending back "at 01". The end
+     keyframe (left: 0) matches the base state, so frozen frames rest at 01. */
+  @keyframes how-token {
+    from {
+      left: calc(100% - 10px);
+      opacity: 1;
+    }
+    to {
+      left: 0;
+      opacity: 1;
+    }
+  }
+
+  /* Reduced motion: nothing animates. Base rules already render the complete
+     resting state (rail full, coin at 04, numerals lit, feedback full). We only
+     hard-stop the ambient spins so the ↻ glyphs sit still. */
+  @media (prefers-reduced-motion: reduce) {
+    .how__feedback-glyph,
+    .how__return-mark {
+      animation: none;
+    }
+  }
+
+  /* ---- Tablet: 2×2 ---- */
+  @media (max-width: 64rem) {
+    .how__loop {
+      grid-template-columns: repeat(2, 1fr);
+      gap: clamp(1.4rem, 0.5rem + 3vw, 2.4rem);
+    }
+    /* Arrow after node 1 → points right; after node 2 → points down (wrap);
+       after node 3 → points right. Toggle per position. */
+    .how__node:nth-child(2n) .how__arrow-x {
+      display: none;
+    }
+    .how__node:nth-child(2n) .how__arrow-y {
+      display: inline-flex;
+    }
+    .how__node:nth-child(2n) .how__arrow {
+      top: auto;
+      bottom: clamp(-1.6rem, -0.3rem - 1.5vw, -0.7rem);
+      right: 50%;
+      transform: translate(50%, 50%);
+    }
+
+    /* The horizontal rail above 4 cards no longer maps to the 2×2 grid — switch
+       to a VERTICAL rail down the left edge so the loop still reads top→bottom.
+       Resting state stays full / coin at the bottom. */
+    .how__progress {
+      top: 0;
+      bottom: 0;
+      left: calc(-1 * clamp(0.9rem, 0.4rem + 1.4vw, 1.6rem));
+      right: auto;
+      width: 12px;
+      height: auto;
+    }
+    .how__progress-track {
+      background-image: repeating-linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--fg) 20%, transparent) 0 7px,
+        transparent 7px 14px
+      );
+    }
+    .how__progress-fill {
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: auto;
+      transform-origin: top center;
+      transform: scaleY(var(--progress));
+      border-right: 0;
+      border-bottom: var(--border-px) solid var(--fg);
+      background-image: repeating-linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--fg) 16%, transparent) 0 6px,
+        transparent 6px 12px
+      );
+    }
+    .how__coin {
+      left: 50%;
+      top: calc(var(--progress) * 100%);
+    }
+
+    @supports (animation-timeline: view()) {
+      @media (prefers-reduced-motion: no-preference) {
+        .how__progress-fill {
+          animation-name: how-fill-y;
+        }
+        .how__coin {
+          animation-name: how-coin-y;
+        }
+      }
+    }
+  }
+  @keyframes how-fill-y {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+  @keyframes how-coin-y {
+    from {
+      top: 0%;
+      opacity: 1;
+    }
+    to {
+      top: 100%;
+      opacity: 1;
+    }
+  }
+
+  /* ---- Mobile: single column, arrows point down ---- */
+  @media (max-width: 40rem) {
+    .how__loop {
+      grid-template-columns: 1fr;
+      gap: 2.8rem;
+    }
+    .how__arrow-x {
+      display: none;
+    }
+    .how__node .how__arrow-y {
+      display: inline-flex;
+    }
+    .how__node .how__arrow {
+      top: auto;
+      bottom: clamp(-2.1rem, -1.1rem - 2vw, -1.3rem);
+      right: 50%;
+      left: auto;
+      transform: translate(50%, 50%);
+    }
+
+    /* Vertical rail hugs the left edge of the single column. */
+    .how__progress {
+      left: calc(-1 * clamp(0.7rem, 0.3rem + 1.2vw, 1.2rem));
+      width: 10px;
+    }
+  }
+</style>

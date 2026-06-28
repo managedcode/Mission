@@ -1,0 +1,213 @@
+---
+import { problem } from '../data/site';
+---
+
+<section class="section problem" id="problem" aria-labelledby="problem-h">
+  <div class="wrap">
+    <header class="problem__intro">
+      <p class="kicker" data-reveal>{problem.kicker}</p>
+      <h2 class="problem__heading" id="problem-h" data-reveal>{problem.heading}</h2>
+      <p class="lede" data-reveal style="--reveal-delay:90ms">{problem.lede}</p>
+    </header>
+
+    <ul class="problem__stats" role="list">
+      {
+        problem.stats.map((stat, i) => (
+          <li class="stat" data-reveal style={`--reveal-delay:${120 + i * 90}ms`}>
+            <span
+              class="stat__num font-display"
+              data-count={stat.value}
+              data-prefix={'prefix' in stat ? stat.prefix : ''}
+              data-suffix={stat.suffix ?? ''}
+            >
+              {'prefix' in stat ? stat.prefix : ''}
+            </span>
+            <p class="stat__label">{stat.label}</p>
+            <p class="stat__source font-mono">
+              <span class="stat__bullet" aria-hidden="true">
+                ▪
+              </span>
+              {stat.source}
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+
+    <div class="dither problem__divider" role="presentation" data-reveal></div>
+
+    <ol class="problem__points" role="list">
+      {
+        problem.points.map((point, i) => (
+          <li class="point" data-reveal style={`--reveal-delay:${i * 110}ms`}>
+            <span class="point__index font-pixel" aria-hidden="true">
+              {String(i + 1).padStart(2, '0')}
+            </span>
+            <h3 class="point__title">{point.title}</h3>
+            <p class="point__body">{point.body}</p>
+            <p class="point__stat font-mono">
+              <span class="point__stat-tick" aria-hidden="true">
+                ›
+              </span>
+              {point.stat}
+            </p>
+            {'source' in point && point.source && (
+              <p class="point__src font-mono">{point.source}</p>
+            )}
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<style>
+  .problem {
+    border-bottom: var(--border-px) solid var(--fg);
+  }
+
+  /* ---------- Intro ---------- */
+  .problem__intro {
+    max-width: 64rem;
+  }
+  .problem__heading {
+    font-size: var(--step-4);
+    margin-top: var(--space-m);
+    max-width: 22ch;
+  }
+  .lede {
+    font-family: var(--font-serif);
+    font-size: var(--step-1);
+    line-height: 1.5;
+    max-width: 52ch;
+    margin-top: var(--space-m);
+    color: var(--fg-soft);
+  }
+
+  /* ---------- Stat grid ---------- */
+  .problem__stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(0.9rem, 0.4rem + 1.6vw, 1.5rem);
+    margin-top: clamp(2.25rem, 1.5rem + 3vw, 3.5rem);
+  }
+  .stat {
+    background: var(--bg-raised);
+    border: var(--border-px) solid var(--fg);
+    box-shadow: var(--shadow-px);
+    padding: clamp(1rem, 0.8rem + 1vw, 1.6rem);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+  }
+  .stat__num {
+    font-size: var(--step-6);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--accent-deep);
+    font-variant-numeric: tabular-nums;
+    /* hold height before the counter fills */
+    min-height: 1em;
+  }
+  :global(:root[data-theme='dark']) .stat__num {
+    color: var(--accent);
+  }
+  .stat__label {
+    font-size: var(--step--1);
+    line-height: 1.4;
+    color: var(--fg-soft);
+    text-wrap: balance;
+  }
+  .stat__source {
+    margin-top: auto;
+    padding-top: var(--space-2xs);
+    font-size: var(--step--2);
+    color: var(--fg-faint);
+    letter-spacing: 0;
+    line-height: 1.4;
+  }
+  .stat__bullet {
+    color: var(--accent-2);
+    margin-right: 0.45em;
+  }
+
+  /* ---------- Divider ---------- */
+  .problem__divider {
+    margin-block: clamp(2.5rem, 1.5rem + 3.5vw, 4rem);
+  }
+
+  /* ---------- Points row ---------- */
+  .problem__points {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(1.5rem, 0.5rem + 3vw, 3rem);
+  }
+  .point {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding-top: var(--space-s);
+    border-top: var(--border-px) solid var(--fg);
+  }
+  .point__index {
+    font-size: clamp(0.55rem, 0.45rem + 0.4vw, 0.7rem);
+    color: var(--fg-faint);
+    letter-spacing: 0.04em;
+  }
+  .point__title {
+    font-size: var(--step-2);
+    line-height: 1.1;
+    text-wrap: balance;
+  }
+  .point__body {
+    font-size: var(--step-0);
+    line-height: 1.6;
+    color: var(--fg-soft);
+    text-wrap: pretty;
+  }
+  .point__stat {
+    margin-top: auto;
+    align-self: flex-start;
+    font-size: var(--step--1);
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--fg);
+    letter-spacing: 0;
+    padding: 0.45em 0.7em;
+    border: 1.5px solid var(--hairline-strong);
+    border-left: var(--border-px) solid var(--accent-2);
+    background: var(--bg-sunken);
+  }
+  .point__stat-tick {
+    color: var(--accent-2);
+    font-weight: 700;
+    margin-right: 0.45em;
+  }
+  .point__src {
+    margin-top: 0.5em;
+    align-self: flex-start;
+    font-size: var(--step--2);
+    letter-spacing: 0.02em;
+    color: var(--fg-faint);
+  }
+  .point__src::before {
+    content: 'source: ';
+    opacity: 0.7;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 56rem) {
+    .problem__stats {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .problem__points {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 30rem) {
+    .problem__stats {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

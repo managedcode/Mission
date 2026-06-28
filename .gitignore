@@ -141,3 +141,12 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Playwright (visual baselines under tests/__screenshots__ are committed on purpose)
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/blob-report/
+
+# Astro generated types
+.astro/

@@ -1,0 +1,77 @@
+name: Deploy to GitHub Pages
+
+# Builds the Astro site and publishes it to GitHub Pages on every push to main.
+# Pages "Source" must be set to "GitHub Actions" (Settings → Pages).
+# A public/CNAME file points the deployment at the custom domain; once the DNS
+# is configured the site goes live at https://mission.managed-code.com.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment; don't cancel an in-progress publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # Gate the deploy on the functional + performance tests (deterministic, fast).
+  # Visual-regression baselines are platform-specific and handled by the dedicated
+  # playwright.yml workflow, so they are intentionally NOT part of the deploy gate.
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.61.1-jammy
+    env:
+      HOME: /root
+      CI: 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm ci
+      - name: Functional + performance tests (gate)
+        run: npx playwright test tests/functional.spec.ts tests/perf.spec.ts
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (favicons + Astro → dist/)
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
