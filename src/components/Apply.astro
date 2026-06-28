@@ -622,7 +622,9 @@ const recaptchaNotice = apply.recaptchaNotice;
       payload.viewportWidth = window.innerWidth;
       payload.viewportHeight = window.innerHeight;
       payload.devicePixelRatio = String(window.devicePixelRatio);
-      payload.colorScheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      payload.colorScheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light';
       payload.cookiesEnabled = navigator.cookieEnabled;
       payload.browserOnline = navigator.onLine;
       setIfEmpty(

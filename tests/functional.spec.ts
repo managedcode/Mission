@@ -164,9 +164,12 @@ test.describe('Patronage tiers', () => {
 });
 
 test.describe('Apply form', () => {
-  const missionEndpoint = 'https://func-managed-code-form-crm.azurewebsites.net/api/managed-code/mission';
+  const missionEndpoint =
+    'https://func-managed-code-form-crm.azurewebsites.net/api/managed-code/mission';
 
-  test('is wired to the ManagedCode Mission CRM endpoint with reCAPTCHA metadata', async ({ page }) => {
+  test('is wired to the ManagedCode Mission CRM endpoint with reCAPTCHA metadata', async ({
+    page,
+  }) => {
     await page.goto('/');
 
     const form = page.locator('[data-apply-form]');
@@ -178,7 +181,9 @@ test.describe('Apply form', () => {
     await expect(page.locator('.apply__recaptcha')).toContainText(/protected by reCAPTCHA/i);
   });
 
-  test('submits enriched open-source patronage payload with a reCAPTCHA token', async ({ page }) => {
+  test('submits enriched open-source patronage payload with a reCAPTCHA token', async ({
+    page,
+  }) => {
     let capturedPayload: Record<string, unknown> | undefined;
 
     await page.addInitScript(() => {
