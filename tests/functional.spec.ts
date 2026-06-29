@@ -1,14 +1,22 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type TestInfo } from '@playwright/test';
 
 // In-page anchors that should each resolve to an element on the home page.
 const NAV_ANCHORS = ['#manifesto', '#how', '#maintainers', '#patronage', '#faq'];
 const MOBILE_WIDTHS = [320, 360, 375, 390, 414, 430] as const;
 const MOBILE_PATHS = ['/', '/patrons', '/projects', '/team', '/404'] as const;
+const MOBILE_AUDIT_PROJECT = 'phone-sm';
 const MOBILE_AUDIT_HEIGHT = 844;
 const DESKTOP_AUDIT_VIEWPORT = { width: 1440, height: 900 } as const;
 
 async function useDesktopAuditViewport(page: import('@playwright/test').Page): Promise<void> {
   await page.setViewportSize(DESKTOP_AUDIT_VIEWPORT);
+}
+
+function runOnlyInMobileAuditProject(testInfo: TestInfo): void {
+  test.skip(
+    testInfo.project.name !== MOBILE_AUDIT_PROJECT,
+    `covered once by ${MOBILE_AUDIT_PROJECT}, which sets mobile emulation and audits all target widths`
+  );
 }
 
 function rgb(color: string): [number, number, number] {
@@ -522,7 +530,9 @@ test.describe('Theme toggle', () => {
 test.describe('Mobile navigation', () => {
   test('toggle opens/closes the menu and a link click closes it across phone widths', async ({
     page,
-  }) => {
+  }, testInfo) => {
+    runOnlyInMobileAuditProject(testInfo);
+
     for (const width of MOBILE_WIDTHS) {
       await page.setViewportSize({ width, height: MOBILE_AUDIT_HEIGHT });
       await page.goto('/');
@@ -563,11 +573,15 @@ test.describe('Mobile navigation', () => {
 });
 
 test.describe('Mobile viewport coverage', () => {
-  test('key pages stay readable from 320px through large-phone widths', async ({ page }) => {
-    for (const path of MOBILE_PATHS) {
+  for (const path of MOBILE_PATHS) {
+    test(`${path} stays readable from 320px through large-phone widths`, async ({
+      page,
+    }, testInfo) => {
+      runOnlyInMobileAuditProject(testInfo);
+
       for (const width of MOBILE_WIDTHS) {
         await page.setViewportSize({ width, height: MOBILE_AUDIT_HEIGHT });
-        await page.goto(path);
+        await page.goto(path, { waitUntil: 'domcontentloaded' });
         await prepareForResponsiveAudit(page);
 
         await expect(page.locator('[data-header]'), `${path} ${width}px header`).toBeVisible();
@@ -578,8 +592,8 @@ test.describe('Mobile viewport coverage', () => {
         const issues = await collectMobileLayoutIssues(page);
         expect(issues, `${path} at ${width}px should not clip or overflow`).toEqual([]);
       }
-    }
-  });
+    });
+  }
 });
 
 test.describe('Mission Run mini-game', () => {
