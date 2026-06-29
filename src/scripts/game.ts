@@ -773,6 +773,14 @@ export function createMascotGame(): Game {
     setPlaying(false);
     hideMsg();
   }
+  function parkPlayerAtCastleDoor() {
+    player.x = CASTLE_X + CASTLE_W / 2 - player.w / 2;
+    player.y = GROUND_TOP - player.h;
+    player.vx = 0;
+    player.vy = 0;
+    player.onGround = true;
+    camX = Math.max(0, Math.min(WORLD_W - VIEW_W, player.x + player.w / 2 - VIEW_W / 2));
+  }
   function showWin() {
     state = 'win';
     setPlaying(false);
@@ -2266,6 +2274,7 @@ export function createMascotGame(): Game {
         __mgameEnterPipe?: () => void;
         __mgameAdvanceVoid?: (frames?: number) => void;
         __mgameTriggerWin?: () => void;
+        __mgameAdvanceEnding?: (frames?: number) => void;
         __mgameTriggerGameOver?: () => void;
       };
       const debugWindow = window as DebugWindow;
@@ -2311,13 +2320,16 @@ export function createMascotGame(): Game {
         for (let i = 0; i < frames && state === 'void'; i++) updateVoidChase();
       };
       debugWindow.__mgameTriggerWin = () => {
-        player.x = CASTLE_X + 18 - player.w;
-        player.y = GROUND_TOP - player.h;
-        player.vx = 0;
-        player.vy = 0;
-        player.onGround = true;
         startEnding();
-        camX = Math.max(0, Math.min(WORLD_W - VIEW_W, player.x + player.w / 2 - VIEW_W / 2));
+        parkPlayerAtCastleDoor();
+      };
+      debugWindow.__mgameAdvanceEnding = (frames = WIN_CARD_DELAY_FRAMES) => {
+        if (state !== 'ending') {
+          startEnding();
+          parkPlayerAtCastleDoor();
+        }
+        for (let i = 0; i < frames && state === 'ending'; i++) updateEnding();
+        render();
       };
       debugWindow.__mgameTriggerGameOver = () => {
         lives = 0;

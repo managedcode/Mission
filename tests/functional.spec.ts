@@ -638,10 +638,24 @@ test.describe('Mission Run mini-game', () => {
     await expect.poll(async () => (await readGame())?.state, { timeout: 1000 }).toBe('ending');
     expect((await readGame())?.messageVisible).toBe(false);
 
-    await page.waitForTimeout(900);
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __mgameAdvanceEnding?: (frames?: number) => void;
+        }
+      ).__mgameAdvanceEnding?.(54);
+    });
     const midWin = await readGame();
     expect(midWin?.state).toBe('ending');
     expect(midWin?.messageVisible).toBe(false);
+
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __mgameAdvanceEnding?: (frames?: number) => void;
+        }
+      ).__mgameAdvanceEnding?.(100);
+    });
 
     await expect
       .poll(
