@@ -1,7 +1,7 @@
 ---
 import '../styles/fonts.css';
 import '../styles/global.css';
-import { site, seo } from '../data/site';
+import { motto, site, seo } from '../data/site';
 import Mascot from '../components/Mascot.astro';
 import pkg from '../../package.json';
 
@@ -26,6 +26,21 @@ const {
 const pageTitle = title ? `${title} · ${site.name} by ${site.org}` : seo.defaultTitle;
 const canonical = new URL(path, site.url).href;
 const ogImageUrl = new URL(ogImage, site.url).href;
+const sourceComment = `<!--
+  ◂▸  ManagedCode · MISSION
+
+  You read the source. Respect — that is exactly the kind of person we hire.
+  We staff a team of maintainers for the open source you depend on.
+
+    we are hiring  ->  opensource@managed-code.com
+    the code       ->  github.com/managedcode
+    the goal       ->  $32,768/mo   (2^15, for the people who would notice)
+    the humans     ->  /humans.txt
+    the secret     ->  up up down down left right left right B A  --  start
+                       (also: click the little maintainer in the corner)
+
+  ${motto.sentence}
+-->`;
 
 const baseGraph: Record<string, unknown>[] = [
   {
@@ -173,21 +188,7 @@ const analyticsBootstrap = `
     {analyticsEnabled && <script is:inline set:html={analyticsBootstrap} />}
   </head>
   <body>
-    <!--
-      ◂▸  ManagedCode · MISSION
-
-      You read the source. Respect — that is exactly the kind of person we hire.
-      We staff a team of maintainers for the open source you depend on.
-
-        we are hiring  ->  opensource@managed-code.com
-        the code       ->  github.com/managedcode
-        the goal       ->  $32,768/mo   (2^15, for the people who would notice)
-        the humans     ->  /humans.txt
-        the secret     ->  up up down down left right left right B A  --  start
-                           (also: click the little maintainer in the corner)
-
-      Use it. Fund it. Pass it on.
-    -->
+    <Fragment set:html={sourceComment} />
     <Fragment
       set:html={`<!-- build: mission@${pkg.version} · maintained, obviously. that's the whole point. -->`}
     />

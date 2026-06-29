@@ -1,10 +1,10 @@
 ---
-import { finalCta, join } from '../data/site';
+import { finalCta, join, motto } from '../data/site';
 
 // Marquee motto — two identical halves, each repeated enough to overflow the
 // widest viewport so the -50% loop never shows an empty strip. set:html children
 // (the ◆ separators) are styled via :global in the CSS below.
-const mottoWords = ['USE IT', 'FUND IT', 'PASS IT ON'];
+const mottoWords = motto.compactWords;
 const mottoHalf = Array.from({ length: 6 })
   .map(() => mottoWords.map((w) => `${w} <i>◆</i>`).join(' '))
   .join(' ');

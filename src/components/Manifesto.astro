@@ -203,6 +203,9 @@ const signoffParts = manifesto.signoff
     font-weight: 600;
     color: var(--tier-gold);
     margin-right: 0.08em;
+    text-shadow: none;
+  }
+  :global(:root[data-theme='dark']) .manifesto__p--lead::first-letter {
     text-shadow: 0 0 22px rgba(232, 185, 74, 0.28);
   }
   /* Float fallback for engines without initial-letter (e.g. Firefox). */
@@ -241,6 +244,9 @@ const signoffParts = manifesto.signoff
     font-size: clamp(0.72rem, 0.55rem + 0.85vw, 1.05rem);
     line-height: 1.7;
     color: var(--accent);
+    text-shadow: none;
+  }
+  :global(:root[data-theme='dark']) .manifesto__stamp {
     text-shadow: 0 0 22px rgba(61, 224, 122, 0.28);
   }
   .manifesto__stamp-word {

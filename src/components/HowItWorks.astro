@@ -236,18 +236,25 @@ const { kicker, heading, lede, steps } = howItWorks;
     line-height: 1;
     letter-spacing: 0;
     color: var(--amber);
-    /* chunky pixel weight via a hard offset shadow rather than a blur */
-    text-shadow: 3px 3px 0 color-mix(in srgb, var(--amber) 26%, transparent);
+    text-shadow: none;
     -webkit-text-stroke: 0;
     transform: translateY(-0.04em);
   }
   /* alternate amber → gold → amber → green so 04 reads "alive / ecosystem 1-UP" */
   .how__n[data-i='1'] {
     color: var(--gold);
-    text-shadow: 3px 3px 0 color-mix(in srgb, var(--gold) 28%, transparent);
   }
   .how__n[data-i='3'] {
     color: var(--accent);
+  }
+  :global(:root[data-theme='dark']) .how__n {
+    /* Dark surfaces can keep the chunky pixel weight. */
+    text-shadow: 3px 3px 0 color-mix(in srgb, var(--amber) 26%, transparent);
+  }
+  :global(:root[data-theme='dark']) .how__n[data-i='1'] {
+    text-shadow: 3px 3px 0 color-mix(in srgb, var(--gold) 28%, transparent);
+  }
+  :global(:root[data-theme='dark']) .how__n[data-i='3'] {
     text-shadow: 3px 3px 0 color-mix(in srgb, var(--accent) 26%, transparent);
   }
   :global(:root[data-theme='dark']) .how__n[data-i='1'],

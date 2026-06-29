@@ -386,6 +386,9 @@ const recaptchaNotice = apply.recaptchaNotice;
   .apply__success-mark {
     font-size: 1.1rem;
     color: var(--accent);
+    text-shadow: none;
+  }
+  :global(:root[data-theme='dark']) .apply__success-mark {
     text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 45%, transparent);
   }
   .apply__success-h {

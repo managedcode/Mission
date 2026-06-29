@@ -511,6 +511,9 @@ p {
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
+  text-shadow: none;
+}
+:root[data-theme='dark'] .intro__log {
   text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 .intro__log .ok {
@@ -881,8 +884,11 @@ body::after {
   font-size: 0.5rem;
   white-space: nowrap;
   pointer-events: none;
-  text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 50%, transparent);
+  text-shadow: none;
   animation: mascot-1up 0.9s var(--ease-out) forwards;
+}
+:root[data-theme='dark'] .mascot__1up {
+  text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 @keyframes mascot-1up {
   to {
@@ -1171,6 +1177,9 @@ body::after {
 }
 .mgame__msg[data-win='false'] .mgame__msg-text {
   color: color-mix(in srgb, var(--accent-2) 72%, var(--paper) 28%);
+  text-shadow: none;
+}
+:root[data-theme='dark'] .mgame__msg[data-win='false'] .mgame__msg-text {
   text-shadow: 0.12em 0.12em 0 #06120a;
 }
 .mgame__msg-actions {

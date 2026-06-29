@@ -544,23 +544,35 @@ function initJoinContact() {
   const fallbackPrefix = status.dataset.copyFallbackPrefix ?? 'Use email and subject:';
   let selectionVersion = 0;
 
-  document.querySelectorAll<HTMLAnchorElement>('[data-join-contact-cta]').forEach((link) => {
-    if (link.dataset.joinContactReady === 'true') return;
-    link.dataset.joinContactReady = 'true';
-    link.addEventListener('click', () => {
-      const version = ++selectionVersion;
-      const subject = link.dataset.contactSubject ?? '';
-      const copyText = [email, subject ? `Subject: ${subject}` : ''].filter(Boolean).join('\n');
+  const selectContact = (link: HTMLAnchorElement, options: { focus: boolean }) => {
+    const version = ++selectionVersion;
+    const subject = link.dataset.contactSubject ?? '';
+    const copyText = [email, subject ? `Subject: ${subject}` : ''].filter(Boolean).join('\n');
 
-      panel.dataset.selected = 'true';
-      status.textContent = subject
-        ? `${selectedPrefix} ${subject}`
-        : status.dataset.defaultStatus || '';
+    panel.dataset.selected = 'true';
+    status.textContent = subject
+      ? `${selectedPrefix} ${subject}`
+      : status.dataset.defaultStatus || '';
 
+    if (options.focus) {
       window.requestAnimationFrame(() => {
         panel.focus({ preventScroll: true });
       });
+    }
 
+    return { version, subject, copyText };
+  };
+
+  document.querySelectorAll<HTMLAnchorElement>('[data-join-contact-cta]').forEach((link) => {
+    if (link.dataset.joinContactReady === 'true') return;
+    link.dataset.joinContactReady = 'true';
+
+    link.addEventListener('pointerdown', () => {
+      selectContact(link, { focus: false });
+    });
+
+    link.addEventListener('click', () => {
+      const { version, subject, copyText } = selectContact(link, { focus: true });
       if (!copyText || !navigator.clipboard?.writeText) return;
       void navigator.clipboard
         .writeText(copyText)

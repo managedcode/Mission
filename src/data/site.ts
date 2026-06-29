@@ -97,6 +97,12 @@ export const hero = {
   ],
 } as const;
 
+export const motto = {
+  words: ['USE IT', 'FUND IT', 'RELY ON IT', 'KEEP IT MAINTAINED'],
+  compactWords: ['USE IT', 'FUND IT', 'RELY ON IT'],
+  sentence: 'Use it. Fund it. Rely on it.',
+} as const;
+
 /* The problem — every stat below is sourced in deep-research-report.md */
 export const problem = {
   kicker: 'The maintenance gap',
@@ -162,7 +168,7 @@ export const manifesto = {
     'This isn’t guilt or charity. It’s a trade as old as the aqueducts: you fund the keepers, the commons stays standing — for you and everyone downstream.',
     'Mission is a small, funded team of maintainers, working in the open. We adopt the libraries you can’t live without, answer when they break, and train the next generation to do the same. The cartridge still works because someone keeps blowing on it. That someone should be paid.',
   ],
-  signoff: 'Use it. Fund it. Pass it on.',
+  signoff: motto.sentence,
 } as const;
 
 export const howItWorks = {
@@ -492,7 +498,8 @@ export const faq = {
 export const finalCta = {
   kicker: 'The trade',
   heading: 'Put a funded maintainer behind your stack.',
-  lede: 'The open source your product runs on shouldn’t hang on a volunteer’s spare time. Use it, fund it, pass it on.',
+  lede:
+    'The open source your product runs on shouldn’t hang on a volunteer’s spare time. Fund maintained code your team can rely on.',
   primary: { label: 'Become a patron', href: '#apply' },
   secondary: { label: 'Talk to us', href: '#join-contact' },
 } as const;

@@ -215,10 +215,72 @@ test.describe('Home page · structure & SEO', () => {
     expect(errors, `console errors: ${errors.join(' | ')}`).toHaveLength(0);
   });
 
+  test('motto copy promises maintained open source instead of pass-it-on charity', async ({
+    page,
+  }) => {
+    await page.goto('/');
+
+    await expect(page.locator('.hero__marquee')).toContainText('RELY ON IT');
+    await expect(page.locator('.hero__marquee')).toContainText('KEEP IT MAINTAINED');
+    await expect(page.locator('.final-cta__marquee')).toContainText('RELY ON IT');
+    await expect(page.locator('body')).not.toContainText('PASS IT ON');
+
+    const html = await page.content();
+    expect(html).not.toContain('Pass it on');
+    expect(html).not.toContain('PASS IT ON');
+  });
+
   test('does not render the CRT scanline overlay in the default page state', async ({ page }) => {
     await page.goto('/#apply');
 
     await expect(page.locator('.crt-overlay')).toHaveCSS('display', 'none');
+  });
+
+  test('light theme keeps non-inverted text crisp without text shadows', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('mission-theme', 'light');
+    });
+    await page.goto('/');
+    await prepareForResponsiveAudit(page);
+
+    const offenders = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll<HTMLElement>('body *'))
+        .filter((element) => {
+          if (element.closest('[hidden]')) return false;
+
+          const rect = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+          if (rect.width <= 0 || rect.height <= 0) return false;
+          if (
+            style.display === 'none' ||
+            style.visibility === 'hidden' ||
+            Number(style.opacity) === 0
+          ) {
+            return false;
+          }
+
+          return style.textShadow !== 'none';
+        })
+        .map((element) => {
+          const style = getComputedStyle(element);
+          const label =
+            element.className ||
+            element.textContent?.replace(/\s+/g, ' ').trim().slice(0, 48) ||
+            element.tagName.toLowerCase();
+
+          return `${element.tagName.toLowerCase()}.${String(label)} => ${style.textShadow}`;
+        });
+    });
+
+    const pseudoOffenders = await page.evaluate(() => {
+      const lead = document.querySelector<HTMLElement>('#manifesto .manifesto__p--lead');
+      if (!lead) return ['manifesto lead paragraph missing'];
+
+      const firstLetterShadow = getComputedStyle(lead, '::first-letter').textShadow;
+      return firstLetterShadow === 'none' ? [] : [`manifesto first-letter => ${firstLetterShadow}`];
+    });
+
+    expect([...offenders, ...pseudoOffenders]).toEqual([]);
   });
 
   test('how-it-works cards align with the section text column on desktop', async ({ page }) => {
