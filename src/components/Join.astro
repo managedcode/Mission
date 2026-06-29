@@ -125,6 +125,7 @@ const contactHref = `#${join.contact.anchorId}`;
   .join__grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
     gap: clamp(1rem, 0.65rem + 1.4vw, 1.75rem);
   }
   .join__card {
@@ -132,6 +133,8 @@ const contactHref = `#${join.contact.anchorId}`;
     display: flex;
     flex-direction: column;
     gap: var(--space-xs);
+    min-width: 0;
+    min-height: 18rem;
     background: var(--bg-raised);
     border: 1.5px solid var(--hairline-strong);
     box-shadow: var(--shadow-px-sm);
@@ -164,18 +167,22 @@ const contactHref = `#${join.contact.anchorId}`;
   .join__card-title {
     font-size: clamp(1.25rem, 1.05rem + 0.8vw, 1.65rem);
     letter-spacing: -0.02em;
+    min-height: 2.08em;
   }
   .join__card-body {
     color: var(--fg-soft);
     font-size: var(--step--1);
     line-height: 1.5;
-    max-width: 38ch;
-    /* push the CTA to the foot so cards align */
-    margin-bottom: auto;
+    max-width: none;
+    margin-bottom: 0;
   }
   .join__card-cta {
-    align-self: flex-start;
-    margin-top: var(--space-2xs);
+    align-self: stretch;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 3.5rem;
+    margin-top: auto;
+    white-space: nowrap;
   }
   .join__card-cta span {
     transition: transform 0.18s var(--ease-out);
@@ -254,6 +261,9 @@ const contactHref = `#${join.contact.anchorId}`;
   @media (max-width: 56rem) {
     .join__grid {
       grid-template-columns: 1fr;
+    }
+    .join__card {
+      min-height: 17.25rem;
     }
     .join__card-body {
       max-width: none;

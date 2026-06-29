@@ -772,6 +772,40 @@ test.describe('Patronage tiers', () => {
 });
 
 test.describe('CTA interactions', () => {
+  test('join cards keep equal desktop geometry without a featured card', async ({ page }) => {
+    test.skip(!test.info().project.name.startsWith('desktop'), 'three-column layout only');
+
+    await page.goto('/#join');
+    await prepareForResponsiveAudit(page);
+    await page.locator('#join').scrollIntoViewIfNeeded();
+
+    const cards = await page.locator('#join .join__card').evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const rect = node.getBoundingClientRect();
+        const cta = node.querySelector<HTMLElement>('.join__card-cta')?.getBoundingClientRect();
+
+        return {
+          width: rect.width,
+          height: rect.height,
+          top: rect.top,
+          ctaTop: cta?.top ?? 0,
+          ctaWidth: cta?.width ?? 0,
+        };
+      })
+    );
+
+    expect(cards).toHaveLength(3);
+
+    const [first] = cards;
+    for (const card of cards) {
+      expect(Math.abs(card.width - first.width)).toBeLessThanOrEqual(1);
+      expect(Math.abs(card.height - first.height)).toBeLessThanOrEqual(1);
+      expect(Math.abs(card.top - first.top)).toBeLessThanOrEqual(1);
+      expect(Math.abs(card.ctaTop - first.ctaTop)).toBeLessThanOrEqual(1);
+      expect(Math.abs(card.ctaWidth - first.ctaWidth)).toBeLessThanOrEqual(1);
+    }
+  });
+
   test('join cards and final contact CTA reveal a visible contact subject', async ({ page }) => {
     await page.goto('/');
 
