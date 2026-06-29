@@ -94,7 +94,7 @@ const mottoHalf = Array.from({ length: 4 })
   .hero {
     position: relative;
     overflow: clip;
-    padding-block: clamp(3rem, 2rem + 7vw, 7rem) 0;
+    padding-block: clamp(2rem, 1.1rem + 3.2vw, 4.4rem) 0;
     border-bottom: var(--border-px) solid var(--fg);
   }
   .hero__grid-bg {
@@ -115,8 +115,8 @@ const mottoHalf = Array.from({ length: 4 })
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: clamp(2.5rem, 1.5rem + 4vw, 4.5rem);
-    padding-bottom: clamp(3rem, 2rem + 5vw, 5.5rem);
+    gap: clamp(1.35rem, 0.95rem + 2vw, 2.35rem);
+    padding-bottom: clamp(2rem, 1.2rem + 3vw, 3.5rem);
   }
   /* Row 2 — supporting text on the left, console on the right. */
   .hero__row {
@@ -147,7 +147,8 @@ const mottoHalf = Array.from({ length: 4 })
       white-space: nowrap;
     }
     .hero__headline {
-      font-size: min(var(--step-8), 12.5vw, 8.8rem);
+      font-size: min(var(--step-8), 10.2vw, 7.25rem);
+      line-height: 0.94;
     }
   }
   /* Headline words are injected via set:html, so these must be :global. */
@@ -197,20 +198,20 @@ const mottoHalf = Array.from({ length: 4 })
     font-size: var(--step-1);
     line-height: 1.5;
     max-width: 38ch;
-    margin-top: var(--space-m);
+    margin-top: var(--space-s);
     color: var(--fg-soft);
   }
   .hero__cta {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-s);
-    margin-top: var(--space-l);
+    margin-top: var(--space-m);
   }
   .hero__badges {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-    margin-top: var(--space-l);
+    margin-top: var(--space-m);
   }
   .chip--dot::before {
     content: '';
@@ -225,7 +226,7 @@ const mottoHalf = Array.from({ length: 4 })
   .hero__crest {
     align-self: center;
     width: 100%;
-    padding-top: clamp(0rem, 1.5vw, 1.618rem);
+    padding-top: 0;
   }
   .crest {
     position: relative;
@@ -233,7 +234,7 @@ const mottoHalf = Array.from({ length: 4 })
     /* Reserve the box up-front (8 : 9 logical pixel grid) so the canvas
        can never shift layout while it builds in. */
     aspect-ratio: 8 / 9;
-    max-width: 24rem;
+    max-width: clamp(13rem, 21vw, 18rem);
     margin-inline: auto;
   }
   :global(.crest__github-mark) {
@@ -275,7 +276,7 @@ const mottoHalf = Array.from({ length: 4 })
   .crest__status {
     margin: 1.1rem 0 0;
     padding: 0;
-    max-width: 24rem;
+    max-width: 18rem;
     margin-inline: auto;
     font-size: clamp(0.66rem, 0.6rem + 0.28vw, 0.78rem);
     line-height: 1.75;
@@ -297,7 +298,7 @@ const mottoHalf = Array.from({ length: 4 })
   .hero__madein {
     text-align: right;
     margin-top: 0.7rem;
-    max-width: 24rem;
+    max-width: 18rem;
     margin-inline: auto;
     font-size: 0.72rem;
     color: var(--fg-faint);
@@ -309,7 +310,7 @@ const mottoHalf = Array.from({ length: 4 })
     background: var(--accent);
     color: #08160d;
     overflow: hidden;
-    padding-block: 0.7rem;
+    padding-block: 0.5rem;
   }
   :global(:root[data-theme='dark']) .hero__marquee {
     color: #06120a;
@@ -345,16 +346,16 @@ const mottoHalf = Array.from({ length: 4 })
   @media (max-width: 56rem) {
     .hero__row {
       grid-template-columns: 1fr;
-      gap: 2.5rem;
+      gap: 1.75rem;
     }
     .hero__crest {
       order: 2;
-      max-width: 30rem;
+      max-width: 22rem;
     }
     .crest,
     .crest__status,
     .hero__madein {
-      max-width: 22rem;
+      max-width: 16rem;
     }
     .hero__lede {
       max-width: 48ch;

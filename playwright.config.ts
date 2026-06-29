@@ -6,9 +6,10 @@ import { defineConfig, devices } from '@playwright/test';
  * Visual regression baselines are PLATFORM-SUFFIXED via `snapshotPathTemplate`
  * (see `{platform}` below). That means macOS dev baselines (`-darwin`) and
  * Linux CI baselines (`-linux`) live side by side and never clobber each other.
- * Locally you generate `-darwin` snapshots; the GitHub Actions workflow
- * generates and commits the authoritative `-linux` snapshots that PRs compare
- * against. See `.github/workflows/playwright.yml`.
+ * Locally on macOS you generate `-darwin` snapshots. Linux snapshots are
+ * committed deliberately by humans; GitHub Actions only compares them, or
+ * uploads generated `-linux` snapshots as a manual artifact when requested.
+ * See `.github/workflows/playwright.yml`.
  */
 // Dedicated port so the suite never reuses an unrelated dev server that may
 // already hold the local dev port (4323). Override with PORT if needed.

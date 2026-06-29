@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   # Gate the deploy on the functional + performance tests (deterministic, fast).
-  # Visual-regression baselines are platform-specific and handled by the dedicated
+  # Visual-regression baselines are platform-specific and checked by the dedicated
   # playwright.yml workflow, so they are intentionally NOT part of the deploy gate.
   test:
     runs-on: ubuntu-latest

@@ -117,19 +117,21 @@ const { kicker, heading, lede, steps } = howItWorks;
     max-width: 52ch;
   }
 
-  /* ---- The loop: 4 across → 2×2 → 1 col ---- */
+  /* ---- The loop: 2×2 → 1 col ---- */
   .how__loopwrap {
     position: relative;
   }
   .how__loop {
     display: grid;
-    grid-template-columns: minmax(0, var(--phi-major-fr)) repeat(3, minmax(0, var(--phi-minor-fr)));
-    gap: var(--phi-gap-sm);
-    margin: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(1rem, 0.65rem + 1.5vw, 1.75rem);
+    max-width: 68rem;
+    margin: 0 auto;
   }
   .how__node {
     position: relative;
     display: flex;
+    min-width: 0;
   }
 
   /* ---- The scroll-scrubbed progress rail (01 → 04) ----
@@ -139,6 +141,7 @@ const { kicker, heading, lede, steps } = howItWorks;
      at the far end (over 04). The scroll timeline only re-creates the fill as
      you read. Decorative → aria-hidden. */
   .how__progress {
+    display: none;
     --progress: 1;
     position: absolute;
     /* sit just above the row of cards, centred on the numerals' band */
@@ -197,8 +200,9 @@ const { kicker, heading, lede, steps } = howItWorks;
   .how__card {
     display: flex;
     flex-direction: column;
-    gap: var(--space-s);
+    gap: clamp(0.7rem, 0.6rem + 0.55vw, 1rem);
     width: 100%;
+    min-height: clamp(14.75rem, 16vw, 18rem);
     background: var(--bg-raised);
     transition:
       transform 0.14s var(--ease-out),
@@ -216,9 +220,10 @@ const { kicker, heading, lede, steps } = howItWorks;
 
   .how__card-top {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: var(--space-xs);
+    flex-wrap: wrap;
+    gap: 0.8rem 1rem;
   }
 
   /* ---- 8-bit numerals: the visual anchor of every card ----
@@ -252,22 +257,29 @@ const { kicker, heading, lede, steps } = howItWorks;
   }
 
   .how__chip {
+    max-width: 100%;
     border-color: var(--hairline-strong);
     color: var(--fg-soft);
     text-transform: lowercase;
+    white-space: normal;
   }
   .how__chip-mark {
     color: var(--accent-2-text);
   }
 
   .how__title {
-    font-size: var(--step-2);
+    font-size: clamp(1.45rem, 1.08rem + 1vw, 2.05rem);
+    max-width: 14ch;
+    line-height: 1.08;
     letter-spacing: -0.02em;
+    text-wrap: balance;
   }
   .how__body {
-    font-size: var(--step-0);
-    line-height: 1.55;
+    font-size: var(--step--1);
+    line-height: 1.48;
     color: var(--fg-soft);
+    max-width: 38ch;
+    text-wrap: pretty;
   }
 
   /* ---- Connectors between nodes: chunky pixel arrows ---- */
@@ -302,9 +314,22 @@ const { kicker, heading, lede, steps } = howItWorks;
     right: clamp(-1.6rem, -0.3rem - 1.5vw, -0.7rem);
     transform: translateX(50%);
   }
+  .how__node:nth-child(2n) .how__arrow-x {
+    display: none;
+  }
+  .how__node:nth-child(2n) .how__arrow-y {
+    display: inline-flex;
+  }
+  .how__node:nth-child(2n) .how__arrow {
+    top: auto;
+    bottom: clamp(-1.65rem, -0.55rem - 1.35vw, -0.85rem);
+    right: 50%;
+    transform: translate(50%, 50%);
+  }
 
   /* ---- The feedback edge (04 → 01): a real loop, not a funnel ---- */
   .how__feedback {
+    display: none;
     margin-top: clamp(1.5rem, 0.9rem + 2vw, 2.5rem);
   }
   .how__feedback-rail {
@@ -493,6 +518,14 @@ const { kicker, heading, lede, steps } = howItWorks;
       transform: scaleX(1);
     }
   }
+  /* The visible cards should always read as complete steps. The decorative
+     rail is hidden in this layout, so the old scroll-ignite dimming would make
+     03/04 look disabled when users land on the section from the nav. */
+  .how__n {
+    animation: none;
+    opacity: 1;
+    filter: none;
+  }
   /* Reduced motion: nothing animates. Base rules already render the complete
      resting state (rail full, coin at 04, numerals lit, feedback full). We only
      hard-stop the ambient spins so the ↻ glyphs sit still. */
@@ -503,25 +536,10 @@ const { kicker, heading, lede, steps } = howItWorks;
     }
   }
 
-  /* ---- Tablet: 2×2 ---- */
+  /* ---- Medium: tighter 2×2 ---- */
   @media (max-width: 64rem) {
     .how__loop {
-      grid-template-columns: repeat(2, 1fr);
       gap: clamp(1.4rem, 0.5rem + 3vw, 2.4rem);
-    }
-    /* Arrow after node 1 → points right; after node 2 → points down (wrap);
-       after node 3 → points right. Toggle per position. */
-    .how__node:nth-child(2n) .how__arrow-x {
-      display: none;
-    }
-    .how__node:nth-child(2n) .how__arrow-y {
-      display: inline-flex;
-    }
-    .how__node:nth-child(2n) .how__arrow {
-      top: auto;
-      bottom: clamp(-1.6rem, -0.3rem - 1.5vw, -0.7rem);
-      right: 50%;
-      transform: translate(50%, 50%);
     }
 
     /* The horizontal rail above 4 cards no longer maps to the 2×2 grid — switch

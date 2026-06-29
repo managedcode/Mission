@@ -294,13 +294,13 @@ p {
   padding-inline: clamp(1.1rem, 0.5rem + 3vw, 3rem);
 }
 .section {
-  padding-block: clamp(3.5rem, 2rem + 7vw, var(--space-3xl));
+  padding-block: clamp(3rem, 1.65rem + 3.4vw, 5.25rem);
   position: relative;
   /* keep section headings clear of the sticky header on anchor jumps */
-  scroll-margin-top: 5.5rem;
+  scroll-margin-top: 4.5rem;
 }
 :target {
-  scroll-margin-top: 5.5rem;
+  scroll-margin-top: 4.5rem;
 }
 .prose {
   max-width: var(--maxw-prose);
@@ -407,8 +407,9 @@ p {
   opacity: 0.12;
 }
 
-/* ---------- Scanline / CRT overlay (subtle, global) ---------- */
+/* ---------- CRT overlay: hidden by default, reserved for the Konami egg ---------- */
 .crt-overlay {
+  display: none;
   pointer-events: none;
   position: fixed;
   inset: 0;
@@ -564,9 +565,9 @@ p {
   }
 }
 
-/* ---------- Sound toggle (pixel speaker, default OFF) ----------
-   Injected + wired by initSound() in app.ts. Fixed top-right, clear of the
-   header actions. The speaker "waves" are toggled by the [data-on] state. */
+/* ---------- Sound toggle (pixel speaker, opt-in only) ----------
+   Injected + wired by initSound() only when sound has already been enabled.
+   Keep it out of the default reading surface. */
 .sound-toggle {
   position: fixed;
   /* bottom corner — must NOT overlap the header's nav/theme controls */

@@ -152,9 +152,9 @@ import { team, site } from '../data/site';
   /* ---------- Project grid ---------- */
   .team__grid {
     display: grid;
-    grid-template-columns: minmax(0, var(--phi-major-fr)) repeat(2, minmax(0, var(--phi-minor-fr)));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--phi-gap-sm);
-    margin-top: var(--space-xl);
+    margin-top: var(--space-l);
   }
   .team__grid > li {
     display: flex;
@@ -163,8 +163,9 @@ import { team, site } from '../data/site';
   .repo {
     display: flex;
     flex-direction: column;
-    gap: var(--space-s);
+    gap: var(--space-xs);
     width: 100%;
+    padding: clamp(1rem, 0.8rem + 0.8vw, 1.35rem);
     box-shadow: var(--shadow-px-sm);
     transition:
       transform 0.14s var(--ease-out),
@@ -220,7 +221,7 @@ import { team, site } from '../data/site';
 
   .repo__desc {
     font-size: var(--step--1);
-    line-height: 1.55;
+    line-height: 1.45;
     color: var(--fg-soft);
     flex: 1 1 auto;
   }
@@ -256,18 +257,18 @@ import { team, site } from '../data/site';
   }
 
   .team__divider {
-    margin-top: var(--space-xl);
+    margin-top: var(--space-l);
   }
 
   /* ---------- Org stat strip ---------- */
   .team__strip {
     border-block: var(--border-px) solid var(--fg);
-    padding-block: clamp(1.75rem, 1rem + 3vw, 3rem);
-    margin-block: var(--space-xl);
+    padding-block: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+    margin-block: var(--space-l);
   }
   .team__stats {
     display: grid;
-    grid-template-columns: minmax(0, var(--phi-major-fr)) repeat(3, minmax(0, var(--phi-minor-fr)));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: var(--space-l) var(--space-m);
   }
   .team__stat {

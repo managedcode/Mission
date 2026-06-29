@@ -84,9 +84,9 @@ const signoffParts = manifesto.signoff
 
 <style>
   .manifesto {
-    /* deep ink band — extra-generous breathing room */
+    /* deep ink band — generous, but not page-filling */
     position: relative;
-    padding-block: clamp(5rem, 3rem + 10vw, 11rem);
+    padding-block: clamp(4rem, 2.2rem + 6vw, 7.25rem);
     /* clip both the scanlines and the bleeding ghost word so neither
        can ever introduce horizontal scroll */
     overflow: clip;
@@ -183,13 +183,13 @@ const signoffParts = manifesto.signoff
 
   .manifesto__p {
     font-family: var(--font-serif);
-    font-size: var(--step-2);
-    line-height: 1.55;
+    font-size: clamp(1.22rem, 1.02rem + 0.8vw, 1.72rem);
+    line-height: 1.5;
     color: var(--fg-soft);
     text-wrap: pretty;
   }
   .manifesto__p + .manifesto__p {
-    margin-top: clamp(1.5rem, 1rem + 2vw, 2.75rem);
+    margin-top: clamp(1.15rem, 0.85rem + 1.4vw, 2rem);
   }
 
   /* ---- Illuminated drop-cap on the FIRST paragraph only ----
@@ -219,7 +219,7 @@ const signoffParts = manifesto.signoff
     position: relative;
     z-index: 1;
     grid-column: 1 / -1;
-    margin-top: clamp(3rem, 2rem + 5vw, 5.5rem);
+    margin-top: clamp(2.25rem, 1.4rem + 3vw, 3.5rem);
     text-align: center;
   }
   .manifesto__dither {
@@ -256,7 +256,7 @@ const signoffParts = manifesto.signoff
   .manifesto__seal {
     width: clamp(3rem, 2.4rem + 2.6vw, 4.25rem);
     height: auto;
-    margin: clamp(1.5rem, 1rem + 2vw, 2.5rem) auto 0;
+    margin: clamp(1rem, 0.8rem + 1.5vw, 1.85rem) auto 0;
     filter: drop-shadow(0 0 18px rgba(232, 185, 74, 0.22));
   }
   .manifesto__seal-bg {
@@ -273,7 +273,7 @@ const signoffParts = manifesto.signoff
   @media (max-width: 40rem) {
     .manifesto__inner {
       grid-template-columns: 1fr;
-      gap: clamp(2.5rem, 1.5rem + 4vw, 4.5rem);
+      gap: clamp(1.8rem, 1.2rem + 3vw, 3rem);
     }
     .manifesto__prose {
       padding-left: clamp(1rem, 4vw, 1.5rem);

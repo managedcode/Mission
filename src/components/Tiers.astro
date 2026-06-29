@@ -171,9 +171,9 @@ const meterCells = (fill: number) =>
     display: grid;
     grid-template-columns: 1fr;
     gap: clamp(1rem, 0.6rem + 1.4vw, 1.6rem);
-    align-items: stretch;
+    align-items: start;
     max-width: 30rem;
-    margin: clamp(2.5rem, 1.6rem + 3.4vw, 4rem) auto 0;
+    margin: clamp(2rem, 1.3rem + 2.5vw, 3.25rem) auto 0;
   }
   .tiers__plan {
     display: block;
@@ -181,10 +181,8 @@ const meterCells = (fill: number) =>
 
   @media (min-width: 48rem) {
     .tiers__grid {
-      grid-template-columns:
-        minmax(0, var(--phi-minor-fr)) minmax(0, var(--phi-major-fr))
-        minmax(0, var(--phi-minor-fr));
-      max-width: none;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      max-width: 72rem;
     }
   }
 
@@ -192,12 +190,11 @@ const meterCells = (fill: number) =>
   .plan {
     --plan-tone: color-mix(in srgb, var(--fg-soft) 70%, var(--fg));
     --plan-line: color-mix(in srgb, var(--fg) 72%, var(--bg));
-    height: 100%;
     display: flex;
     flex-direction: column;
     width: 100%;
-    gap: clamp(0.7rem, 0.5rem + 0.7vw, 1rem);
-    padding: clamp(1.2rem, 0.95rem + 1.1vw, 1.7rem);
+    gap: clamp(0.62rem, 0.5rem + 0.55vw, 0.9rem);
+    padding: clamp(1rem, 0.85rem + 0.85vw, 1.45rem);
     background: color-mix(in srgb, var(--bg-raised) 94%, var(--bg) 6%);
     border-color: var(--plan-line);
     box-shadow: 4px 4px 0 color-mix(in srgb, var(--fg) 70%, transparent);
@@ -236,7 +233,10 @@ const meterCells = (fill: number) =>
   .plan__flag {
     display: flex;
     justify-content: flex-start;
-    min-height: 1.55rem;
+    min-height: 0;
+  }
+  .plan__flag:empty {
+    display: none;
   }
   .plan__badge {
     font-size: 0.5rem;
@@ -294,7 +294,7 @@ const meterCells = (fill: number) =>
 
   /* ---------- Name / salary ---------- */
   .plan__name {
-    font-size: clamp(2.1rem, 1.5rem + 1.3vw, 2.9rem);
+    font-size: clamp(1.95rem, 1.45rem + 1.1vw, 2.5rem);
     letter-spacing: -0.018em;
   }
   .plan__price {
@@ -333,7 +333,7 @@ const meterCells = (fill: number) =>
   }
 
   .plan__blurb {
-    font-size: var(--step-0);
+    font-size: var(--step--1);
     line-height: 1.45;
     color: var(--fg-soft);
     margin-top: 0;
@@ -396,7 +396,7 @@ const meterCells = (fill: number) =>
   /* ---------- Features ---------- */
   .plan__features {
     display: grid;
-    gap: 0.62rem;
+    gap: 0.52rem;
     margin: 0;
     align-content: start;
   }
@@ -422,11 +422,11 @@ const meterCells = (fill: number) =>
     color: var(--fg);
   }
 
-  /* ---------- CTA (pinned to the bottom so all three line up) ---------- */
+  /* ---------- CTA ---------- */
   .plan__cta {
     width: 100%;
     justify-content: space-between;
-    margin-top: auto;
+    margin-top: var(--space-xs);
     padding-top: 0.85em;
     padding-bottom: 0.85em;
   }
@@ -438,16 +438,10 @@ const meterCells = (fill: number) =>
     box-shadow: 5px 5px 0 var(--plan-tone);
   }
 
-  /* Podium: lift the recommended card on wide screens. */
+  /* Recommended card gets colour, not artificial height. */
   @media (min-width: 64rem) {
     .tiers__plan.is-featured {
       z-index: 1;
-    }
-    .is-featured .plan {
-      transform: translateY(-0.9rem);
-    }
-    .is-featured .plan:hover {
-      transform: translate(-2px, calc(-0.9rem - 2px));
     }
   }
 
@@ -455,20 +449,18 @@ const meterCells = (fill: number) =>
   .tiers__steps {
     list-style: none;
     padding: 0;
-    margin: clamp(2.25rem, 1.4rem + 3vw, 3.5rem) auto 0;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
+    margin: clamp(1.75rem, 1.2rem + 2.2vw, 2.75rem) auto 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: stretch;
     gap: var(--space-s);
-    max-width: 60rem;
+    max-width: 72rem;
   }
   .tiers__step {
-    flex: 1 1 14rem;
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.85rem 1rem;
+    padding: 0.9rem 1rem;
     border: var(--border-px) solid var(--fg);
     box-shadow: var(--shadow-px-sm);
     background: var(--bg-raised);
@@ -500,11 +492,7 @@ const meterCells = (fill: number) =>
   }
   @media (max-width: 52rem) {
     .tiers__steps {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    .tiers__step {
-      flex: none;
+      grid-template-columns: 1fr;
     }
     .tiers__step:not(:last-child)::after {
       content: '↓';

@@ -146,40 +146,42 @@ const cells = pixels
   }
 
   /* Tiny RPG speech bubble */
-  .mascot__say {
+  :global(.mascot__say) {
+    --mascot-say-bg: var(--paper-raised);
+    --mascot-say-fg: var(--ink);
     position: absolute;
-    left: 50%;
+    left: 0;
     bottom: calc(100% + 8px);
-    transform: translateX(-50%) translateY(4px);
+    transform: translateY(4px);
     white-space: nowrap;
     font-size: 0.46rem;
     line-height: 1.5;
     padding: 0.55em 0.7em;
-    background: var(--bg-raised);
-    color: var(--fg);
-    border: var(--border-px) solid var(--fg);
-    box-shadow: var(--shadow-px-sm);
+    background: var(--mascot-say-bg);
+    color: var(--mascot-say-fg);
+    border: var(--border-px) solid var(--mascot-say-fg);
+    box-shadow: 3px 3px 0 var(--mascot-say-fg);
     opacity: 0;
     pointer-events: none;
+    text-shadow: none;
     transition:
       opacity 0.2s var(--ease-out),
       transform 0.2s var(--ease-out);
   }
-  .mascot__say[data-show='true'] {
+  :global(.mascot__say[data-show='true']) {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
   }
-  .mascot__say::after {
+  :global(.mascot__say)::after {
     content: '';
     position: absolute;
-    left: 50%;
+    left: 1.25rem;
     top: 100%;
-    transform: translateX(-50%);
     border: 5px solid transparent;
-    border-top-color: var(--fg);
+    border-top-color: var(--mascot-say-fg);
   }
   @media (prefers-reduced-motion: reduce) {
-    .mascot__say {
+    :global(.mascot__say) {
       transition: none;
     }
   }

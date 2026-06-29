@@ -6,6 +6,28 @@ const MOBILE_WIDTHS = [320, 360, 375, 390, 414, 430] as const;
 const MOBILE_PATHS = ['/', '/patrons', '/projects', '/team', '/404'] as const;
 const MOBILE_AUDIT_HEIGHT = 844;
 
+function rgb(color: string): [number, number, number] {
+  const channels = color.match(/[\d.]+/g)?.map(Number) ?? [];
+  expect(channels.length).toBeGreaterThanOrEqual(3);
+  return [channels[0] ?? 0, channels[1] ?? 0, channels[2] ?? 0];
+}
+
+function luminance(color: string): number {
+  const [r, g, b] = rgb(color).map((channel) => {
+    const value = channel / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrastRatio(foreground: string, background: string): number {
+  const fg = luminance(foreground);
+  const bg = luminance(background);
+  const lighter = Math.max(fg, bg);
+  const darker = Math.min(fg, bg);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 async function prepareForResponsiveAudit(page: import('@playwright/test').Page): Promise<void> {
   await page.evaluate(() => {
     document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
@@ -191,6 +213,48 @@ test.describe('Home page · structure & SEO', () => {
     await page.goto('/', { waitUntil: 'networkidle' });
 
     expect(errors, `console errors: ${errors.join(' | ')}`).toHaveLength(0);
+  });
+
+  test('does not render the CRT scanline overlay in the default page state', async ({ page }) => {
+    await page.goto('/#apply');
+
+    await expect(page.locator('.crt-overlay')).toHaveCSS('display', 'none');
+  });
+
+  test('mascot speech bubble keeps readable contrast on inverted sections', async ({ page }) => {
+    test.skip(
+      !test.info().project.name.startsWith('desktop'),
+      'corner mascot is hidden on narrow viewports'
+    );
+
+    await page.goto('/#manifesto');
+    await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
+    await page.evaluate(() => {
+      const mascot = document.querySelector<HTMLElement>('[data-mascot]');
+      const bubble = document.createElement('span');
+      bubble.className = 'mascot__say font-pixel';
+      bubble.dataset.show = 'true';
+      bubble.textContent = 'closing as wontfix';
+      mascot?.appendChild(bubble);
+    });
+
+    const bubble = page.locator('.mascot__say');
+    await expect(bubble).toBeVisible();
+    const bubbleBox = await bubble.boundingBox();
+    const viewport = page.viewportSize();
+
+    const styles = await bubble.evaluate((el) => {
+      const computed = getComputedStyle(el);
+      return {
+        backgroundColor: computed.backgroundColor,
+        color: computed.color,
+      };
+    });
+
+    expect(styles.backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+    expect(contrastRatio(styles.color, styles.backgroundColor)).toBeGreaterThanOrEqual(7);
+    expect(bubbleBox?.x ?? -1).toBeGreaterThanOrEqual(0);
+    expect((bubbleBox?.x ?? 0) + (bubbleBox?.width ?? 0)).toBeLessThanOrEqual(viewport?.width ?? 0);
   });
 });
 

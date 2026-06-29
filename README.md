@@ -42,6 +42,7 @@ npm run test:update
 ```
 
 Visual baselines are committed under `tests/__screenshots__/` and platform-suffixed.
+CI compares them, but never commits or pushes regenerated screenshots back to `main`.
 
 ## Deploy
 

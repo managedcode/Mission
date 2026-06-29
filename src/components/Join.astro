@@ -101,7 +101,7 @@ const contactHref = `#${join.contact.anchorId}`;
   .join__inner {
     display: flex;
     flex-direction: column;
-    gap: clamp(2.25rem, 1.5rem + 3vw, 3.75rem);
+    gap: clamp(1.75rem, 1.2rem + 2.2vw, 2.75rem);
   }
 
   /* ---------- Intro ---------- */
@@ -124,20 +124,18 @@ const contactHref = `#${join.contact.anchorId}`;
   /* ---------- Cards ---------- */
   .join__grid {
     display: grid;
-    grid-template-columns:
-      minmax(0, var(--phi-minor-fr)) minmax(0, var(--phi-major-fr))
-      minmax(0, var(--phi-minor-fr));
-    gap: var(--phi-gap-sm);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(1rem, 0.65rem + 1.4vw, 1.75rem);
   }
   .join__card {
     /* Softer than the pricing tiers: raised fill, light hairline, gentle lift. */
     display: flex;
     flex-direction: column;
-    gap: var(--space-s);
+    gap: var(--space-xs);
     background: var(--bg-raised);
     border: 1.5px solid var(--hairline-strong);
     box-shadow: var(--shadow-px-sm);
-    padding: clamp(1.4rem, 1.1rem + 1.4vw, 2rem);
+    padding: clamp(1.1rem, 0.9rem + 0.9vw, 1.45rem);
     transition:
       transform 0.2s var(--ease-out),
       box-shadow 0.2s var(--ease-out),
@@ -164,13 +162,13 @@ const contactHref = `#${join.contact.anchorId}`;
   }
 
   .join__card-title {
-    font-size: var(--step-2);
+    font-size: clamp(1.25rem, 1.05rem + 0.8vw, 1.65rem);
     letter-spacing: -0.02em;
   }
   .join__card-body {
     color: var(--fg-soft);
-    font-size: var(--step-0);
-    line-height: 1.6;
+    font-size: var(--step--1);
+    line-height: 1.5;
     max-width: 38ch;
     /* push the CTA to the foot so cards align */
     margin-bottom: auto;
@@ -192,7 +190,7 @@ const contactHref = `#${join.contact.anchorId}`;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: clamp(1.25rem, 0.9rem + 1.4vw, 2rem);
+    gap: clamp(1rem, 0.75rem + 1vw, 1.5rem);
     scroll-margin-top: calc(var(--header-h) + var(--space-l));
   }
   .join__knock:focus {

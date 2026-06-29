@@ -14,6 +14,7 @@ declare global {
       play: (name: MissionSoundName) => void;
       isOn: () => boolean;
     };
+    __missionHashResync?: boolean;
   }
 }
 
@@ -152,6 +153,46 @@ function initNav() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') close(true);
   });
+}
+
+/* ---------- Hash anchors ----------
+   Browsers restore #hash before web fonts and late layout settle. Re-align once
+   the page has a stable box tree so sticky-header anchors land on their section,
+   not halfway through the previous block. */
+function scrollToCurrentHash() {
+  if (!window.location.hash || window.location.hash === '#') return;
+  const id = decodeURIComponent(window.location.hash.slice(1));
+  const target = document.getElementById(id);
+  if (!target) return;
+
+  const header = document.querySelector<HTMLElement>('[data-header]');
+  const headerHeight = Math.ceil(header?.getBoundingClientRect().height ?? 0);
+  const top = target.getBoundingClientRect().top + window.scrollY - headerHeight;
+  window.scrollTo({ top, behavior: 'auto' });
+}
+
+function initHashResync() {
+  const settle = () => {
+    scrollToCurrentHash();
+    window.setTimeout(scrollToCurrentHash, 80);
+    window.setTimeout(scrollToCurrentHash, 350);
+    window.setTimeout(scrollToCurrentHash, 1000);
+    window.setTimeout(scrollToCurrentHash, 1800);
+    window.setTimeout(scrollToCurrentHash, 2800);
+  };
+
+  if (window.__missionHashResync) {
+    settle();
+    return;
+  }
+
+  window.__missionHashResync = true;
+  window.addEventListener('hashchange', settle);
+  window.addEventListener('load', settle, { once: true });
+  if ('fonts' in document) {
+    void document.fonts.ready.then(settle);
+  }
+  requestAnimationFrame(settle);
 }
 
 /* ---------- Hero terminal typewriter (the hero's signature beat) ---------- */
@@ -584,6 +625,7 @@ function initSound() {
   } catch {
     /* ignore */
   }
+  if (!on) return;
 
   // --- toggle button (injected; top-right, near theme controls) ---
   const btn = document.createElement('button');
@@ -771,11 +813,8 @@ function initSound() {
 }
 
 /* ---------- Mascot — a little RPG-style maintainer ----------
-   On a capable desktop it roams the foot of the page, walks toward your cursor,
-   hops, flips to face where it's going, and occasionally pipes up. Click it for
-   a 1-UP. Roaming is motion-safe and NEVER runs under automation, so it can't
-   touch visual baselines (the test helper also hides [data-mascot] outright).
-   Under reduced-motion / touch it falls back to the static corner + click egg. */
+   Keep it as a fixed corner affordance for the Mission Run mini-game. It should
+   never roam across editorial content or obscure cards while someone is reading. */
 function initMascot() {
   const mascot = document.querySelector<HTMLElement>('[data-mascot]');
   if (!mascot) return;
@@ -785,50 +824,9 @@ function initMascot() {
   mascot.style.pointerEvents = 'auto';
   mascot.style.cursor = 'pointer';
 
-  // Roams on a capable desktop (the hero runs around the foot of the page, chasing
-  // the cursor and piping up). Still hard-gated off under automation, touch, and
-  // reduced-motion so it never touches visual baselines.
-  const canRoam =
-    !reduceMotion &&
-    !navigator.webdriver &&
-    window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-
-  const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
-  const IDLE_QUIPS = [
-    'new project?',
-    'rewrite it in rust?',
-    'who maintains this?',
-    'still unpaid.',
-    'someone has to.',
-    'closing as wontfix',
-    'just one more refactor',
-    'ship it',
-  ];
-
-  // --- speech bubble (roam mode only) ---
-  let bubble: HTMLElement | null = null;
-  let bubbleT = 0;
-  const speak = (text: string) => {
-    if (!canRoam) return;
-    if (!bubble) {
-      bubble = document.createElement('span');
-      bubble.className = 'mascot__say font-pixel';
-      mascot.appendChild(bubble);
-    }
-    bubble.textContent = text;
-    bubble.dataset.show = 'true';
-    window.clearTimeout(bubbleT);
-    bubbleT = window.setTimeout(() => {
-      if (bubble) bubble.dataset.show = 'false';
-    }, 2600);
-  };
-
   // --- click launches the MISSION RUN mini-game (with a little hop) ---
-  let hopStart = -1;
   const triggerHop = () => {
-    if (canRoam) {
-      hopStart = performance.now(); // JS-driven hop (composes with roaming x)
-    } else if (sprite?.animate) {
+    if (sprite?.animate) {
       sprite.animate(
         [
           { transform: 'translateY(0)' },
@@ -850,106 +848,6 @@ function initMascot() {
     triggerHop();
     game.launch();
   });
-
-  if (!canRoam) return; // static corner companion + click egg only
-
-  // --- roaming companion ---
-  mascot.classList.add('mascot--roaming');
-  const mascotWidth = 52;
-  const margin = 10;
-  const minX = margin;
-  const maxX = () => Math.max(minX, window.innerWidth - mascotWidth - margin);
-  const pointerRetargetDeadzone = 5;
-  const arrivalDeadzone = 1.8;
-  const walkBobDeadzone = 7;
-
-  let x = Math.min(maxX(), 48);
-  let target = x;
-  let face = 1;
-  let walking = false;
-  let pointerX = -1;
-  let lastPointer = -1e9;
-
-  window.addEventListener(
-    'pointermove',
-    (e) => {
-      // Vertical mouse movement often carries 1-2px of horizontal noise; do not
-      // retarget the companion until the X change is intentional enough to chase.
-      if (pointerX < 0 || Math.abs(e.clientX - pointerX) >= pointerRetargetDeadzone) {
-        pointerX = e.clientX;
-      }
-      lastPointer = performance.now();
-    },
-    { passive: true }
-  );
-
-  let nextWander = 0;
-  let last = performance.now();
-  const loop = (now: number) => {
-    if (document.hidden) {
-      last = now;
-      requestAnimationFrame(loop);
-      return;
-    }
-    const dt = Math.min(now - last, 48);
-    last = now;
-
-    // chase the cursor while it's recently active; otherwise stroll somewhere
-    if (now - lastPointer < 2600 && pointerX >= 0) {
-      target = Math.max(minX, Math.min(maxX(), pointerX - mascotWidth / 2));
-    } else if (now > nextWander) {
-      target = minX + Math.random() * (maxX() - minX);
-      nextWander = now + 5000 + Math.random() * 8000;
-    }
-
-    const d = target - x;
-    if (Math.abs(d) > arrivalDeadzone) {
-      face = d < 0 ? -1 : 1;
-      x += Math.sign(d) * Math.min(Math.abs(d), 0.14 * dt);
-      walking = Math.abs(d) > walkBobDeadzone;
-    } else {
-      x = target;
-      walking = false;
-    }
-
-    // vertical = walk-bob + click-hop, both via --my (no CSS-animation clash)
-    let my = 0;
-    if (walking) my += -Math.abs(Math.sin(now / 110)) * 3;
-    if (hopStart >= 0) {
-      const ht = (now - hopStart) / 430;
-      if (ht >= 1) hopStart = -1;
-      else my += -Math.sin(ht * Math.PI) * 14;
-    }
-
-    mascot.style.setProperty('--mx', x.toFixed(1));
-    mascot.style.setProperty('--my', my.toFixed(1));
-    if (sprite) sprite.style.setProperty('--face', String(face));
-    mascot.classList.toggle('is-walking', walking);
-
-    requestAnimationFrame(loop);
-  };
-  requestAnimationFrame(loop);
-
-  // perk up (and sometimes nudge) when the cursor hits a patron CTA
-  document.querySelectorAll<HTMLElement>('.btn--accent').forEach((b) =>
-    b.addEventListener('mouseenter', () => {
-      triggerHop();
-      if (Math.random() < 0.5) speak('fund me?');
-    })
-  );
-
-  // an occasional idle line so it feels alive without nagging
-  window.setInterval(() => {
-    if (!walking && Math.random() < 0.45) speak(pick(IDLE_QUIPS));
-  }, 17000);
-
-  window.addEventListener(
-    'resize',
-    () => {
-      x = Math.min(x, maxX());
-    },
-    { passive: true }
-  );
 }
 
 /* ---------- Tab-title egg — a quiet note when you leave ---------- */
@@ -969,6 +867,7 @@ function init() {
   initCounters();
   initTheme();
   initNav();
+  initHashResync();
   initTerminal();
   initHeader();
   initScrollProgress();

@@ -7,13 +7,12 @@
 #   `...-{projectName}-{platform}{ext}`). Locally on macOS you generate
 #   `-darwin` snapshots; they are NOT the source of truth for CI.
 #
-#   The authoritative `-linux` baselines are generated and committed by THIS
-#   workflow, inside the official Playwright container, so they always match
-#   the CI renderer exactly:
-#     * push to main / manual dispatch -> regenerate Linux baselines with
-#       `--update-snapshots`, then commit any changes under the snapshots dir.
-#     * pull_request -> strict compare against the committed Linux baselines
-#       (no updating); a real visual diff fails the build.
+#   The authoritative `-linux` baselines are committed by humans. CI must not
+#   write back to `main`:
+#     * push to main / pull_request -> strict compare against committed Linux
+#       baselines; a real visual diff fails the build.
+#     * manual dispatch with `update_snapshots=true` -> generate Linux baselines
+#       in the official Playwright container and upload them as an artifact only.
 #
 #   The container image is pinned to the installed @playwright/test version
 #   (1.61.1) so the browser binaries and the test runner stay in lockstep.
@@ -26,10 +25,15 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      update_snapshots:
+        description: Generate Linux baselines and upload them as an artifact without committing.
+        required: false
+        type: boolean
+        default: false
 
-# Needed so the push-to-main job can commit regenerated Linux baselines.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   test:
@@ -47,36 +51,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # ---- Pull requests: strict compare against committed Linux baselines ----
-      - name: Run Playwright tests (PR — strict compare)
-        if: github.event_name == 'pull_request'
+      # ---- Normal CI: strict compare against committed Linux baselines ----
+      - name: Run Playwright tests (strict compare)
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.update_snapshots != 'true' }}
         run: npx playwright test
 
-      # ---- Push to main / manual: (re)generate and commit Linux baselines ----
-      - name: Run Playwright tests (update Linux baselines)
-        if: github.event_name != 'pull_request'
+      # ---- Manual helper: generate Linux baselines, but never commit/push ----
+      - name: Generate Linux baselines
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.update_snapshots == 'true' }}
         run: npx playwright test --update-snapshots
 
-      - name: Commit updated baselines
-        if: github.event_name != 'pull_request'
-        run: |
-          # Mark the checkout as a safe dir before any git command; the
-          # Playwright container runs as root while the checkout is runner-owned.
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          if [ -n "$(git status --porcelain tests)" ]; then
-            git add tests/__screenshots__
-            if ! git diff --cached --quiet; then
-              git commit -m "chore: update visual baselines [skip ci]"
-              git push "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:${{ github.ref_name }}
-            else
-              echo "No screenshot changes staged; nothing to commit."
-            fi
-          else
-            echo "No baseline changes detected."
-          fi
+      - name: Upload generated Linux baselines
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && github.event.inputs.update_snapshots == 'true' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-visual-baselines
+          path: tests/__screenshots__/
+          retention-days: 14
 
       # ---- Always publish the report + raw results for inspection ----
       - name: Upload Playwright report

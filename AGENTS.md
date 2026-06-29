@@ -117,9 +117,10 @@ FCP/LCP on the uncompressed local preview run ~2s; on production (CDN + Brotli +
   the sound toggle and the intro loader — so diffs track content, not sprites). The intro loader is also
   `navigator.webdriver`-gated, so it never runs under Playwright/Lighthouse.
 - After any intentional visual change: `npm run test:update`, then a clean `npm test` to confirm stability,
-  and commit the new baselines.
-- CI: `.github/workflows/playwright.yml` runs in the official Playwright container — compares on PRs,
-  regenerates + commits Linux baselines on push to `main`.
+  and commit the new baselines yourself. For Linux baselines, use the manual Playwright workflow artifact or
+  run the update inside the pinned Playwright container; CI must not commit back to `main`.
+- CI: `.github/workflows/playwright.yml` runs in the official Playwright container and strictly compares on
+  PRs and pushes to `main`. Manual dispatch can generate Linux baselines as an artifact, but never pushes.
 
 ## Deploy (GitHub Pages)
 
