@@ -943,6 +943,9 @@ test.describe('Mission Run mini-game', () => {
     pipeOccluded?: boolean;
     camX?: number;
     voidT?: number;
+    voidTitle?: string;
+    voidWarning?: string;
+    voidSignLines?: readonly string[];
     voidSeconds?: number;
     voidDragonX?: number;
     voidGap?: number;
@@ -1199,6 +1202,10 @@ test.describe('Mission Run mini-game', () => {
     expect(voidStart?.transitionLabel).toBe('DOWN PIPE');
     expect(voidStart?.transitionT ?? 0).toBeGreaterThan(0);
     expect(voidStart?.transitionDuration ?? 0).toBeGreaterThan(voidStart?.transitionT ?? 0);
+    expect(voidStart?.voidTitle).toBe('MAINTENANCE DEBT');
+    expect(voidStart?.voidTitle).not.toBe('BACKLOG');
+    expect(voidStart?.voidWarning).toBe('unfunded maintenance is catching up. keep moving.');
+    expect(voidStart?.voidSignLines).toEqual(['KEEP MOVING', 'CVE DRIFT', 'RELEASE LAG']);
     expect(voidStart?.voidGap ?? 0).toBeGreaterThan(120);
 
     await page.evaluate(() => {

@@ -5,7 +5,7 @@ import { miniGame } from '../data/site';
    maintainer. You ship for $0 while the expense monsters keep coming:
    RENT · TAX · ELECTRIC · WATER · MOBILE · SUBS · GAS · LOAN · FEES.
    Bump ? blocks for GitHub ★ (worth $0), grab the COFFEE, and find the secret
-   NEW PROJECT IDEA — the backlog grows, so the maintainer grows with it.
+   NEW PROJECT IDEA — the maintenance debt grows, so the maintainer grows with it.
 
    Reach the finale and you win, obviously: the lights warm up and fireworks go up
    because ManagedCode is glad to have you here, funding the maintenance work
@@ -739,7 +739,7 @@ export function createMascotGame(): Game {
   }
   function popNewProject(tx: number, ty: number) {
     // NOT a 1-UP / life-up — it's a NEW PROJECT idea. The shiny new repo you'll
-    // start instead of finishing this one. Bigger backlog, bigger sprite.
+    // start instead of finishing this one. Bigger maintenance debt, bigger sprite.
     oneups.push({ x: tx * TILE + 1, y: ty * TILE - 14, vx: 0.8, vy: -2.4, got: false });
     addParticle(tx * TILE - 20, ty * TILE - 4, 'NEW PROJECT IDEA', C.life);
   }
@@ -2377,6 +2377,9 @@ export function createMascotGame(): Game {
       pipeOccluded: Boolean(activePipe && state === 'pipe' && player.y + player.h > activePipe.top),
       camX: Math.round(camX),
       voidT,
+      voidTitle: miniGame.voidTitle,
+      voidWarning: miniGame.voidWarning,
+      voidSignLines: [...miniGame.voidSignLines],
       voidSeconds: voidSeconds(),
       voidDragonX: Math.round(voidDragon.x),
       voidGap: Math.round(voidGap()),
