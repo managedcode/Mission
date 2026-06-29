@@ -167,19 +167,32 @@ const analyticsBootstrap = `
     <link rel="sitemap" href="/sitemap-index.xml" />
     <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt" />
 
-    <!-- No-flash theme: runs before paint -->
+    <!-- No-flash theme + first-load intro arm: runs before paint -->
     <script is:inline>
       (() => {
+        const root = document.documentElement;
         // Mark JS as available so scroll-reveal styles only hide content when
         // they can actually reveal it again. No-JS / crawlers see everything.
-        document.documentElement.classList.add('js');
+        root.classList.add('js');
         try {
           const stored = localStorage.getItem('mission-theme');
           const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
           const theme = stored ?? (prefersDark ? 'dark' : 'light');
-          document.documentElement.setAttribute('data-theme', theme);
+          root.setAttribute('data-theme', theme);
         } catch {
           /* ignore */
+        }
+
+        let introSeen = false;
+        try {
+          introSeen = sessionStorage.getItem('mc-intro') === '1';
+        } catch {
+          /* ignore */
+        }
+
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (!navigator.webdriver && !reduceMotion && !introSeen) {
+          root.classList.add('intro-run');
         }
       })();
     </script>
@@ -195,8 +208,9 @@ const analyticsBootstrap = `
 
     <!-- Intro loader: CRT power-on, once per session. Built by initIntro() in
          app.ts, which removes it instantly under automation (navigator.webdriver),
-         reduced-motion, or when already shown this session. Pre-rendered here so
-         it overlays the already-painted page without delaying first paint. -->
+         reduced-motion, or when already shown this session. The head bootstrap
+         arms it before first paint so the loaded page is never covered after it
+         has already appeared. -->
     <div class="intro" data-intro aria-hidden="true">
       <div class="intro__crt">
         <pre class="intro__log font-pixel"></pre>
