@@ -436,9 +436,16 @@ const recaptchaNotice = apply.recaptchaNotice;
     }
 
     type Payload = Record<string, unknown>;
+    type FailurePayload = {
+      errors?: unknown;
+      recaptchaErrorCodes?: unknown;
+    };
 
     const grecaptchaReadyTimeoutMs = 8000;
     const grecaptchaPollMs = 100;
+    const recaptchaBrowserErrorCode = 'browser-error';
+    const recaptchaSubmitAttempts = 3;
+    const recaptchaRetryDelayMs = 450;
     let recaptchaScriptPromise: Promise<void> | null = null;
 
     const form = document.querySelector<HTMLFormElement>('[data-apply-form]');
@@ -525,6 +532,67 @@ const recaptchaNotice = apply.recaptchaNotice;
           }
         });
       });
+    };
+
+    const wait = (ms: number): Promise<void> =>
+      new Promise((resolve) => {
+        window.setTimeout(resolve, ms);
+      });
+
+    const toStringArray = (value: unknown): string[] =>
+      Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+
+    const readFailurePayload = async (response: Response): Promise<FailurePayload | null> => {
+      try {
+        const payload = (await response.json()) as unknown;
+        return payload && typeof payload === 'object' ? (payload as FailurePayload) : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const isTransientRecaptchaFailure = (payload: FailurePayload | null): boolean => {
+      if (!payload) return false;
+
+      const codes = toStringArray(payload.recaptchaErrorCodes);
+      if (codes.some((code) => code.toLowerCase() === recaptchaBrowserErrorCode)) {
+        return true;
+      }
+
+      return toStringArray(payload.errors).some((error) =>
+        error.toLowerCase().includes(recaptchaBrowserErrorCode)
+      );
+    };
+
+    const postPayload = async (
+      payload: Payload,
+      recaptchaSiteKey: string,
+      recaptchaAction: string
+    ): Promise<Response> => {
+      for (let attempt = 1; attempt <= recaptchaSubmitAttempts; attempt += 1) {
+        const recaptchaToken = await getRecaptchaToken(recaptchaSiteKey, recaptchaAction);
+        if (!recaptchaToken) throw new Error('reCAPTCHA token not available');
+
+        payload.recaptchaToken = recaptchaToken;
+        payload.recaptchaAction = recaptchaAction;
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (response.ok) return response;
+
+        const failurePayload = await readFailurePayload(response);
+        if (attempt < recaptchaSubmitAttempts && isTransientRecaptchaFailure(failurePayload)) {
+          await wait(recaptchaRetryDelayMs * attempt);
+          continue;
+        }
+
+        throw new Error(String(response.status));
+      }
+
+      throw new Error('Submit failed');
     };
 
     const trimmed = (value: unknown): string | undefined => {
@@ -660,17 +728,7 @@ const recaptchaNotice = apply.recaptchaNotice;
       try {
         const recaptchaSiteKey = form.dataset.recaptchaSiteKey || '';
         const recaptchaAction = form.dataset.recaptchaAction || '';
-        const recaptchaToken = await getRecaptchaToken(recaptchaSiteKey, recaptchaAction);
-        if (!recaptchaToken) throw new Error('reCAPTCHA token not available');
-        payload.recaptchaToken = recaptchaToken;
-        payload.recaptchaAction = recaptchaAction;
-
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error(String(res.status));
+        await postPayload(payload, recaptchaSiteKey, recaptchaAction);
         form.hidden = true;
         if (success) {
           success.hidden = false;
