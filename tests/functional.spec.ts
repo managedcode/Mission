@@ -457,6 +457,13 @@ test.describe('Mission Run mini-game', () => {
     });
 
     await expect.poll(async () => (await readGame())?.state, { timeout: 1000 }).toBe('pipe');
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __mgameAdvancePipe?: (frames?: number) => void;
+        }
+      ).__mgameAdvancePipe?.();
+    });
     await expect.poll(async () => (await readGame())?.state, { timeout: 3000 }).toBe('void');
 
     const voidStart = await readGame();

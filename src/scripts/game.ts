@@ -2272,6 +2272,7 @@ export function createMascotGame(): Game {
         __mgameWarpBoss?: () => void;
         __mgameBumpBrick?: (tx?: number, ty?: number) => void;
         __mgameEnterPipe?: () => void;
+        __mgameAdvancePipe?: (frames?: number) => void;
         __mgameAdvanceVoid?: (frames?: number) => void;
         __mgameTriggerWin?: () => void;
         __mgameAdvanceEnding?: (frames?: number) => void;
@@ -2314,6 +2315,11 @@ export function createMascotGame(): Game {
         player.onGround = true;
         camX = Math.max(0, Math.min(WORLD_W - VIEW_W, player.x + player.w / 2 - VIEW_W / 2));
         startPipeDescent();
+      };
+      debugWindow.__mgameAdvancePipe = (frames = 64) => {
+        if (state !== 'pipe') debugWindow.__mgameEnterPipe?.();
+        for (let i = 0; i < frames && state === 'pipe'; i++) updatePipeDescent();
+        render();
       };
       debugWindow.__mgameAdvanceVoid = (frames = VOID_LIMIT_FRAMES) => {
         if (state !== 'void') startVoidChase();
