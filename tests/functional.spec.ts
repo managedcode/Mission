@@ -221,15 +221,75 @@ test.describe('Home page · structure & SEO', () => {
     await expect(page.locator('.crt-overlay')).toHaveCSS('display', 'none');
   });
 
-  test('mascot speech bubble keeps readable contrast on inverted sections', async ({ page }) => {
+  test('how-it-works cards align with the section text column on desktop', async ({ page }) => {
+    test.skip(!test.info().project.name.startsWith('desktop'), 'desktop alignment only');
+
+    await page.goto('/#how');
+    await prepareForResponsiveAudit(page);
+    await page.locator('#how').scrollIntoViewIfNeeded();
+
+    const metrics = await page.evaluate(() => {
+      const heading = document.querySelector<HTMLElement>('#how-h');
+      const firstCard = document.querySelector<HTMLElement>('#how .how__card');
+      const headingRect = heading?.getBoundingClientRect();
+      const cardRect = firstCard?.getBoundingClientRect();
+
+      return {
+        headingLeft: Math.round(headingRect?.left ?? -1),
+        cardLeft: Math.round(cardRect?.left ?? -1),
+      };
+    });
+
+    expect(Math.abs(metrics.cardLeft - metrics.headingLeft)).toBeLessThanOrEqual(1);
+  });
+
+  test('manifesto keeps breathing room above the bottom pixel word', async ({ page }) => {
+    test.skip(!test.info().project.name.startsWith('desktop'), 'desktop manifesto composition');
+
+    await page.goto('/#manifesto');
+    await prepareForResponsiveAudit(page);
+    await page.locator('#manifesto').scrollIntoViewIfNeeded();
+
+    const spacing = await page.evaluate(() => {
+      const lastParagraph = document.querySelector<HTMLElement>(
+        '#manifesto .manifesto__prose .manifesto__p:last-child'
+      );
+      const stamp = document.querySelector<HTMLElement>('#manifesto .manifesto__stamp');
+      const ghost = document.querySelector<HTMLElement>('#manifesto .manifesto__ghost');
+
+      const lastParagraphRect = lastParagraph?.getBoundingClientRect();
+      const stampRect = stamp?.getBoundingClientRect();
+      const ghostRect = ghost?.getBoundingClientRect();
+
+      return {
+        paragraphToGhost: Math.round((ghostRect?.top ?? 0) - (lastParagraphRect?.bottom ?? 0)),
+        stampToGhost: Math.round((ghostRect?.top ?? 0) - (stampRect?.bottom ?? 0)),
+      };
+    });
+
+    expect(spacing.paragraphToGhost).toBeGreaterThanOrEqual(240);
+    expect(spacing.stampToGhost).toBeGreaterThanOrEqual(48);
+  });
+
+  test('mascot speech bubble and sprite keep readable contrast on inverted sections', async ({
+    page,
+  }) => {
     test.skip(
       !test.info().project.name.startsWith('desktop'),
       'corner mascot is hidden on narrow viewports'
     );
 
-    await page.goto('/#manifesto');
+    await page.goto('/');
     await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
     await page.evaluate(() => {
+      document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
+        el.classList.add('is-visible');
+      });
+      const manifesto = document.getElementById('manifesto');
+      if (manifesto) {
+        window.scrollTo(0, manifesto.getBoundingClientRect().top + window.scrollY + 340);
+        window.dispatchEvent(new Event('scroll'));
+      }
       const mascot = document.querySelector<HTMLElement>('[data-mascot]');
       const bubble = document.createElement('span');
       bubble.className = 'mascot__say font-pixel';
@@ -237,6 +297,9 @@ test.describe('Home page · structure & SEO', () => {
       bubble.textContent = 'closing as wontfix';
       mascot?.appendChild(bubble);
     });
+
+    const mascot = page.locator('[data-mascot]');
+    await expect(mascot).toHaveAttribute('data-over-invert', 'true');
 
     const bubble = page.locator('.mascot__say');
     await expect(bubble).toBeVisible();
@@ -250,9 +313,22 @@ test.describe('Home page · structure & SEO', () => {
         color: computed.color,
       };
     });
+    const spriteStyles = await page.evaluate(() => {
+      const mascot = document.querySelector<HTMLElement>('[data-mascot]');
+      const leg = mascot?.querySelector<SVGRectElement>('[data-part="leg"]');
+      const surface = document.getElementById('manifesto');
+
+      return {
+        legColor: leg ? getComputedStyle(leg).fill : '',
+        surfaceColor: surface ? getComputedStyle(surface).backgroundColor : '',
+      };
+    });
 
     expect(styles.backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
     expect(contrastRatio(styles.color, styles.backgroundColor)).toBeGreaterThanOrEqual(7);
+    expect(contrastRatio(spriteStyles.legColor, spriteStyles.surfaceColor)).toBeGreaterThanOrEqual(
+      4.5
+    );
     expect(bubbleBox?.x ?? -1).toBeGreaterThanOrEqual(0);
     expect((bubbleBox?.x ?? 0) + (bubbleBox?.width ?? 0)).toBeLessThanOrEqual(viewport?.width ?? 0);
   });
@@ -772,6 +848,34 @@ test.describe('Patronage tiers', () => {
 });
 
 test.describe('CTA interactions', () => {
+  test('hash anchor settling stops after manual scroll input', async ({ page }) => {
+    test.skip(!test.info().project.name.startsWith('desktop'), 'wheel regression is desktop-only');
+
+    await page.goto('/');
+    await page.evaluate(() => {
+      const root = document.documentElement;
+      const previous = root.style.scrollBehavior;
+      root.style.scrollBehavior = 'auto';
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      root.style.scrollBehavior = previous;
+    });
+
+    await page.evaluate(() => {
+      window.location.hash = 'apply';
+    });
+    await expect(page).toHaveURL(/#apply$/);
+
+    await page.waitForTimeout(120);
+    await page.mouse.wheel(0, 650);
+    await page.waitForTimeout(50);
+    const afterWheel = await page.evaluate(() => Math.round(window.scrollY));
+
+    await page.waitForTimeout(1800);
+    const afterSettleWindow = await page.evaluate(() => Math.round(window.scrollY));
+
+    expect(afterSettleWindow).toBeGreaterThanOrEqual(afterWheel - 4);
+  });
+
   test('join cards keep equal desktop geometry without a featured card', async ({ page }) => {
     test.skip(!test.info().project.name.startsWith('desktop'), 'three-column layout only');
 
@@ -1095,5 +1199,69 @@ test.describe('Secondary pages', () => {
     await expect(page.locator('.site-footer a[href="/patrons"]')).toHaveCount(1);
     await expect(page.locator('.site-footer a[href="/projects"]')).toHaveCount(1);
     await expect(page.locator('.site-footer a[href="/team"]')).toHaveCount(1);
+    await expect(page.locator('.site-footer__copyright')).toContainText(
+      /© 2026 Managed Code\. Built in the open\./
+    );
+    await expect(page.locator('.site-footer__legal-links')).toContainText(
+      /CC BY 4\.0 · Terms of Use · Privacy Policy/
+    );
+  });
+
+  test('footer keeps desktop utility columns readable without forced wraps', async ({ page }) => {
+    test.skip(!test.info().project.name.startsWith('desktop'), 'desktop footer layout only');
+
+    await page.goto('/');
+    await prepareForResponsiveAudit(page);
+    await page.locator('.site-footer').scrollIntoViewIfNeeded();
+
+    const metrics = await page.evaluate(() => {
+      const selectors = {
+        email: '.site-footer__nav a[href^="mailto:"]',
+        site: '.site-footer__nav a[href="https://www.managed-code.com"]',
+        copyright: '.site-footer__copyright',
+        legal: '.site-footer__legal-links',
+      } as const;
+
+      return Object.entries(selectors).map(([name, selector]) => {
+        const element = document.querySelector<HTMLElement>(selector);
+        const style = element ? getComputedStyle(element) : null;
+        const fontSize = style ? Number.parseFloat(style.fontSize) : 0;
+        const lineHeight = style ? Number.parseFloat(style.lineHeight) || fontSize * 1.3 : 0;
+        const rect = element?.getBoundingClientRect();
+        const visibleLineBoxes = element
+          ? Array.from(element.getClientRects()).filter(
+              (lineBox) => lineBox.width > 0 && lineBox.height > 0
+            ).length
+          : 0;
+
+        return {
+          name,
+          found: Boolean(element),
+          height: rect?.height ?? 0,
+          lineHeight,
+          lineBoxes: visibleLineBoxes,
+          overflow: element
+            ? element.clientWidth > 0 && element.scrollWidth - element.clientWidth > 1
+            : false,
+        };
+      });
+    });
+    const navOverflow = await page.locator('.site-footer__nav').evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+
+    for (const metric of metrics) {
+      expect(metric.found, `${metric.name} exists`).toBe(true);
+      expect(metric.height, `${metric.name} stays on one line`).toBeLessThanOrEqual(
+        metric.lineHeight * 1.45
+      );
+      expect(metric.lineBoxes, `${metric.name} has one visible line box`).toBe(1);
+      expect(metric.overflow, `${metric.name} does not overflow its column`).toBe(false);
+    }
+    expect(
+      navOverflow.scrollWidth - navOverflow.clientWidth,
+      'footer nav does not overflow its grid column'
+    ).toBeLessThanOrEqual(1);
   });
 });

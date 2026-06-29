@@ -66,17 +66,17 @@ const year = 2026;
       Mission is an open initiative in launch — patron grades, response windows, and funding figures
       shown here are illustrative until set in a patronage agreement.
     </p>
-    <p class="font-mono">
-      © {year}
+    <p class="font-mono site-footer__copyright">
+      © {year}{' '}
       <a href={site.parentSite} target="_blank" rel="noopener">{site.org}</a>. {site.madeIn}.
     </p>
-    <p class="font-mono">
+    <p class="font-mono site-footer__legal-links">
       <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener"
         >CC BY 4.0</a
       >
-      <span aria-hidden="true">·</span>
+      <span aria-hidden="true"> · </span>
       <a href={site.legal.terms.url} target="_blank" rel="noopener">{site.legal.terms.label}</a>
-      <span aria-hidden="true">·</span>
+      <span aria-hidden="true"> · </span>
       <a href={site.legal.privacy.url} target="_blank" rel="noopener">{site.legal.privacy.label}</a>
     </p>
   </div>
@@ -89,8 +89,11 @@ const year = 2026;
   }
   .site-footer__inner {
     display: grid;
-    grid-template-columns: 1.2fr 1.6fr 1fr;
-    gap: clamp(2rem, 1rem + 4vw, 4rem);
+    grid-template-columns:
+      minmax(14.5rem, 0.75fr)
+      minmax(39rem, 2.45fr)
+      minmax(15rem, 0.6fr);
+    gap: clamp(1rem, 0.5rem + 1vw, 1.125rem);
     padding-bottom: var(--space-xl);
   }
   .brand {
@@ -129,8 +132,8 @@ const year = 2026;
 
   .site-footer__nav {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-m);
+    grid-template-columns: minmax(7.5rem, 0.85fr) minmax(9.5rem, 1fr) minmax(18rem, 1.45fr);
+    gap: clamp(1rem, 0.65rem + 1vw, 1.375rem);
   }
   .site-footer__h {
     font-size: 0.72rem;
@@ -146,6 +149,8 @@ const year = 2026;
   .site-footer__nav a {
     font-size: var(--step--1);
     color: var(--fg-soft);
+    overflow-wrap: normal;
+    white-space: nowrap;
     transition: color 0.2s;
   }
   .site-footer__nav a:hover {
@@ -161,10 +166,12 @@ const year = 2026;
   }
 
   .site-footer__base {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: var(--space-s);
+    display: grid;
+    grid-template-columns: minmax(24rem, 1fr) auto auto;
+    align-items: start;
+    justify-content: stretch;
+    column-gap: clamp(1.5rem, 1rem + 3vw, 4rem);
+    row-gap: var(--space-s);
     padding-block: var(--space-m);
     border-top: var(--border-px) solid var(--hairline-strong);
     font-size: 0.74rem;
@@ -179,19 +186,34 @@ const year = 2026;
     color: var(--accent);
   }
   .site-footer__legal {
-    flex-basis: 100%;
     max-width: 60ch;
     color: var(--fg-soft);
     line-height: 1.55;
-    margin-bottom: var(--space-2xs);
+  }
+  .site-footer__copyright,
+  .site-footer__legal-links {
+    white-space: nowrap;
   }
 
-  @media (max-width: 56rem) {
+  @media (max-width: 72rem) {
     .site-footer__inner {
       grid-template-columns: 1fr;
     }
+    .site-footer__base {
+      grid-template-columns: 1fr;
+    }
+    .site-footer__copyright,
+    .site-footer__legal-links {
+      white-space: normal;
+    }
+  }
+  @media (max-width: 42rem) {
     .site-footer__nav {
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .site-footer__nav a {
+      overflow-wrap: anywhere;
+      white-space: normal;
     }
   }
   @media (max-width: 30rem) {

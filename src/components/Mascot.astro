@@ -14,8 +14,9 @@ const { variant = 'corner' } = Astro.props;
 
 // 16×16 sprite. Each entry: [x, y, w, h, token]. Colours are design tokens
 // so the sprite re-themes in light/dark. Drawn pixel-by-pixel, NES-palette feel.
-type Px = [number, number, number, number, string];
-const ink = 'var(--mascot-ink)'; // eyes / legs
+type Px = [number, number, number, number, string, string?];
+const eyeInk = 'var(--mascot-eye-ink)';
+const legInk = 'var(--mascot-leg-ink)';
 const skin = 'var(--mascot-skin)'; // face + hands (neutral tone)
 const robe = 'var(--mascot-robe)'; // hoodie (green)
 const robeHi = 'var(--mascot-robe-hi)';
@@ -31,8 +32,8 @@ const pixels: Px[] = [
   [5, 3, 6, 1, robe],
   // ---- face (neutral) + two eyes ----
   [5, 4, 6, 3, skin],
-  [6, 5, 1, 1, ink],
-  [9, 5, 1, 1, ink],
+  [6, 5, 1, 1, eyeInk, 'eye'],
+  [9, 5, 1, 1, eyeInk, 'eye'],
   // ---- hoodie body ----
   [4, 7, 8, 1, robeHi],
   [3, 8, 10, 4, robe],
@@ -41,13 +42,14 @@ const pixels: Px[] = [
   [3, 11, 1, 1, skin],
   [12, 11, 1, 1, skin],
   // ---- legs ----
-  [5, 12, 2, 3, ink],
-  [9, 12, 2, 3, ink],
+  [5, 12, 2, 3, legInk, 'leg'],
+  [9, 12, 2, 3, legInk, 'leg'],
 ];
 
 const cells = pixels
   .map(
-    ([x, y, w, h, fill]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}"/>`
+    ([x, y, w, h, fill, part]) =>
+      `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}"${part ? ` data-part="${part}"` : ''}/>`
   )
   .join('');
 ---
@@ -67,19 +69,24 @@ const cells = pixels
 
 <style>
   .mascot {
-    --mascot-ink: var(--fg);
+    --mascot-eye-ink: var(--ink);
+    --mascot-leg-ink: var(--fg);
     --mascot-skin: #cf9b76;
     --mascot-robe: var(--green-deep);
     --mascot-robe-hi: var(--green);
     --mascot-gold: var(--gold);
     --mascot-amber: var(--amber);
+    --mascot-shadow: color-mix(in srgb, var(--fg) 28%, transparent);
     pointer-events: none;
     line-height: 0;
   }
+  .mascot[data-over-invert='true'],
   :global(:root[data-theme='dark']) .mascot {
+    --mascot-leg-ink: var(--paper-raised);
     --mascot-robe: var(--green);
     --mascot-robe-hi: var(--green-glow);
     --mascot-gold: var(--gold-glow);
+    --mascot-shadow: color-mix(in srgb, var(--paper-raised) 42%, transparent);
   }
 
   .mascot__sprite {
@@ -96,9 +103,9 @@ const cells = pixels
     position: fixed;
     left: 0.5rem;
     bottom: clamp(0.6rem, 1.6vw, 1.4rem);
-    z-index: 8500;
+    z-index: 8600;
     --mascot-size: 52px;
-    filter: drop-shadow(2px 2px 0 color-mix(in srgb, var(--fg) 28%, transparent));
+    filter: drop-shadow(2px 2px 0 var(--mascot-shadow));
     opacity: 0;
     transform: translateY(8px);
     transition:
@@ -161,6 +168,7 @@ const cells = pixels
     color: var(--mascot-say-fg);
     border: var(--border-px) solid var(--mascot-say-fg);
     box-shadow: 3px 3px 0 var(--mascot-say-fg);
+    isolation: isolate;
     opacity: 0;
     pointer-events: none;
     text-shadow: none;

@@ -5,6 +5,20 @@
 import { createMascotGame } from './game';
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const hashSettleDelays = [80, 350, 1000, 1800, 2800] as const;
+const hashScrollAbortKeys = new Set([
+  'ArrowDown',
+  'ArrowUp',
+  'End',
+  'Home',
+  'PageDown',
+  'PageUp',
+  ' ',
+]);
+
+let hashResyncActiveHash = '';
+let hashResyncInterrupted = false;
+let hashResyncTimers: number[] = [];
 
 declare global {
   interface Window {
@@ -159,26 +173,71 @@ function initNav() {
    Browsers restore #hash before web fonts and late layout settle. Re-align once
    the page has a stable box tree so sticky-header anchors land on their section,
    not halfway through the previous block. */
-function scrollToCurrentHash() {
+function clearHashResyncTimers() {
+  hashResyncTimers.forEach((timer) => window.clearTimeout(timer));
+  hashResyncTimers = [];
+}
+
+function isEditableTarget(target: EventTarget | null) {
+  const el = target instanceof HTMLElement ? target : null;
+  if (!el) return false;
+  return Boolean(el.closest('input, textarea, select, [contenteditable="true"]'));
+}
+
+function cancelHashResyncForUserScroll() {
   if (!window.location.hash || window.location.hash === '#') return;
+  hashResyncInterrupted = true;
+  clearHashResyncTimers();
+}
+
+function scrollToHashInstantly(top: number) {
+  const root = document.documentElement;
+  const previous = root.style.scrollBehavior;
+
+  root.style.scrollBehavior = 'auto';
+  window.scrollTo({ top, behavior: 'auto' });
+  root.style.scrollBehavior = previous;
+}
+
+function scrollToCurrentHash() {
+  if (hashResyncInterrupted || !window.location.hash || window.location.hash === '#') return;
   const id = decodeURIComponent(window.location.hash.slice(1));
   const target = document.getElementById(id);
   if (!target) return;
 
   const header = document.querySelector<HTMLElement>('[data-header]');
   const headerHeight = Math.ceil(header?.getBoundingClientRect().height ?? 0);
-  const top = target.getBoundingClientRect().top + window.scrollY - headerHeight;
-  window.scrollTo({ top, behavior: 'auto' });
+  const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - headerHeight);
+  if (Math.abs(window.scrollY - top) <= 1) return;
+
+  scrollToHashInstantly(top);
 }
 
 function initHashResync() {
-  const settle = () => {
-    scrollToCurrentHash();
-    window.setTimeout(scrollToCurrentHash, 80);
-    window.setTimeout(scrollToCurrentHash, 350);
-    window.setTimeout(scrollToCurrentHash, 1000);
-    window.setTimeout(scrollToCurrentHash, 1800);
-    window.setTimeout(scrollToCurrentHash, 2800);
+  const settle = (resetInterruption = false) => {
+    const hash = window.location.hash;
+    clearHashResyncTimers();
+
+    if (!hash || hash === '#') {
+      hashResyncActiveHash = '';
+      hashResyncInterrupted = false;
+      return;
+    }
+
+    if (resetInterruption || hash !== hashResyncActiveHash) {
+      hashResyncActiveHash = hash;
+      hashResyncInterrupted = false;
+    }
+
+    if (hashResyncInterrupted) return;
+
+    const run = () => {
+      if (window.location.hash !== hash) return;
+      scrollToCurrentHash();
+    };
+
+    run();
+    hashResyncTimers = hashSettleDelays.map((delay) => window.setTimeout(run, delay));
   };
 
   if (window.__missionHashResync) {
@@ -187,12 +246,18 @@ function initHashResync() {
   }
 
   window.__missionHashResync = true;
-  window.addEventListener('hashchange', settle);
-  window.addEventListener('load', settle, { once: true });
+  window.addEventListener('hashchange', () => settle(true));
+  window.addEventListener('load', () => settle(), { once: true });
+  window.addEventListener('wheel', cancelHashResyncForUserScroll, { passive: true });
+  window.addEventListener('touchmove', cancelHashResyncForUserScroll, { passive: true });
+  window.addEventListener('keydown', (event) => {
+    if (event.defaultPrevented || isEditableTarget(event.target)) return;
+    if (hashScrollAbortKeys.has(event.key)) cancelHashResyncForUserScroll();
+  });
   if ('fonts' in document) {
-    void document.fonts.ready.then(settle);
+    void document.fonts.ready.then(() => settle());
   }
-  requestAnimationFrame(settle);
+  requestAnimationFrame(() => settle());
 }
 
 /* ---------- Hero terminal typewriter (the hero's signature beat) ---------- */
@@ -308,6 +373,7 @@ function initScrollProgress() {
 
 /* ---------- Analytics: once-per-section scroll events ---------- */
 let analyticsScrollCleanup: (() => void) | undefined;
+let mascotSurfaceCleanup: (() => void) | undefined;
 
 function normalizeAnalyticsId(value: string) {
   return (
@@ -820,6 +886,9 @@ function initSound() {
    Keep it as a fixed corner affordance for the Mission Run mini-game. It should
    never roam across editorial content or obscure cards while someone is reading. */
 function initMascot() {
+  mascotSurfaceCleanup?.();
+  mascotSurfaceCleanup = undefined;
+
   const mascot = document.querySelector<HTMLElement>('[data-mascot]');
   if (!mascot) return;
   const sprite = mascot.querySelector<HTMLElement>('.mascot__sprite');
@@ -852,6 +921,36 @@ function initMascot() {
     triggerHop();
     game.launch();
   });
+
+  const syncSurface = () => {
+    const rect = mascot.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      mascot.dataset.overInvert = 'false';
+      return;
+    }
+
+    const x = Math.min(window.innerWidth - 1, Math.max(0, rect.left + rect.width / 2));
+    const y = Math.min(window.innerHeight - 1, Math.max(0, rect.top + rect.height * 0.72));
+    const stack = document.elementsFromPoint(x, y);
+    const surface = stack.find((el) => el !== mascot && !mascot.contains(el));
+    mascot.dataset.overInvert = String(Boolean(surface?.closest('.invert')));
+  };
+  let surfaceFrame = 0;
+  const queueSurfaceSync = () => {
+    if (surfaceFrame) return;
+    surfaceFrame = window.requestAnimationFrame(() => {
+      surfaceFrame = 0;
+      syncSurface();
+    });
+  };
+  syncSurface();
+  window.addEventListener('scroll', queueSurfaceSync, { passive: true });
+  window.addEventListener('resize', queueSurfaceSync, { passive: true });
+  mascotSurfaceCleanup = () => {
+    if (surfaceFrame) window.cancelAnimationFrame(surfaceFrame);
+    window.removeEventListener('scroll', queueSurfaceSync);
+    window.removeEventListener('resize', queueSurfaceSync);
+  };
 }
 
 /* ---------- Tab-title egg — a quiet note when you leave ---------- */
