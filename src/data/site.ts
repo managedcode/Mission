@@ -73,10 +73,10 @@ export const miniGame = {
     'WORKS HERE',
   ],
   winFinale: {
-    title: 'FUNDED [check]',
-    lead: '',
-    detail: '',
-    stars: '',
+    title: 'WORK FUNDED [check]',
+    lead: 'A maintainer is on call.',
+    detail: 'Triage, fixes, releases.',
+    stars: 'A written SLA backs it.',
   },
   gameOverFinales: [
     {

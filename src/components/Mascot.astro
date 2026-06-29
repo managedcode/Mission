@@ -6,6 +6,8 @@
    tasteful fixed-corner companion. Idle bob is motion-gated and
    settles to a deterministic rest state for visual tests.
    ================================================================= */
+import { mascotCompanion } from '../data/site';
+
 export interface Props {
   /** 'corner' = fixed bottom-left companion; 'inline' = seam ornament. */
   variant?: 'corner' | 'inline';
@@ -54,7 +56,14 @@ const cells = pixels
   .join('');
 ---
 
-<div class={`mascot mascot--${variant}`} aria-hidden="true" data-mascot>
+<div
+  class={`mascot mascot--${variant}`}
+  aria-hidden="true"
+  data-mascot
+  data-first-quip={mascotCompanion.firstQuip}
+  data-cta-quip={mascotCompanion.ctaQuip}
+  data-idle-quips={JSON.stringify(mascotCompanion.idleQuips)}
+>
   <svg
     class="mascot__sprite"
     viewBox="0 0 16 16"

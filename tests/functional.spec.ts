@@ -756,7 +756,7 @@ test.describe('Mobile navigation', () => {
   test('compact header wordmark aligns with the hero content edge', async ({ page }, testInfo) => {
     runOnlyInMobileAuditProject(testInfo);
 
-    for (const width of [360, 430, 600] as const) {
+    for (const width of [360, 430, 600, 900, 1024, 1200] as const) {
       await page.setViewportSize({ width, height: MOBILE_AUDIT_HEIGHT });
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       await prepareForResponsiveAudit(page);
@@ -1511,8 +1511,11 @@ test.describe('Mission Run mini-game', () => {
       .toBe('win:true');
     const winText = (await readGame())?.messageText ?? '';
     const winLines = winText.split('\n').filter((line) => line.trim().length > 0);
-    expect(winLines).toHaveLength(1);
-    expect(winText).toMatch(/FUNDED/i);
+    expect(winLines).toHaveLength(4);
+    expect(winText).toMatch(/WORK FUNDED/i);
+    expect(winText).toMatch(/A maintainer is on call/i);
+    expect(winText).toMatch(/Triage, fixes, releases/i);
+    expect(winText).toMatch(/A written SLA backs it/i);
     expect(winText).not.toMatch(/MAINTAINERS PAID/i);
     expect(winText).not.toMatch(/WELCOME TO MANAGEDCODE/i);
     expect(winText).not.toMatch(/YOU KEPT IT ALIVE/i);

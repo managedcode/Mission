@@ -2,8 +2,7 @@
    MISSION · client interactivity. Progressive, reduced-motion-safe.
    ================================================================= */
 
-import { mascotCompanion } from '../data/site';
-import { createMascotGame } from './game';
+export {};
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const hashSettleDelays = [80, 350, 1000, 1800, 2800] as const;
@@ -52,6 +51,8 @@ type MissionSoundName =
   | 'fire'
   | 'firework'
   | 'restart';
+
+type MascotGame = { launch: () => void };
 
 /* ---------- Scroll reveal ---------- */
 function initReveal() {
@@ -478,7 +479,6 @@ function initAnalyticsScrollTracking() {
     }
   };
 
-  requestUpdate();
   window.addEventListener('scroll', requestUpdate, { passive: true });
   window.addEventListener('resize', requestUpdate, { passive: true });
   analyticsScrollCleanup = () => {
@@ -526,16 +526,18 @@ function initMagnetic() {
   if (reduceMotion) return;
   if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
   document.querySelectorAll<HTMLElement>('.hero__cta .btn, .final-cta__cta .btn').forEach((el) => {
-    let rect = el.getBoundingClientRect();
+    let rect: DOMRect | null = null;
     el.addEventListener('pointerenter', () => {
       rect = el.getBoundingClientRect();
     });
     el.addEventListener('mousemove', (e) => {
+      rect ??= el.getBoundingClientRect();
       const x = e.clientX - (rect.left + rect.width / 2);
       const y = e.clientY - (rect.top + rect.height / 2);
       el.style.transform = `translate(${x * 0.25}px, ${y * 0.32}px)`;
     });
     el.addEventListener('mouseleave', () => {
+      rect = null;
       el.style.transform = '';
     });
   });
@@ -972,6 +974,18 @@ function initMascot() {
   // the sprite is decorative (pointer-events:none) — make it clickable
   mascot.style.pointerEvents = 'auto';
   mascot.style.cursor = 'pointer';
+  const firstQuip = mascot.dataset.firstQuip ?? '';
+  const ctaQuip = mascot.dataset.ctaQuip ?? '';
+  const idleQuips = (() => {
+    try {
+      const parsed = JSON.parse(mascot.dataset.idleQuips ?? '[]');
+      return Array.isArray(parsed)
+        ? parsed.filter((item): item is string => typeof item === 'string')
+        : [];
+    } catch {
+      return [];
+    }
+  })();
 
   const canRoam =
     !reduceMotion &&
@@ -981,7 +995,7 @@ function initMascot() {
     !navigator.webdriver ||
     window.__missionMascotRoamingTest === true ||
     window.__missionMascotQuipTest === true;
-  const autoQuips = [mascotCompanion.firstQuip, ...mascotCompanion.idleQuips].filter(Boolean);
+  const autoQuips = [firstQuip, ...idleQuips].filter(Boolean);
   if (navigator.webdriver) window.__missionMascotQuips = autoQuips;
   const speechHoldMs = window.__missionMascotQuipTest === true ? 1000 : 5600;
   const firstQuipDelayMs = window.__missionMascotQuipTest === true ? 120 : 900;
@@ -1056,12 +1070,29 @@ function initMascot() {
       window.setTimeout(() => mascot.classList.remove('is-hop'), 500);
     }
   };
-  // The game DOM is built lazily on first launch() — never on load — so it can
-  // never surface in screenshots/tests unless a real user clicks the mascot.
-  const game = createMascotGame();
+  // The game code and DOM are built lazily on first launch() — never on load.
+  let game: MascotGame | null = null;
+  let gameLoad: Promise<MascotGame> | null = null;
+  const getGame = () => {
+    if (game) return Promise.resolve(game);
+    gameLoad ??= import('./game')
+      .then(({ createMascotGame }) => {
+        game = createMascotGame();
+        return game;
+      })
+      .catch((error) => {
+        gameLoad = null;
+        throw error;
+      });
+    return gameLoad;
+  };
   const onMascotClick = () => {
     triggerHop();
-    game.launch();
+    void getGame()
+      .then((loadedGame) => loadedGame.launch())
+      .catch(() => {
+        /* keep the page usable if the optional game chunk fails */
+      });
   };
   mascot.addEventListener('click', onMascotClick);
 
@@ -1095,7 +1126,8 @@ function initMascot() {
       syncSurface();
     });
   };
-  syncSurface();
+  mascot.dataset.overInvert = 'false';
+  queueSurfaceSync();
   window.addEventListener('scroll', queueSurfaceSync, { passive: true });
   window.addEventListener('resize', queueSurfaceSync, { passive: true });
 
@@ -1147,7 +1179,7 @@ function initMascot() {
     };
     const onCtaEnter = () => {
       triggerHop();
-      if (Math.random() < 0.5) speak(mascotCompanion.ctaQuip);
+      if (Math.random() < 0.5) speak(ctaQuip);
     };
 
     window.addEventListener('pointermove', onPointerMove, { passive: true });

@@ -257,7 +257,11 @@ import Logo from './Logo.astro';
       display: inline-grid;
     }
     .brand {
+      gap: 0;
       min-width: 0;
+    }
+    :global(.brand__logo) {
+      display: none;
     }
     .primary-nav {
       position: fixed;
@@ -300,16 +304,6 @@ import Logo from './Logo.astro';
       padding: 0.85em 1em;
     }
   }
-
-  @media (max-width: 56rem) {
-    .brand {
-      gap: 0;
-    }
-    :global(.brand__logo) {
-      display: none;
-    }
-  }
-
   @media (max-width: 28rem) {
     .site-header__bar {
       min-height: 4rem;

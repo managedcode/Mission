@@ -2,19 +2,16 @@
 import { hero, motto } from '../data/site';
 import GitHubMark from './GitHubMark.astro';
 
-// Precompute the headline as a trusted HTML string. Each word is its own
-// reveal target with a staggered delay. (Avoids fragile nested-map JSX.)
-// Preserve the final amber phosphor state without animating non-composited text effects.
-let wordIndex = 0;
+// Precompute the headline as a trusted HTML string. Keep the H1 visible at
+// first paint: this text is the LCP candidate, so it must not wait for JS reveal.
 const lastLineIndex = hero.headlineLines.length - 1;
 const headlineHtml = hero.headlineLines
   .map((line, lineIndex) => {
     const isLast = lineIndex === lastLineIndex;
     const words = line
       .map((word) => {
-        const delay = wordIndex++ * 70;
         const innerCls = isLast ? 'hero__word-inner kinetic' : 'hero__word-inner';
-        return `<span class="hero__word" data-reveal style="--reveal-delay:${delay}ms"><span class="${innerCls}">${word}</span></span>`;
+        return `<span class="hero__word"><span class="${innerCls}">${word}</span></span>`;
       })
       .join(' ');
     return `<span class="hero__line">${words}</span>`;
@@ -155,7 +152,6 @@ const mottoHalf = Array.from({ length: 4 })
   }
   :global(.hero__word) {
     display: inline-block;
-    overflow: hidden;
     vertical-align: bottom;
   }
   :global(.hero__word:not(:last-child)) {
@@ -176,15 +172,6 @@ const mottoHalf = Array.from({ length: 4 })
     text-shadow:
       0 0 18px color-mix(in srgb, var(--amber) 55%, transparent),
       0 0 4px color-mix(in srgb, var(--amber) 35%, transparent);
-  }
-  /* let the amber phosphor bleed past the reveal-mask once the slide is done */
-  :global(:root.js .hero__line:last-child .hero__word[data-reveal].is-visible) {
-    overflow: visible;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    :global(.hero__line:last-child .hero__word) {
-      overflow: visible;
-    }
   }
   @media (prefers-reduced-motion: reduce) {
     :global(.hero__line:last-child .hero__word-inner) {

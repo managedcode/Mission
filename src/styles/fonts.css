@@ -3,7 +3,7 @@
 @font-face {
   font-family: 'Space Grotesk Variable';
   font-style: normal;
-  font-display: swap;
+  font-display: fallback;
   font-weight: 300 700;
   src: url('@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2')
     format('woff2-variations');
@@ -15,7 +15,7 @@
 @font-face {
   font-family: 'Newsreader Variable';
   font-style: normal;
-  font-display: swap;
+  font-display: fallback;
   font-weight: 200 800;
   src: url('@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2')
     format('woff2-variations');
@@ -27,7 +27,7 @@
 @font-face {
   font-family: 'JetBrains Mono Variable';
   font-style: normal;
-  font-display: swap;
+  font-display: fallback;
   font-weight: 100 800;
   src: url('@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2')
     format('woff2-variations');
@@ -39,7 +39,7 @@
 @font-face {
   font-family: 'Press Start 2P';
   font-style: normal;
-  font-display: swap;
+  font-display: fallback;
   font-weight: 400;
   src: url('@fontsource/press-start-2p/files/press-start-2p-latin-400-normal.woff2') format('woff2');
   unicode-range:

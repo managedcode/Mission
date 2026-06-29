@@ -4,6 +4,8 @@ import '../styles/global.css';
 import { motto, site, seo } from '../data/site';
 import Mascot from '../components/Mascot.astro';
 import pkg from '../../package.json';
+import pressStartFontUrl from '@fontsource/press-start-2p/files/press-start-2p-latin-400-normal.woff2?url';
+import spaceGroteskFontUrl from '@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2?url';
 
 export interface Props {
   title?: string;
@@ -78,6 +80,7 @@ const analyticsBootstrap = `
 
   const googleTagId = ${JSON.stringify(googleTagId)};
   const clarityProjectId = ${JSON.stringify(clarityProjectId)};
+  let loaded = false;
 
   window.dataLayer = window.dataLayer || [];
   window.gtag =
@@ -85,27 +88,56 @@ const analyticsBootstrap = `
     function gtag() {
       window.dataLayer.push(arguments);
     };
+  window.clarity =
+    window.clarity ||
+    function clarity() {
+      (window.clarity.q = window.clarity.q || []).push(arguments);
+    };
 
-  const googleTag = document.createElement('script');
-  googleTag.async = true;
-  googleTag.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(googleTagId);
-  document.head.appendChild(googleTag);
+  const events = ['pointerdown', 'keydown', 'touchstart', 'scroll'];
+  const cleanup = () => {
+    events.forEach((eventName) => window.removeEventListener(eventName, loadAnalytics, true));
+  };
+  const loadAnalytics = () => {
+    if (loaded) return;
+    loaded = true;
+    cleanup();
 
-  window.gtag('js', new Date());
-  window.gtag('config', googleTagId);
+    const googleTag = document.createElement('script');
+    googleTag.async = true;
+    googleTag.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(googleTagId);
+    document.head.appendChild(googleTag);
 
-  (function(c, l, a, r, i, t, y) {
-    c[a] =
-      c[a] ||
-      function clarity() {
-        (c[a].q = c[a].q || []).push(arguments);
-      };
-    t = l.createElement(r);
-    t.async = 1;
-    t.src = 'https://www.clarity.ms/tag/' + i;
-    y = l.getElementsByTagName(r)[0];
-    y.parentNode.insertBefore(t, y);
-  })(window, document, 'clarity', 'script', clarityProjectId);
+    window.gtag('js', new Date());
+    window.gtag('config', googleTagId);
+
+    const clarityScript = document.createElement('script');
+    clarityScript.async = true;
+    clarityScript.src = 'https://www.clarity.ms/tag/' + clarityProjectId;
+    document.head.appendChild(clarityScript);
+  };
+  const scheduleIdleFallback = () => {
+    window.setTimeout(() => {
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(loadAnalytics, { timeout: 2500 });
+      } else {
+        window.setTimeout(loadAnalytics, 0);
+      }
+    }, 12000);
+  };
+
+  events.forEach((eventName) =>
+    window.addEventListener(eventName, loadAnalytics, {
+      once: true,
+      passive: true,
+      capture: true,
+    })
+  );
+  if (document.readyState === 'complete') {
+    scheduleIdleFallback();
+  } else {
+    window.addEventListener('load', scheduleIdleFallback, { once: true });
+  }
 })();
 `.trim();
 ---
@@ -165,6 +197,8 @@ const analyticsBootstrap = `
 
     <link rel="sitemap" href="/sitemap-index.xml" />
     <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt" />
+    <link rel="preload" href={spaceGroteskFontUrl} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={pressStartFontUrl} as="font" type="font/woff2" crossorigin />
 
     <!-- No-flash theme + first-load intro arm: runs before paint -->
     <script is:inline>
