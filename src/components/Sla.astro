@@ -154,8 +154,9 @@ import { sla } from '../data/site';
   .sla__colh--patron {
     width: 47.2%;
     color: var(--accent-deep);
-    background: color-mix(in srgb, var(--accent) 8%, var(--bg-raised));
+    background: color-mix(in srgb, var(--accent) 16%, var(--bg-raised));
     border-left: var(--border-px) solid var(--fg);
+    box-shadow: inset 0.34rem 0 0 var(--accent);
   }
 
   .sla__metric {
@@ -185,8 +186,14 @@ import { sla } from '../data/site';
   .sla__cell--patron {
     color: var(--fg);
     font-weight: 500;
-    background: color-mix(in srgb, var(--accent) 8%, var(--bg-raised));
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--accent) 18%, var(--bg-raised)) 0,
+      color-mix(in srgb, var(--accent) 11%, var(--bg-raised)) 12rem,
+      color-mix(in srgb, var(--accent) 7%, var(--bg-raised)) 100%
+    );
     border-left: var(--border-px) solid var(--fg);
+    box-shadow: inset 0.34rem 0 0 var(--accent);
   }
 
   .sla__table tbody tr:last-child .sla__metric,
@@ -226,8 +233,9 @@ import { sla } from '../data/site';
     margin-bottom: calc(-1 * clamp(0.95rem, 0.85rem + 0.6vw, 1.2rem));
     padding: var(--space-xs) clamp(0.95rem, 0.85rem + 0.6vw, 1.2rem)
       clamp(0.95rem, 0.85rem + 0.6vw, 1.2rem);
-    background: color-mix(in srgb, var(--accent) 8%, var(--bg-raised));
+    background: color-mix(in srgb, var(--accent) 14%, var(--bg-raised));
     border-top: var(--border-px) solid var(--fg);
+    box-shadow: inset 0.34rem 0 0 var(--accent);
   }
   .sla__label {
     display: flex;

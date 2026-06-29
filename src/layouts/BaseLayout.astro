@@ -133,8 +133,7 @@ const analyticsBootstrap = `
     <meta name="keywords" content={seo.keywords.join(', ')} />
     <meta name="author" content={site.org} />
     <meta name="generator" content={Astro.generator} />
-    <meta name="theme-color" content="#f1ece0" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#131109" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f1ece0" />
     <meta name="color-scheme" content="light dark" />
 
     <!-- Open Graph -->
@@ -171,17 +170,25 @@ const analyticsBootstrap = `
     <script is:inline>
       (() => {
         const root = document.documentElement;
+        const themeColors = { light: '#f1ece0', dark: '#131109' };
+        const syncThemeColor = (theme) => {
+          document
+            .querySelector('meta[name="theme-color"]')
+            ?.setAttribute('content', themeColors[theme] || themeColors.light);
+        };
         // Mark JS as available so scroll-reveal styles only hide content when
         // they can actually reveal it again. No-JS / crawlers see everything.
         root.classList.add('js');
+        let stored = null;
         try {
-          const stored = localStorage.getItem('mission-theme');
-          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          const theme = stored ?? (prefersDark ? 'dark' : 'light');
-          root.setAttribute('data-theme', theme);
+          stored = localStorage.getItem('mission-theme');
         } catch {
           /* ignore */
         }
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = stored ?? (prefersDark ? 'dark' : 'light');
+        root.setAttribute('data-theme', theme);
+        syncThemeColor(theme);
 
         let introSeen = false;
         try {

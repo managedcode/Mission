@@ -159,7 +159,7 @@ const cells = pixels
     position: absolute;
     left: 0;
     bottom: calc(100% + 8px);
-    transform: translateY(4px);
+    transform: translate(var(--mascot-say-x, 0px), 4px);
     white-space: nowrap;
     font-size: 0.46rem;
     line-height: 1.5;
@@ -178,7 +178,7 @@ const cells = pixels
   }
   :global(.mascot__say[data-show='true']) {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate(var(--mascot-say-x, 0px), 0);
   }
   :global(.mascot__say)::after {
     content: '';

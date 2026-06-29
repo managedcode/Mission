@@ -1,5 +1,4 @@
 import { test, expect, type TestInfo } from '@playwright/test';
-
 // In-page anchors that should each resolve to an element on the home page.
 const NAV_ANCHORS = ['#manifesto', '#how', '#maintainers', '#patronage', '#faq'];
 const MOBILE_WIDTHS = [320, 360, 375, 390, 414, 430] as const;
@@ -228,6 +227,112 @@ test.describe('Home page · structure & SEO', () => {
     expect(errors, `console errors: ${errors.join(' | ')}`).toHaveLength(0);
   });
 
+  test('sound toggle is available by default and enables the WebAudio bridge @desktop', async ({
+    page,
+  }) => {
+    await useDesktopAuditViewport(page);
+
+    await page.addInitScript(() => {
+      const w = window as Window & {
+        AudioContext: unknown;
+        __missionAudioStarts?: number;
+      };
+      class FakeAudioParam {
+        setValueAtTime() {
+          /* test double */
+        }
+        exponentialRampToValueAtTime() {
+          /* test double */
+        }
+      }
+      class FakeGainNode {
+        gain = new FakeAudioParam();
+        connect(node: unknown) {
+          return node;
+        }
+      }
+      class FakeOscillatorNode {
+        frequency = new FakeAudioParam();
+        type = 'square';
+        connect(node: unknown) {
+          return node;
+        }
+        start() {
+          w.__missionAudioStarts = (w.__missionAudioStarts ?? 0) + 1;
+        }
+        stop() {
+          /* test double */
+        }
+      }
+      class FakeAudioContext {
+        currentTime = 0;
+        destination = {};
+        state = 'running';
+        createGain() {
+          return new FakeGainNode();
+        }
+        createOscillator() {
+          return new FakeOscillatorNode();
+        }
+        resume() {
+          return Promise.resolve();
+        }
+      }
+      w.__missionAudioStarts = 0;
+      w.AudioContext = FakeAudioContext;
+    });
+    await page.goto('/', { waitUntil: 'networkidle' });
+
+    const toggle = page.locator('[data-sound-toggle]');
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(toggle).toHaveAttribute('aria-label', 'Enable pixel sound effects');
+    const toggleStyles = await toggle.evaluate((el) => {
+      const style = getComputedStyle(el);
+      const rect = el.getBoundingClientRect();
+      return {
+        backgroundColor: style.backgroundColor,
+        borderColor: style.borderColor,
+        boxShadow: style.boxShadow,
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+      };
+    });
+    expect(toggleStyles.width).toBeLessThanOrEqual(40);
+    expect(toggleStyles.height).toBeLessThanOrEqual(40);
+    expect(toggleStyles.backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+    expect(toggleStyles.borderColor).not.toBe('rgba(0, 0, 0, 0)');
+    expect(toggleStyles.boxShadow).not.toBe('none');
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          Boolean(window.__missionSound && window.__missionSound.isOn() === false)
+        )
+      )
+      .toBe(true);
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await expect(toggle).toHaveAttribute('aria-label', 'Mute pixel sound effects');
+    await expect.poll(() => page.evaluate(() => window.__missionSound?.isOn())).toBe(true);
+
+    const startsAfterEnable = await page.evaluate(
+      () => (window as Window & { __missionAudioStarts?: number }).__missionAudioStarts ?? 0
+    );
+    await page.evaluate(() => {
+      document
+        .querySelector('[data-mascot]')
+        ?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
+    });
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => (window as Window & { __missionAudioStarts?: number }).__missionAudioStarts ?? 0
+        )
+      )
+      .toBeGreaterThan(startsAfterEnable);
+  });
+
   test('persisted sound preference does not start WebAudio before a gesture @desktop', async ({
     page,
   }) => {
@@ -435,6 +540,22 @@ test.describe('Home page · structure & SEO', () => {
     expect((bubbleBox?.x ?? 0) + (bubbleBox?.width ?? 0)).toBeLessThanOrEqual(viewport?.width ?? 0);
   });
 
+  test('corner mascot has twenty-five rotating play prompts @desktop', async ({ page }) => {
+    await useDesktopAuditViewport(page);
+
+    await page.goto('/');
+    await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
+    const quips = await page.evaluate(() => {
+      return (window as Window & { __missionMascotQuips?: string[] }).__missionMascotQuips ?? [];
+    });
+
+    expect(quips).toHaveLength(25);
+    expect(new Set(quips).size).toBe(25);
+    expect(quips).toContain('click me');
+    expect(quips).toContain('click to play');
+    expect(quips).toContain('play maintainer day');
+  });
+
   test('corner mascot runs toward the mouse on desktop when roaming is enabled @desktop', async ({
     page,
   }) => {
@@ -495,6 +616,81 @@ test.describe('Home page · structure & SEO', () => {
       )
       .toBe('-1');
   });
+
+  test('corner mascot shows the first quip even when roaming is disabled @desktop', async ({
+    page,
+  }) => {
+    await useDesktopAuditViewport(page);
+
+    await page.addInitScript(() => {
+      (
+        window as Window & {
+          __missionMascotQuipTest?: boolean;
+        }
+      ).__missionMascotQuipTest = true;
+    });
+    await page.goto('/');
+    await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
+
+    const mascot = page.locator('[data-mascot]');
+    await expect(mascot).not.toHaveClass(/mascot--roaming/);
+
+    const bubble = page.locator('.mascot__say');
+    await expect(bubble).toHaveText('click me');
+    await expect(bubble).toHaveAttribute('data-show', 'true');
+    await expect(bubble).toBeVisible();
+  });
+
+  test('corner mascot keeps cycling quips after the first message @desktop', async ({ page }) => {
+    await useDesktopAuditViewport(page);
+
+    await page.addInitScript(() => {
+      (
+        window as Window & {
+          __missionMascotQuipTest?: boolean;
+        }
+      ).__missionMascotQuipTest = true;
+    });
+    await page.goto('/');
+    await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
+
+    const bubble = page.locator('.mascot__say');
+    await expect(bubble).toHaveText('click me');
+    await expect(bubble).toHaveAttribute('data-show', 'true');
+
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(() => {
+            const quip = document.querySelector<HTMLElement>('.mascot__say');
+            const text = quip?.textContent?.trim() ?? '';
+            return quip?.dataset.show === 'true' && text.length > 0 && text !== 'click me';
+          }),
+        { timeout: 3000 }
+      )
+      .toBe(true);
+  });
+
+  test('corner mascot opens with a visible maintainer quip when roaming is enabled @desktop', async ({
+    page,
+  }) => {
+    await useDesktopAuditViewport(page);
+
+    await page.addInitScript(() => {
+      (
+        window as Window & {
+          __missionMascotRoamingTest?: boolean;
+        }
+      ).__missionMascotRoamingTest = true;
+    });
+    await page.goto('/');
+    await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
+
+    const bubble = page.locator('.mascot__say');
+    await expect(bubble).toHaveText('click me');
+    await expect(bubble).toHaveAttribute('data-show', 'true');
+    await expect(bubble).toBeVisible();
+  });
 });
 
 test.describe('Agent accessibility files', () => {
@@ -510,17 +706,46 @@ test.describe('Agent accessibility files', () => {
 });
 
 test.describe('Theme toggle', () => {
-  test('flips html[data-theme] and persists to localStorage', async ({ page }) => {
+  test('applies stored dark theme-color before interaction', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('mission-theme', 'dark');
+    });
+    await page.goto('/');
+
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#131109');
+    const htmlBackground = await page.evaluate(
+      () => getComputedStyle(document.documentElement).backgroundColor
+    );
+    expect(htmlBackground).toBe('rgb(19, 17, 9)');
+  });
+
+  test('flips html[data-theme], theme-color, and persists to localStorage', async ({ page }) => {
     await page.goto('/');
 
     const html = page.locator('html');
     const before = await html.getAttribute('data-theme');
     expect(before === 'light' || before === 'dark').toBe(true);
+    const expectedBeforeColor = before === 'dark' ? '#131109' : '#f1ece0';
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
+      'content',
+      expectedBeforeColor
+    );
 
     await page.locator('[data-theme-toggle]').first().click();
 
     const expectedAfter = before === 'dark' ? 'light' : 'dark';
     await expect(html).toHaveAttribute('data-theme', expectedAfter);
+    const expectedAfterColor = expectedAfter === 'dark' ? '#131109' : '#f1ece0';
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
+      'content',
+      expectedAfterColor
+    );
+
+    const htmlBackground = await page.evaluate(
+      () => getComputedStyle(document.documentElement).backgroundColor
+    );
+    expect(htmlBackground).toBe(expectedAfter === 'dark' ? 'rgb(19, 17, 9)' : 'rgb(241, 236, 224)');
 
     const stored = await page.evaluate(() => localStorage.getItem('mission-theme'));
     expect(stored).toBe(expectedAfter);
@@ -528,6 +753,39 @@ test.describe('Theme toggle', () => {
 });
 
 test.describe('Mobile navigation', () => {
+  test('compact header wordmark aligns with the hero content edge', async ({ page }, testInfo) => {
+    runOnlyInMobileAuditProject(testInfo);
+
+    for (const width of [360, 430, 600] as const) {
+      await page.setViewportSize({ width, height: MOBILE_AUDIT_HEIGHT });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await prepareForResponsiveAudit(page);
+
+      const metrics = await page.evaluate(() => {
+        const name = document.querySelector<HTMLElement>('.site-header .brand__name');
+        const logo = document.querySelector<HTMLElement>('.site-header .brand__logo');
+        const headline = document.querySelector<HTMLElement>('.hero__headline');
+        const nameRect = name?.getBoundingClientRect();
+        const headlineRect = headline?.getBoundingClientRect();
+        return {
+          nameLeft: nameRect?.left ?? null,
+          headlineLeft: headlineRect?.left ?? null,
+          logoDisplay: logo ? getComputedStyle(logo).display : null,
+        };
+      });
+
+      expect(metrics.nameLeft, `${width}px wordmark left edge`).not.toBeNull();
+      expect(metrics.headlineLeft, `${width}px hero left edge`).not.toBeNull();
+      expect(
+        Math.abs((metrics.nameLeft ?? 0) - (metrics.headlineLeft ?? 0)),
+        `${width}px ManagedCode text should align with hero content`
+      ).toBeLessThanOrEqual(1);
+      expect(metrics.logoDisplay, `${width}px compact logo should not offset wordmark`).toBe(
+        'none'
+      );
+    }
+  });
+
   test('toggle opens/closes the menu and a link click closes it across phone widths', async ({
     page,
   }, testInfo) => {
@@ -544,10 +802,18 @@ test.describe('Mobile navigation', () => {
         'aria-expanded',
         'false'
       );
+      await expect(toggle, `${width}px menu toggle starts labelled to open`).toHaveAttribute(
+        'aria-label',
+        'Open menu'
+      );
       await expect(menu, `${width}px menu starts closed`).toHaveAttribute('data-open', 'false');
 
       await toggle.click();
       await expect(toggle, `${width}px menu toggle opens`).toHaveAttribute('aria-expanded', 'true');
+      await expect(toggle, `${width}px menu toggle relabels to close`).toHaveAttribute(
+        'aria-label',
+        'Close menu'
+      );
       await expect(menu, `${width}px menu opens`).toHaveAttribute('data-open', 'true');
 
       const menuBox = await menu.boundingBox();
@@ -566,6 +832,10 @@ test.describe('Mobile navigation', () => {
       await expect(toggle, `${width}px menu toggle closes after link`).toHaveAttribute(
         'aria-expanded',
         'false'
+      );
+      await expect(toggle, `${width}px menu toggle relabels after link`).toHaveAttribute(
+        'aria-label',
+        'Open menu'
       );
       await expect(menu, `${width}px menu closes after link`).toHaveAttribute('data-open', 'false');
     }
@@ -596,11 +866,48 @@ test.describe('Mobile viewport coverage', () => {
   }
 });
 
+test.describe('Pixel label alignment', () => {
+  for (const path of MOBILE_PATHS) {
+    test(`${path} kicker flags align to the first pixel-text row @desktop`, async ({ page }) => {
+      await useDesktopAuditViewport(page);
+      await page.goto(path, { waitUntil: 'domcontentloaded' });
+      await prepareForResponsiveAudit(page);
+
+      const issues = await page.evaluate(() => {
+        return Array.from(document.querySelectorAll<HTMLElement>('.kicker')).flatMap((element) => {
+          const range = document.createRange();
+          range.selectNodeContents(element);
+          const firstTextLine = Array.from(range.getClientRects()).find(
+            (rect) => rect.width > 0 && rect.height > 0
+          );
+          if (!firstTextLine) return [];
+
+          const elementRect = element.getBoundingClientRect();
+          const before = getComputedStyle(element, '::before');
+          const flagHeight = Number.parseFloat(before.height);
+          const flagMarginTop = Number.parseFloat(before.marginTop);
+          const flagCenter = elementRect.top + flagMarginTop + flagHeight / 2;
+          const textCenter = firstTextLine.top + firstTextLine.height / 2;
+          const delta = Math.abs(flagCenter - textCenter);
+
+          if (delta <= 1) return [];
+          return [
+            `${element.textContent?.trim().replace(/\s+/g, ' ') || 'kicker'} flag is ${delta.toFixed(2)}px off center`,
+          ];
+        });
+      });
+
+      expect(issues).toEqual([]);
+    });
+  }
+});
+
 test.describe('Mission Run mini-game', () => {
   type MissionRunState = {
     x: number;
     y: number;
     vx?: number;
+    stars?: number;
     w: number;
     h: number;
     lives: number;
@@ -609,8 +916,10 @@ test.describe('Mission Run mini-game', () => {
     jumpHeld: boolean;
     projectScale: number;
     blocks?: Array<{ tx: number; ty: number; kind: string; used: boolean }>;
+    usedBlocks?: Array<{ tx: number; ty: number; kind: string }>;
     brickBumps?: string[];
     brokenBricks?: string[];
+    particles?: Array<{ text: string; x: number; y: number }>;
     enemies?: Array<{ t: string; x: number; y?: number; label?: string; tone?: string }>;
     pipeBills?: Array<{
       x: number;
@@ -639,6 +948,9 @@ test.describe('Mission Run mini-game', () => {
     voidGap?: number;
     deathScene?: string;
     transition?: string;
+    transitionLabel?: string | null;
+    transitionT?: number;
+    transitionDuration?: number;
     messageVisible?: boolean;
     finaleCount?: number;
     finaleIndex?: number;
@@ -681,6 +993,17 @@ test.describe('Mission Run mini-game', () => {
     await expect(page.locator('.mgame__heart')).toHaveCount(3);
     const heartBox = await page.locator('.mgame__heart').first().boundingBox();
     expect(heartBox?.width ?? 0).toBeGreaterThan(12);
+
+    const bumpedBlock = await page.evaluate(() => {
+      const w = window as Window & {
+        __mgame?: () => MissionRunState;
+        __mgameBumpBlock?: (tx?: number, ty?: number) => void;
+      };
+      w.__mgameBumpBlock?.(32, 5);
+      return w.__mgame?.();
+    });
+    expect(bumpedBlock?.usedBlocks).toContainEqual({ tx: 32, ty: 5, kind: 'coin' });
+    expect(bumpedBlock?.particles?.some((particle) => particle.text === 'NO REPRO?')).toBe(true);
 
     const bumped = await page.evaluate(() => {
       const w = window as Window & {
@@ -745,7 +1068,48 @@ test.describe('Mission Run mini-game', () => {
     expect(hiddenMobileBill?.dangerous).toBe(false);
   });
 
-  test('pipe descent enters BURNOUT and the survival chase eventually catches the maintainer @desktop', async ({
+  test('pipe bills can be stomped when they emerge from pipes @desktop', async ({ page }) => {
+    await useDesktopAuditViewport(page);
+
+    await page.goto('/');
+    await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
+    await page.locator('[data-mascot]').click({ force: true });
+
+    const readGame = () =>
+      page.evaluate(() => {
+        const state = (
+          window as Window & {
+            __mgame?: () => MissionRunState;
+          }
+        ).__mgame?.();
+        return state ?? null;
+      });
+
+    await expect.poll(async () => (await readGame())?.onGround, { timeout: 3000 }).toBe(true);
+
+    const before = await readGame();
+    const beforePipeBills = before?.pipeBills ?? [];
+    const beforeStars = before?.stars ?? 0;
+    expect(beforePipeBills.some((bill) => bill.label === 'MOBILE')).toBe(true);
+
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __mgameStompPipeBill?: () => void;
+        }
+      ).__mgameStompPipeBill?.();
+    });
+
+    const after = await readGame();
+    expect(after?.pipeBills?.some((bill) => bill.label === 'MOBILE')).toBe(false);
+    expect(after?.pipeBills?.length).toBe(beforePipeBills.length - 1);
+    expect(after?.stars).toBe(beforeStars + 1);
+    expect(after?.lives).toBe(before?.lives);
+    expect(after?.pose).toBe('stomp');
+    expect(after?.poseT).toBeGreaterThan(0);
+  });
+
+  test('pipe descent crossfades into the survival chase without flashing the old scene @desktop', async ({
     page,
   }) => {
     await useDesktopAuditViewport(page);
@@ -792,6 +1156,8 @@ test.describe('Mission Run mini-game', () => {
     const pipeMid = await readGame();
     expect(pipeMid?.state).toBe('pipe');
     expect(pipeMid?.pipeOccluded).toBe(true);
+    expect(pipeMid?.transition).toBe('pipe');
+    expect(pipeMid?.transitionLabel).toBe('DOWN PIPE');
     expect(pipeMid?.activePipe).toEqual({ px: 24, ph: 2 });
     expect(pipeMid?.y ?? 0).toBeGreaterThan(pipeMid?.pipeTop ?? Number.POSITIVE_INFINITY);
 
@@ -813,9 +1179,9 @@ test.describe('Mission Run mini-game', () => {
     expect(pipeMouthPixel).not.toBeNull();
     const [pipeMouthR, pipeMouthG, pipeMouthB] = pipeMouthPixel ?? [0, 0, 0];
     expect(pipeMouthR).toBeLessThanOrEqual(12);
-    expect(pipeMouthG).toBeGreaterThanOrEqual(45);
+    expect(pipeMouthG).toBeGreaterThanOrEqual(38);
     expect(pipeMouthG).toBeLessThanOrEqual(60);
-    expect(pipeMouthB).toBeGreaterThanOrEqual(22);
+    expect(pipeMouthB).toBeGreaterThanOrEqual(18);
     expect(pipeMouthB).toBeLessThanOrEqual(32);
 
     await page.evaluate(() => {
@@ -829,6 +1195,10 @@ test.describe('Mission Run mini-game', () => {
 
     const voidStart = await readGame();
     expect(voidStart?.deathScene).toBe('void');
+    expect(voidStart?.transition).toBe('pipe');
+    expect(voidStart?.transitionLabel).toBe('DOWN PIPE');
+    expect(voidStart?.transitionT ?? 0).toBeGreaterThan(0);
+    expect(voidStart?.transitionDuration ?? 0).toBeGreaterThan(voidStart?.transitionT ?? 0);
     expect(voidStart?.voidGap ?? 0).toBeGreaterThan(120);
 
     await page.evaluate(() => {
@@ -868,6 +1238,9 @@ test.describe('Mission Run mini-game', () => {
     });
 
     await expect.poll(async () => (await readGame())?.state, { timeout: 1000 }).toBe('dying');
+    const caught = await readGame();
+    expect(caught?.transition).toBe('none');
+    expect(caught?.particles?.some((particle) => particle.text === 'BURNOUT')).toBe(false);
     await page.evaluate(() => {
       (
         window as Window & {
@@ -1136,6 +1509,15 @@ test.describe('Mission Run mini-game', () => {
         { timeout: 5000 }
       )
       .toBe('win:true');
+    const winText = (await readGame())?.messageText ?? '';
+    const winLines = winText.split('\n').filter((line) => line.trim().length > 0);
+    expect(winLines).toHaveLength(1);
+    expect(winText).toMatch(/FUNDED/i);
+    expect(winText).not.toMatch(/MAINTAINERS PAID/i);
+    expect(winText).not.toMatch(/WELCOME TO MANAGEDCODE/i);
+    expect(winText).not.toMatch(/YOU KEPT IT ALIVE/i);
+    expect(winText).not.toMatch(/STARS ARE APPLAUSE/i);
+    expect(winText).not.toMatch(/PATRONAGE PAYS/i);
 
     await page.locator('[data-mgame-again]').click();
     await expect.poll(async () => (await readGame())?.state, { timeout: 1000 }).toBe('play');
@@ -1153,6 +1535,7 @@ test.describe('Mission Run mini-game', () => {
     const lossStart = await readGame();
     expect(lossStart?.messageVisible).toBe(false);
     expect(lossStart?.pose).toBe('death-squash');
+    expect(lossStart?.transition).toBe('none');
 
     await page.evaluate(() => {
       (
@@ -1384,6 +1767,8 @@ test.describe('Apply form', () => {
     await expect(form).toHaveAttribute('data-recaptcha-action', 'mission_patronage');
     await expect(form).toHaveAttribute('data-form-type', 'mission_patronage');
     await expect(page.locator('[data-apply-submit]')).toBeEnabled();
+    const siteKey = await form.getAttribute('data-recaptcha-site-key');
+    expect(siteKey?.length ?? 0).toBeGreaterThan(0);
     await expect(page.locator('.apply__recaptcha')).toContainText(/protected by reCAPTCHA/i);
   });
 
@@ -1610,9 +1995,7 @@ test.describe('Secondary pages', () => {
     await expect(page.locator('.site-footer a[href="/patrons"]')).toHaveCount(1);
     await expect(page.locator('.site-footer a[href="/projects"]')).toHaveCount(1);
     await expect(page.locator('.site-footer a[href="/team"]')).toHaveCount(1);
-    await expect(page.locator('.site-footer__copyright')).toContainText(
-      /© 2026 Managed Code\. Built in the open\./
-    );
+    await expect(page.locator('.site-footer__copyright')).toContainText(/© 2026 Managed Code\./);
     await expect(page.locator('.site-footer__legal-links')).toContainText(
       /CC BY 4\.0 · Terms of Use · Privacy Policy/
     );

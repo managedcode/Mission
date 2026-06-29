@@ -7,7 +7,6 @@ You found humans.txt. Old-school. We like you already.
     Run by    Managed Code — open-source community for .NET
     Contact   opensource@managed-code.com
     Code      github.com/managedcode
-    Built     in the open, with ❤ and too much coffee
 
 /* WE'RE HIRING */
     Maintainers who love the boring, important work.
@@ -23,8 +22,7 @@ You found humans.txt. Old-school. We like you already.
 
 /* STACK */
     Astro 5 · TypeScript · self-hosted variable fonts
-    Press Start 2P for the pixels · no trackers · no cookies
-    Built in the open, tested pixel-by-pixel.
+    Press Start 2P for the pixels · production analytics only
 
 /* SITE */
     Standards   HTML5, CSS, ES modules

@@ -26,6 +26,8 @@ declare global {
     clarity?: (...args: unknown[]) => void;
     gtag?: (...args: unknown[]) => void;
     __missionMascotRoamingTest?: boolean;
+    __missionMascotQuipTest?: boolean;
+    __missionMascotQuips?: string[];
     __missionSound?: {
       play: (name: MissionSoundName) => void;
       isOn: () => boolean;
@@ -118,9 +120,15 @@ function initCounters() {
 /* ---------- Theme toggle ---------- */
 function initTheme() {
   const toggles = document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]');
+  const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  const themeColors = { light: '#f1ece0', dark: '#131109' } as const;
+  const syncThemeColor = (theme: string) => {
+    if (themeColor) themeColor.content = theme === 'dark' ? themeColors.dark : themeColors.light;
+  };
   const sync = () => {
     const current = document.documentElement.getAttribute('data-theme') ?? 'light';
     const isDark = current === 'dark';
+    syncThemeColor(current);
     toggles.forEach((b) => {
       b.setAttribute('aria-pressed', String(isDark));
       b.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
@@ -150,12 +158,14 @@ function initNav() {
   const firstLink = () => menu.querySelector<HTMLAnchorElement>('a');
   const close = (returnFocus = false) => {
     toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-label', 'Open menu');
     menu.dataset.open = 'false';
     document.body.style.removeProperty('overflow');
     if (returnFocus) toggle.focus();
   };
   const open = () => {
     toggle.setAttribute('aria-expanded', 'true');
+    toggle.setAttribute('aria-label', 'Close menu');
     menu.dataset.open = 'true';
     document.body.style.overflow = 'hidden';
     // wait a frame so the menu is visible before moving focus into it
@@ -709,9 +719,8 @@ function initSound() {
   } catch {
     /* ignore */
   }
-  if (!on) return;
 
-  // --- toggle button (injected; top-right, near theme controls) ---
+  // --- toggle button (injected; bottom-right, outside the header controls) ---
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'sound-toggle';
@@ -943,6 +952,9 @@ function initSound() {
   document.querySelectorAll<HTMLElement>('[data-theme-toggle]').forEach((el) => {
     el.addEventListener('click', () => blip(740, 0, 0.07, 0.045));
   });
+  document.querySelectorAll<HTMLElement>('[data-mascot]').forEach((el) => {
+    el.addEventListener('mouseenter', () => play('jump'));
+  });
 }
 
 /* ---------- Mascot — a little RPG-style maintainer ----------
@@ -965,12 +977,36 @@ function initMascot() {
     !reduceMotion &&
     window.matchMedia('(hover: hover) and (pointer: fine)').matches &&
     (!navigator.webdriver || window.__missionMascotRoamingTest === true);
-  const pick = (arr: readonly string[]) => arr[Math.floor(Math.random() * arr.length)] ?? '';
+  const canAutoSpeak =
+    !navigator.webdriver ||
+    window.__missionMascotRoamingTest === true ||
+    window.__missionMascotQuipTest === true;
+  const autoQuips = [mascotCompanion.firstQuip, ...mascotCompanion.idleQuips].filter(Boolean);
+  if (navigator.webdriver) window.__missionMascotQuips = autoQuips;
+  const speechHoldMs = window.__missionMascotQuipTest === true ? 1000 : 5600;
+  const firstQuipDelayMs = window.__missionMascotQuipTest === true ? 120 : 900;
+  const autoQuipDelayMs = window.__missionMascotQuipTest === true ? 760 : 4600;
 
   let bubble: HTMLElement | null = null;
   let bubbleT = 0;
+  let autoQuipT = 0;
+  let autoQuipIndex = 0;
+  const keepBubbleInViewport = () => {
+    if (!bubble) return;
+    const inset = 8;
+    bubble.style.setProperty('--mascot-say-x', '0px');
+    const rect = bubble.getBoundingClientRect();
+    let shift = 0;
+    if (rect.right > window.innerWidth - inset) {
+      shift = window.innerWidth - inset - rect.right;
+    }
+    if (rect.left + shift < inset) {
+      shift += inset - (rect.left + shift);
+    }
+    bubble.style.setProperty('--mascot-say-x', `${Math.round(shift)}px`);
+  };
   const speak = (text: string) => {
-    if (!canRoam || !text) return;
+    if (!text) return;
     if (!bubble) {
       bubble = document.createElement('span');
       bubble.className = 'mascot__say font-pixel';
@@ -978,10 +1014,26 @@ function initMascot() {
     }
     bubble.textContent = text;
     bubble.dataset.show = 'true';
+    window.requestAnimationFrame(keepBubbleInViewport);
     window.clearTimeout(bubbleT);
     bubbleT = window.setTimeout(() => {
       if (bubble) bubble.dataset.show = 'false';
-    }, 2600);
+    }, speechHoldMs);
+  };
+  const scheduleAutoQuip = (delay = autoQuipDelayMs) => {
+    window.clearTimeout(autoQuipT);
+    autoQuipT = window.setTimeout(() => {
+      if (
+        canAutoSpeak &&
+        autoQuips.length > 0 &&
+        !document.hidden &&
+        !document.documentElement.classList.contains('mgame-open')
+      ) {
+        speak(autoQuips[autoQuipIndex % autoQuips.length] ?? '');
+        autoQuipIndex++;
+      }
+      scheduleAutoQuip();
+    }, delay);
   };
 
   // --- click launches the MISSION RUN mini-game (with a little hop) ---
@@ -1048,13 +1100,13 @@ function initMascot() {
   window.addEventListener('resize', queueSurfaceSync, { passive: true });
 
   let animationFrame = 0;
-  let idleQuipInterval = 0;
   const cleanupCallbacks: Array<() => void> = [
     () => {
       if (surfaceFrame) window.cancelAnimationFrame(surfaceFrame);
       window.removeEventListener('scroll', queueSurfaceSync);
       window.removeEventListener('resize', queueSurfaceSync);
       window.clearTimeout(bubbleT);
+      window.clearTimeout(autoQuipT);
       bubble?.remove();
       mascot.classList.remove('mascot--roaming', 'is-walking');
       mascot.style.removeProperty('--mx');
@@ -1063,6 +1115,7 @@ function initMascot() {
       mascot.removeEventListener('click', onMascotClick);
     },
   ];
+  scheduleAutoQuip(firstQuipDelayMs);
 
   if (canRoam) {
     const mascotWidth = 52;
@@ -1073,14 +1126,14 @@ function initMascot() {
     const arrivalDeadzone = 1.8;
     const walkBobDeadzone = 7;
 
-    let x = Math.min(maxX(), 48);
+    let x = minX;
     let target = x;
     let face = 1;
     let walking = false;
     let pointerX = -1;
     let lastPointer = -1e9;
-    let nextWander = 0;
     let last = performance.now();
+    let nextWander = last + 2400;
 
     const onPointerMove = (e: PointerEvent) => {
       if (pointerX < 0 || Math.abs(e.clientX - pointerX) >= pointerRetargetDeadzone) {
@@ -1150,10 +1203,6 @@ function initMascot() {
     };
     animationFrame = window.requestAnimationFrame(loop);
 
-    idleQuipInterval = window.setInterval(() => {
-      if (!walking && Math.random() < 0.45) speak(pick(mascotCompanion.idleQuips));
-    }, 17000);
-
     cleanupCallbacks.push(() => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('resize', onResize);
@@ -1161,7 +1210,6 @@ function initMascot() {
         .querySelectorAll<HTMLElement>('.btn--accent')
         .forEach((button) => button.removeEventListener('mouseenter', onCtaEnter));
       if (animationFrame) window.cancelAnimationFrame(animationFrame);
-      window.clearInterval(idleQuipInterval);
     });
   }
 

@@ -1,10 +1,9 @@
 ---
-import { hero, motto, site } from '../data/site';
+import { hero, motto } from '../data/site';
 import GitHubMark from './GitHubMark.astro';
 
 // Precompute the headline as a trusted HTML string. Each word is its own
 // reveal target with a staggered delay. (Avoids fragile nested-map JSX.)
-// The final line is the PAIN ("nobody on call.") — its words carry the
 // Preserve the final amber phosphor state without animating non-composited text effects.
 let wordIndex = 0;
 const lastLineIndex = hero.headlineLines.length - 1;
@@ -20,7 +19,7 @@ const headlineHtml = hero.headlineLines
       .join(' ');
     return `<span class="hero__line">${words}</span>`;
   })
-  .join('');
+  .join(' ');
 
 // Precompute the terminal body as a trusted HTML string (newlines render as
 // line breaks inside <pre>). The last line carries a blinking caret.
@@ -77,7 +76,6 @@ const mottoHalf = Array.from({ length: 4 })
         <pre
           class="crest__status terminal__body font-mono"
           aria-hidden="true"><code set:html={terminalHtml} /></pre>
-        <p class="hero__madein font-mono">{site.madeIn}</p>
       </aside>
     </div>
   </div>
@@ -123,7 +121,7 @@ const mottoHalf = Array.from({ length: 4 })
     display: grid;
     grid-template-columns: minmax(0, var(--phi-major-fr)) minmax(0, var(--phi-minor-fr));
     gap: var(--phi-gap);
-    align-items: center;
+    align-items: start;
   }
 
   /* Type IS the hero — oversized display, full width, near-solid leading. */
@@ -299,15 +297,6 @@ const mottoHalf = Array.from({ length: 4 })
   :global(.crest__status .terminal__out) {
     color: var(--fg-faint);
   }
-  .hero__madein {
-    text-align: right;
-    margin-top: 0.7rem;
-    max-width: 18rem;
-    margin-inline: auto;
-    font-size: 0.72rem;
-    color: var(--fg-faint);
-  }
-
   /* Marquee strip */
   .hero__marquee {
     border-top: var(--border-px) solid var(--fg);
@@ -357,8 +346,7 @@ const mottoHalf = Array.from({ length: 4 })
       max-width: 22rem;
     }
     .crest,
-    .crest__status,
-    .hero__madein {
+    .crest__status {
       max-width: 16rem;
     }
     .hero__lede {

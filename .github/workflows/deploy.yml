@@ -59,6 +59,7 @@ jobs:
         run: npm run build
         env:
           NODE_ENV: production
+          PUBLIC_RECAPTCHA_SITE_KEY: ${{ vars.PUBLIC_RECAPTCHA_SITE_KEY }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5

@@ -196,6 +196,23 @@ import { problem } from '../data/site';
     opacity: 0.7;
   }
 
+  @media (min-width: 56.001rem) {
+    .problem__points {
+      column-gap: var(--phi-gap-sm);
+      row-gap: var(--space-xs);
+      grid-template-rows: repeat(5, auto);
+    }
+    .point {
+      display: grid;
+      grid-row: span 5;
+      grid-template-rows: subgrid;
+    }
+    .point__stat,
+    .point__src {
+      margin-top: 0;
+    }
+  }
+
   /* ---------- Responsive ---------- */
   @media (max-width: 56rem) {
     .problem__stats {

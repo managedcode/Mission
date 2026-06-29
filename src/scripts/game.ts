@@ -117,6 +117,8 @@ export function createMascotGame(): Game {
   const VOID_TEST_ADVANCE_FRAMES = 120 * 60;
   const TRANSITION_SHORT = 32;
   const TRANSITION_LONG = 56;
+  const PIPE_DESCENT_FRAMES = 62;
+  const PIPE_SCENE_TRANSITION_FRAMES = PIPE_DESCENT_FRAMES * 2;
 
   const sound = (name: string) => {
     (window as Window & { __missionSound?: MissionSoundBridge }).__missionSound?.play?.(name);
@@ -386,6 +388,7 @@ export function createMascotGame(): Game {
   let enemies: Enemy[] = [];
   type Particle = { x: number; y: number; vy: number; life: number; text: string; color: string };
   let particles: Particle[] = [];
+  let blockPunchlineIndex = 0;
   const brickBumps = new Map<string, number>();
   const brokenBricks = new Set<string>();
   type BrickBit = { x: number; y: number; vx: number; vy: number; life: number; color: string };
@@ -423,6 +426,7 @@ export function createMascotGame(): Game {
   };
   const pipeBillVisible = (e: Enemy) =>
     e.type !== 'piranha' || (!pipeBillBlockedByPlayer(e) && pipeBillEmergence(e) > 0.25);
+  const pipeBillHittable = (e: Enemy) => e.type !== 'piranha' || pipeBillVisible(e);
   const pipeBillDangerous = (e: Enemy) =>
     e.type !== 'piranha' || (!pipeBillBlockedByPlayer(e) && pipeBillEmergence(e) > 0.55);
   let lastGameOverFinaleIndex = -1;
@@ -640,6 +644,7 @@ export function createMascotGame(): Game {
     flowers = [];
     spawnEnemies();
     particles = [];
+    blockPunchlineIndex = 0;
     brickBumps.clear();
     brokenBricks.clear();
     brickBits = [];
@@ -710,6 +715,14 @@ export function createMascotGame(): Game {
   function addParticle(x: number, y: number, text: string, color: string) {
     particles.push({ x, y, vy: -0.55, life: 52, text, color });
   }
+  function popBlockPunchline(tx: number, ty: number) {
+    const punchlines: readonly string[] = miniGame.blockPunchlines;
+    const label = punchlines[blockPunchlineIndex % punchlines.length];
+    blockPunchlineIndex++;
+    const w = label.length * 4 - 1;
+    const x = Math.max(camX + 6, Math.min(tx * TILE + 8 - w / 2, camX + VIEW_W - w - 6));
+    addParticle(x, ty * TILE - 13, label, C.starHi);
+  }
   function popGithubStars(tx: number, ty: number) {
     const x = tx * TILE + 3;
     const y = ty * TILE - 8;
@@ -760,6 +773,7 @@ export function createMascotGame(): Game {
     if (q.kind === 'coin') {
       stars += 3;
       popGithubStars(q.tx, q.ty);
+      popBlockPunchline(q.tx, q.ty);
       sound('star');
     } else if (q.kind === 'power') {
       popPowerFlower(q.tx, q.ty);
@@ -858,7 +872,9 @@ export function createMascotGame(): Game {
     // celebrate stays true → the fireworks keep bursting behind the win card.
     const finale = miniGame.winFinale;
     showMsg(
-      `${finale.title}   [star] ${stars}\n${finale.lead}\n${finale.detail}\n${finale.stars}`,
+      [`${finale.title}   [star] ${stars}`, finale.lead, finale.detail, finale.stars]
+        .filter(Boolean)
+        .join('\n'),
       true
     );
   }
@@ -877,7 +893,7 @@ export function createMascotGame(): Game {
     player.onGround = false;
     if (player.y > VIEW_H) player.y = (deathScene === 'void' ? VOID_GROUND : GROUND_TOP) - player.h;
     setPlayerPose('none', 0);
-    startTransition('death', 'BURNOUT', TRANSITION_LONG);
+    transition = null;
     sound('death');
     addParticle(player.x - 4, player.y - 10, 'OOF', C.rent);
     hideMsg();
@@ -922,7 +938,7 @@ export function createMascotGame(): Game {
     player.y = pipe.top - player.h;
     clearInput();
     setPlaying(false);
-    startTransition('pipe', 'DOWN PIPE', TRANSITION_LONG);
+    startTransition('pipe', 'DOWN PIPE', PIPE_SCENE_TRANSITION_FRAMES);
     sound('pipe');
   }
   function updatePipeDescent() {
@@ -931,7 +947,7 @@ export function createMascotGame(): Game {
     player.vy = 0;
     player.y += pipeT < 34 ? 1.45 : 0.65;
     player.step += 0.08;
-    if (pipeT >= 62) startVoidChase();
+    if (pipeT >= PIPE_DESCENT_FRAMES) startVoidChase();
   }
   function startVoidChase() {
     state = 'void';
@@ -955,7 +971,7 @@ export function createMascotGame(): Game {
     particles = [];
     clearInput();
     setPlaying(true);
-    startTransition('void', miniGame.voidTitle, TRANSITION_LONG);
+    if (transition?.kind !== 'pipe') transition = null;
     sound('void');
   }
   function updateVoidChase() {
@@ -1006,7 +1022,6 @@ export function createMascotGame(): Game {
       addParticle(player.x + 42, VOID_GROUND - 74, 'FEATURE?', C.subs);
     }
     if (voidGap() <= VOID_DRAGON_HIT_GAP) {
-      addParticle(player.x - 18, player.y - 16, 'BURNOUT', C.rent);
       gameOver();
     }
   }
@@ -1135,12 +1150,19 @@ export function createMascotGame(): Game {
       return;
     }
     if (e.type === 'piranha') {
-      if (!pipeBillDangerous(e)) return;
-      if (player.power > 0) {
+      if (stomp && pipeBillVisible(e)) {
+        e.dead = 1;
+        stars++;
+        player.vy = JUMP * 0.55;
+        setPlayerPose('stomp', 14);
+        sound('stomp');
+        addParticle(e.x - 2, e.y - 10, 'BONK', C.starHi);
+        updateHud();
+      } else if (player.power > 0) {
         e.dead = 1;
         stars++;
         updateHud();
-      } else hurt();
+      } else if (pipeBillDangerous(e)) hurt();
       return;
     }
     if (stomp) {
@@ -1301,7 +1323,7 @@ export function createMascotGame(): Game {
     for (const e of enemies)
       if (
         !e.dead &&
-        pipeBillDangerous(e) &&
+        pipeBillHittable(e) &&
         ov(player.x, player.y, player.w, player.h, e.x, e.y, e.w, e.h)
       )
         hitEnemy(e);
@@ -1761,7 +1783,7 @@ export function createMascotGame(): Game {
     }
     block(x + 8, y + 28, 5, 7, C.shellD);
     block(x + 24 + step, y + 28, 5, 7, C.shellD);
-    const label = 'BURNOUT';
+    const label = miniGame.voidTitle;
     const labelScale = 1;
     const labelW = label.length * 4 * labelScale - labelScale;
     const labelLeft = Math.round(x + 23 - labelW / 2) - 3;
@@ -2362,6 +2384,9 @@ export function createMascotGame(): Game {
       finaleCount: miniGame.gameOverFinales.length,
       messageText: msgTextEl?.innerText ?? '',
       transition: transition ? transition.kind : 'none',
+      transitionLabel: transition?.label ?? null,
+      transitionT: transition?.t ?? 0,
+      transitionDuration: transition?.duration ?? 0,
       messageVisible: Boolean(msgEl && !msgEl.hidden),
       dir: moveDir(),
       celebrate,
@@ -2371,6 +2396,11 @@ export function createMascotGame(): Game {
       brickBumps: Array.from(brickBumps.keys()),
       brokenBricks: Array.from(brokenBricks.keys()),
       usedBlocks: qblocks.filter((q) => q.used).map((q) => ({ tx: q.tx, ty: q.ty, kind: q.kind })),
+      particles: particles.map((p) => ({
+        text: p.text,
+        x: Math.round(p.x),
+        y: Math.round(p.y),
+      })),
       enemies: enemies
         .filter((e) => !e.dead)
         .map((e) => ({
@@ -2398,11 +2428,13 @@ export function createMascotGame(): Game {
       type DebugWindow = Window & {
         __mgameDropNewProject?: () => void;
         __mgameSpawnExpense?: () => void;
+        __mgameBumpBlock?: (tx?: number, ty?: number) => void;
         __mgameWarpBoss?: () => void;
         __mgameBumpBrick?: (tx?: number, ty?: number) => void;
         __mgameEnterPipe?: () => void;
         __mgameAdvancePipe?: (frames?: number) => void;
         __mgameWarpNearPipeBill?: () => void;
+        __mgameStompPipeBill?: () => void;
         __mgameAdvancePlay?: (frames?: number) => void;
         __mgameHoldVoidDirection?: (dir?: -1 | 0 | 1) => void;
         __mgameAdvanceVoid?: (frames?: number) => void;
@@ -2423,6 +2455,11 @@ export function createMascotGame(): Game {
       };
       debugWindow.__mgameSpawnExpense = () => {
         hurt();
+      };
+      debugWindow.__mgameBumpBlock = (tx = 32, ty = 5) => {
+        const q = qmap.get(kk(tx, ty));
+        if (q && !q.used) bumpBlock(q);
+        render();
       };
       debugWindow.__mgameWarpBoss = () => {
         player.x = BOSS_X - 72;
@@ -2459,7 +2496,7 @@ export function createMascotGame(): Game {
       debugWindow.__mgameAdvancePipe = (frames = 64) => {
         freezeDebugLoop();
         if (state !== 'pipe') debugWindow.__mgameEnterPipe?.();
-        for (let i = 0; i < frames && state === 'pipe'; i++) updatePipeDescent();
+        for (let i = 0; i < frames && state === 'pipe'; i++) update();
         render();
       };
       debugWindow.__mgameWarpNearPipeBill = () => {
@@ -2481,6 +2518,24 @@ export function createMascotGame(): Game {
         camX = Math.max(0, Math.min(WORLD_W - VIEW_W, player.x + player.w / 2 - VIEW_W / 2));
         render();
       };
+      debugWindow.__mgameStompPipeBill = () => {
+        freezeDebugLoop();
+        const bill = enemies.find((e) => e.type === 'piranha' && !e.dead);
+        if (!bill) return;
+        state = 'play';
+        bill.t = 20;
+        bill.y = bill.baseY - Math.min(14, bill.h);
+        player.x = bill.x + bill.w / 2 - player.w / 2;
+        player.y = bill.y - player.h + 2;
+        player.vx = 0;
+        player.vy = 2;
+        player.onGround = false;
+        player.invuln = 0;
+        player.power = 0;
+        camX = Math.max(0, Math.min(WORLD_W - VIEW_W, player.x + player.w / 2 - VIEW_W / 2));
+        update();
+        render();
+      };
       debugWindow.__mgameAdvancePlay = (frames = 1) => {
         freezeDebugLoop();
         for (let i = 0; i < frames && state === 'play'; i++) update();
@@ -2493,7 +2548,7 @@ export function createMascotGame(): Game {
       debugWindow.__mgameAdvanceVoid = (frames = VOID_TEST_ADVANCE_FRAMES) => {
         freezeDebugLoop();
         if (state !== 'void') startVoidChase();
-        for (let i = 0; i < frames && state === 'void'; i++) updateVoidChase();
+        for (let i = 0; i < frames && state === 'void'; i++) update();
         render();
       };
       debugWindow.__mgameTriggerWin = () => {

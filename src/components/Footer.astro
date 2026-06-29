@@ -15,7 +15,6 @@ const year = 2026;
         <span class="visually-hidden">{site.homeLinkHint}</span>
       </a>
       <p class="site-footer__tag font-serif">{site.tagline}</p>
-      <p class="site-footer__madein font-mono">{site.madeIn}</p>
     </div>
 
     <nav class="site-footer__nav" aria-label="Footer">
@@ -68,7 +67,7 @@ const year = 2026;
     </p>
     <p class="font-mono site-footer__copyright">
       © {year}{' '}
-      <a href={site.parentSite} target="_blank" rel="noopener">{site.org}</a>. {site.madeIn}.
+      <a href={site.parentSite} target="_blank" rel="noopener">{site.org}</a>.
     </p>
     <p class="font-mono site-footer__legal-links">
       <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener"
@@ -124,12 +123,6 @@ const year = 2026;
     max-width: 22ch;
     color: var(--fg);
   }
-  .site-footer__madein {
-    margin-top: var(--space-s);
-    color: var(--fg-faint);
-    font-size: 0.75rem;
-  }
-
   .site-footer__nav {
     display: grid;
     grid-template-columns: minmax(7.5rem, 0.85fr) minmax(9.5rem, 1fr) minmax(18rem, 1.45fr);
