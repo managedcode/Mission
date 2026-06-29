@@ -171,12 +171,13 @@ const meterCells = (fill: number) =>
     display: grid;
     grid-template-columns: 1fr;
     gap: clamp(1rem, 0.6rem + 1.4vw, 1.6rem);
-    align-items: start;
+    align-items: stretch;
     max-width: 30rem;
     margin: clamp(2rem, 1.3rem + 2.5vw, 3.25rem) auto 0;
   }
   .tiers__plan {
-    display: block;
+    display: flex;
+    min-width: 0;
   }
 
   @media (min-width: 48rem) {
@@ -193,6 +194,7 @@ const meterCells = (fill: number) =>
     display: flex;
     flex-direction: column;
     width: 100%;
+    height: 100%;
     gap: clamp(0.62rem, 0.5rem + 0.55vw, 0.9rem);
     padding: clamp(1rem, 0.85rem + 0.85vw, 1.45rem);
     background: color-mix(in srgb, var(--bg-raised) 94%, var(--bg) 6%);
@@ -233,10 +235,11 @@ const meterCells = (fill: number) =>
   .plan__flag {
     display: flex;
     justify-content: flex-start;
-    min-height: 0;
+    align-items: flex-start;
+    min-height: 1.65rem;
   }
   .plan__flag:empty {
-    display: none;
+    visibility: hidden;
   }
   .plan__badge {
     font-size: 0.5rem;
@@ -399,6 +402,7 @@ const meterCells = (fill: number) =>
     gap: 0.52rem;
     margin: 0;
     align-content: start;
+    padding-bottom: 0.15rem;
   }
   .plan__feature {
     display: grid;
@@ -426,7 +430,7 @@ const meterCells = (fill: number) =>
   .plan__cta {
     width: 100%;
     justify-content: space-between;
-    margin-top: var(--space-xs);
+    margin-top: auto;
     padding-top: 0.85em;
     padding-bottom: 0.85em;
   }
