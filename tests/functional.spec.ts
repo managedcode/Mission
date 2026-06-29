@@ -109,6 +109,30 @@ test.describe('Home page · structure & SEO', () => {
     await expect(page.locator('#hero-heading')).toBeVisible();
   });
 
+  test('tab-away title is human-readable and restores the SEO title', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'webdriver', { configurable: true, get: () => false });
+    });
+
+    await page.goto('/');
+    const originalTitle = await page.title();
+
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    await expect(page).toHaveTitle('Come back — the commons needs you');
+    expect(await page.title()).not.toContain('//');
+
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    await expect(page).toHaveTitle(originalTitle);
+  });
+
   test('primary nav anchors resolve to existing in-page targets', async ({ page }) => {
     await page.goto('/');
 
@@ -288,6 +312,10 @@ test.describe('Mission Run mini-game', () => {
     poseT?: number;
     endingT?: number;
     overT?: number;
+    pipeT?: number;
+    voidT?: number;
+    deathScene?: string;
+    transition?: string;
     messageVisible?: boolean;
   };
 
@@ -297,6 +325,11 @@ test.describe('Mission Run mini-game', () => {
     await page.goto('/');
     await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
     await page.locator('[data-mascot]').click({ force: true });
+    await expect(page.locator('.mgame__title')).toHaveText('MAINTAINER DAY');
+    await expect(page.locator('.mgame')).toHaveAttribute(
+      'aria-label',
+      'Maintainer Day - mini game'
+    );
 
     const state = await page.evaluate(() => {
       return (
@@ -317,6 +350,9 @@ test.describe('Mission Run mini-game', () => {
     }
 
     expect(state?.blocks).toContainEqual({ tx: 32, ty: 5, kind: 'coin', used: false });
+    await expect(page.locator('.mgame__heart')).toHaveCount(3);
+    const heartBox = await page.locator('.mgame__heart').first().boundingBox();
+    expect(heartBox?.width ?? 0).toBeGreaterThan(12);
 
     const bumped = await page.evaluate(() => {
       const w = window as Window & {
@@ -326,8 +362,53 @@ test.describe('Mission Run mini-game', () => {
       w.__mgameBumpBrick?.(13, 5);
       return w.__mgame?.();
     });
-    expect(bumped?.brickBumps).toContain('13:5');
-    expect(bumped?.brokenBricks).not.toContain('13:5');
+    expect(bumped?.brokenBricks).toContain('13:5');
+  });
+
+  test('pipe descent enters BURNOUT and burns out after the chase timer', async ({ page }) => {
+    test.skip(!test.info().project.name.startsWith('desktop'), 'keyboard-only game path');
+
+    await page.goto('/');
+    await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
+    await page.locator('[data-mascot]').click({ force: true });
+
+    const readGame = () =>
+      page.evaluate(() => {
+        const state = (
+          window as Window & {
+            __mgame?: () => MissionRunState;
+          }
+        ).__mgame?.();
+        return state ?? null;
+      });
+
+    await expect.poll(async () => (await readGame())?.onGround, { timeout: 3000 }).toBe(true);
+
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __mgameEnterPipe?: () => void;
+        }
+      ).__mgameEnterPipe?.();
+    });
+
+    await expect.poll(async () => (await readGame())?.state, { timeout: 1000 }).toBe('pipe');
+    await expect.poll(async () => (await readGame())?.state, { timeout: 3000 }).toBe('void');
+
+    const voidStart = await readGame();
+    expect(voidStart?.deathScene).toBe('void');
+
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __mgameAdvanceVoid?: (frames?: number) => void;
+        }
+      ).__mgameAdvanceVoid?.();
+    });
+
+    await expect.poll(async () => (await readGame())?.state, { timeout: 1000 }).toBe('dying');
+    await expect.poll(async () => (await readGame())?.state, { timeout: 5000 }).toBe('over');
+    await expect(page.locator('[data-mgame-msgtext]')).toContainText('BURNED OUT');
   });
 
   test('holding Space extends one jump without auto-jumping on landing', async ({ page }) => {
@@ -843,6 +924,17 @@ test.describe('Accessibility-lite', () => {
       expect(name, `svg[role=img] ${i} needs an accessible name`).not.toBe('');
     }
   });
+});
+
+test.describe('Rendered copy guardrails', () => {
+  for (const path of ['/', '/404', '/patrons', '/projects', '/team']) {
+    test(`${path} does not render decorative double slashes`, async ({ page }) => {
+      await page.goto(path);
+
+      const visibleText = await page.evaluate(() => document.body.innerText);
+      expect(visibleText).not.toContain('//');
+    });
+  }
 });
 
 test.describe('404 page', () => {

@@ -149,12 +149,18 @@ const meterLabel = `Founding momentum: ${pct}% toward launch, with ${funding.com
   }
   @media (min-width: 38rem) {
     .patrons__wall {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: minmax(0, var(--phi-major-fr)) repeat(
+          2,
+          minmax(0, var(--phi-minor-fr))
+        );
     }
   }
   @media (min-width: 60rem) {
     .patrons__wall {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: minmax(0, var(--phi-major-fr)) repeat(
+          3,
+          minmax(0, var(--phi-minor-fr))
+        );
     }
   }
 

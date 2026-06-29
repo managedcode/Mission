@@ -154,8 +154,8 @@ const slipLines = [92, 78, 64] as const;
   /* ---------- Project grid (matches the maintainers repo cards) ---------- */
   .pj__grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: clamp(1rem, 0.6rem + 1.4vw, 1.6rem);
+    grid-template-columns: minmax(0, var(--phi-major-fr)) repeat(2, minmax(0, var(--phi-minor-fr)));
+    gap: var(--phi-gap-sm);
     margin-top: var(--space-xl);
   }
   .pj__grid > li {

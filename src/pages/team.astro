@@ -403,7 +403,10 @@ const seals = Array.from({ length: SEAL_COUNT }, (_, i) => i + 1);
   }
   @media (min-width: 60rem) {
     .team__roster {
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-template-columns: minmax(0, var(--phi-major-fr)) repeat(
+          5,
+          minmax(0, var(--phi-minor-fr))
+        );
     }
   }
 
@@ -658,6 +661,23 @@ const seals = Array.from({ length: SEAL_COUNT }, (_, i) => i + 1);
   }
 
   /* ---------- Responsive ---------- */
+  @media (min-width: 56rem) {
+    .team__unlock {
+      grid-template-columns: minmax(0, var(--phi-minor-fr)) minmax(0, var(--phi-major-fr));
+      column-gap: var(--phi-gap);
+      align-items: end;
+      max-width: 64rem;
+    }
+    .team__readout {
+      grid-row: 1 / 3;
+      align-self: end;
+    }
+    .team__bar,
+    .team__unlock-caption {
+      grid-column: 2;
+    }
+  }
+
   @media (max-width: 40rem) {
     .team__pct {
       font-size: var(--step-6);

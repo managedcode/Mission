@@ -121,8 +121,8 @@ const mottoHalf = Array.from({ length: 4 })
   /* Row 2 — supporting text on the left, console on the right. */
   .hero__row {
     display: grid;
-    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-    gap: clamp(2rem, 1rem + 4vw, 4.5rem);
+    grid-template-columns: minmax(0, var(--phi-major-fr)) minmax(0, var(--phi-minor-fr));
+    gap: var(--phi-gap);
     align-items: center;
   }
 
@@ -196,7 +196,7 @@ const mottoHalf = Array.from({ length: 4 })
     font-family: var(--font-serif);
     font-size: var(--step-1);
     line-height: 1.5;
-    max-width: 34ch;
+    max-width: 38ch;
     margin-top: var(--space-m);
     color: var(--fg-soft);
   }
@@ -225,6 +225,7 @@ const mottoHalf = Array.from({ length: 4 })
   .hero__crest {
     align-self: center;
     width: 100%;
+    padding-top: clamp(0rem, 1.5vw, 1.618rem);
   }
   .crest {
     position: relative;

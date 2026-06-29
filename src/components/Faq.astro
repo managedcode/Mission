@@ -33,7 +33,7 @@ import { faq } from '../data/site';
   }
   .faq__inner {
     display: grid;
-    gap: clamp(2rem, 1.4rem + 2.4vw, 3.5rem);
+    gap: var(--phi-gap);
   }
   .faq__head {
     display: grid;
@@ -55,6 +55,16 @@ import { faq } from '../data/site';
     max-width: 52rem;
     /* chunky frame top — items each carry their own bottom rule */
     border-top: var(--border-px) solid var(--fg);
+  }
+
+  @media (min-width: 56rem) {
+    .faq__inner {
+      grid-template-columns: minmax(0, var(--phi-minor-fr)) minmax(0, var(--phi-major-fr));
+      align-items: start;
+    }
+    .faq__list {
+      max-width: none;
+    }
   }
 
   .faq__item {

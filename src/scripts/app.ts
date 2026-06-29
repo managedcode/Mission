@@ -10,8 +10,29 @@ declare global {
   interface Window {
     clarity?: (...args: unknown[]) => void;
     gtag?: (...args: unknown[]) => void;
+    __missionSound?: {
+      play: (name: MissionSoundName) => void;
+      isOn: () => boolean;
+    };
   }
 }
+
+type MissionSoundName =
+  | 'jump'
+  | 'stomp'
+  | 'block'
+  | 'brick'
+  | 'star'
+  | 'power'
+  | 'hurt'
+  | 'shrink'
+  | 'death'
+  | 'win'
+  | 'pipe'
+  | 'void'
+  | 'fire'
+  | 'firework'
+  | 'restart';
 
 /* ---------- Scroll reveal ---------- */
 function initReveal() {
@@ -595,14 +616,20 @@ function initSound() {
     return ctx;
   };
 
-  const blip = (freq: number, when = 0, dur = 0.08, gain = 0.05) => {
+  const blip = (
+    freq: number,
+    when = 0,
+    dur = 0.08,
+    gain = 0.05,
+    type: OscillatorType = 'square'
+  ) => {
     if (!on) return;
     const ac = ensureCtx();
     if (!ac) return;
     const t = ac.currentTime + when;
     const osc = ac.createOscillator();
     const g = ac.createGain();
-    osc.type = 'square';
+    osc.type = type;
     osc.frequency.setValueAtTime(freq, t);
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(gain, t + 0.008);
@@ -612,12 +639,109 @@ function initSound() {
     osc.stop(t + dur + 0.02);
   };
 
+  const tumble = (start: number, end: number, when = 0, dur = 0.24, gain = 0.05) => {
+    if (!on) return;
+    const ac = ensureCtx();
+    if (!ac) return;
+    const t = ac.currentTime + when;
+    const osc = ac.createOscillator();
+    const g = ac.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(start, t);
+    osc.frequency.exponentialRampToValueAtTime(end, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(g).connect(ac.destination);
+    osc.start(t);
+    osc.stop(t + dur + 0.03);
+  };
+
+  const noise = (when = 0, dur = 0.12, gain = 0.035) => {
+    if (!on) return;
+    const ac = ensureCtx();
+    if (!ac) return;
+    const t = ac.currentTime + when;
+    const buffer = ac.createBuffer(1, Math.max(1, Math.floor(ac.sampleRate * dur)), ac.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    const src = ac.createBufferSource();
+    const filter = ac.createBiquadFilter();
+    const g = ac.createGain();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(900, t);
+    g.gain.setValueAtTime(gain, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.buffer = buffer;
+    src.connect(filter).connect(g).connect(ac.destination);
+    src.start(t);
+    src.stop(t + dur);
+  };
+
+  const play = (name: MissionSoundName) => {
+    if (!on) return;
+    switch (name) {
+      case 'jump':
+        tumble(330, 880, 0, 0.13, 0.045);
+        break;
+      case 'stomp':
+        blip(196, 0, 0.045, 0.055);
+        blip(392, 0.045, 0.05, 0.045);
+        break;
+      case 'block':
+        blip(523, 0, 0.055, 0.045);
+        blip(659, 0.045, 0.055, 0.035);
+        break;
+      case 'brick':
+        noise(0, 0.12, 0.05);
+        blip(140, 0, 0.09, 0.035, 'triangle');
+        break;
+      case 'star':
+        [784, 988, 1175].forEach((f, i) => blip(f, i * 0.045, 0.065, 0.04));
+        break;
+      case 'power':
+        [392, 523, 659, 784, 1047].forEach((f, i) => blip(f, i * 0.055, 0.08, 0.045));
+        break;
+      case 'hurt':
+        tumble(260, 110, 0, 0.18, 0.05);
+        break;
+      case 'shrink':
+        [620, 440, 311, 220].forEach((f, i) => blip(f, i * 0.055, 0.07, 0.04, 'triangle'));
+        break;
+      case 'death':
+        tumble(440, 65, 0, 0.62, 0.055);
+        break;
+      case 'win':
+        [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => blip(f, i * 0.07, 0.1, 0.05));
+        break;
+      case 'pipe':
+        tumble(523, 130, 0, 0.44, 0.052);
+        break;
+      case 'void':
+        [98, 123, 147].forEach((f, i) => blip(f, i * 0.12, 0.16, 0.035, 'sawtooth'));
+        break;
+      case 'fire':
+        noise(0, 0.08, 0.026);
+        blip(110, 0, 0.07, 0.028, 'sawtooth');
+        break;
+      case 'firework':
+        noise(0, 0.09, 0.025);
+        blip(880 + Math.random() * 220, 0.025, 0.07, 0.025);
+        break;
+      case 'restart':
+        blip(440, 0, 0.07, 0.04);
+        blip(660, 0.06, 0.07, 0.04);
+        break;
+    }
+  };
+
   const arpeggio = () => {
     if (!on) return;
     [523, 659, 784, 1047].forEach((f, i) => blip(f, i * 0.07, 0.1, 0.05));
   };
   // Expose so the Konami egg can fanfare when it fires.
   (window as Window & { __missionArpeggio?: () => void }).__missionArpeggio = arpeggio;
+  window.__missionSound = { play, isOn: () => on };
 
   btn.addEventListener('click', () => {
     on = !on;
@@ -629,7 +753,7 @@ function initSound() {
     syncBtn();
     if (on) {
       ensureCtx();
-      blip(880, 0, 0.09, 0.06); // confirmation chirp
+      play('power'); // confirmation chirp
     }
   });
 
@@ -735,6 +859,9 @@ function initMascot() {
   const margin = 10;
   const minX = margin;
   const maxX = () => Math.max(minX, window.innerWidth - mascotWidth - margin);
+  const pointerRetargetDeadzone = 5;
+  const arrivalDeadzone = 1.8;
+  const walkBobDeadzone = 7;
 
   let x = Math.min(maxX(), 48);
   let target = x;
@@ -746,7 +873,11 @@ function initMascot() {
   window.addEventListener(
     'pointermove',
     (e) => {
-      pointerX = e.clientX;
+      // Vertical mouse movement often carries 1-2px of horizontal noise; do not
+      // retarget the companion until the X change is intentional enough to chase.
+      if (pointerX < 0 || Math.abs(e.clientX - pointerX) >= pointerRetargetDeadzone) {
+        pointerX = e.clientX;
+      }
       lastPointer = performance.now();
     },
     { passive: true }
@@ -772,11 +903,12 @@ function initMascot() {
     }
 
     const d = target - x;
-    if (Math.abs(d) > 1.5) {
+    if (Math.abs(d) > arrivalDeadzone) {
       face = d < 0 ? -1 : 1;
       x += Math.sign(d) * Math.min(Math.abs(d), 0.14 * dt);
-      walking = true;
+      walking = Math.abs(d) > walkBobDeadzone;
     } else {
+      x = target;
       walking = false;
     }
 
@@ -824,8 +956,10 @@ function initMascot() {
 function initTabEgg() {
   if (navigator.webdriver) return; // never under test automation
   const original = document.title;
+  const awayTitle = document.documentElement.dataset.awayTitle;
+  if (!awayTitle) return;
   document.addEventListener('visibilitychange', () => {
-    document.title = document.hidden ? '// come back — the commons needs you' : original;
+    document.title = document.hidden ? awayTitle : original;
   });
 }
 

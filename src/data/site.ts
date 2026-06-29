@@ -50,8 +50,16 @@ export const site = {
 } as const;
 
 export const miniGame = {
+  title: 'MAINTAINER DAY',
+  ariaLabel: 'Maintainer Day - mini game',
   controlsHintHtml:
-    '←/→ or A/D move&nbsp;·&nbsp;Space/↑/W or JUMP leap&nbsp;·&nbsp;Hold jump for a higher leap&nbsp;·&nbsp;Esc quits',
+    '←/→ or A/D move&nbsp;·&nbsp;Space/↑/W or JUMP leap&nbsp;·&nbsp;↓/S enters pipes&nbsp;·&nbsp;Esc quits',
+  voidTitle: 'BURNOUT',
+  voidSubtitle: 'endless micro-optimizations and useless features',
+  voidWarning: 'burnout is catching up. run.',
+  voidSignLines: ['ENDLESS MICRO OPTS', 'USELESS FEATURES', 'NOBODY ASKED'],
+  voidGameOver:
+    'BURNED OUT\nyou ran for 15 seconds on vibes and unpaid work.\nnobody funded the maintainer.',
 } as const;
 
 // Absolute-to-home anchors so the shared header/footer nav also works from
@@ -587,6 +595,7 @@ export const notFound = {
     'The page is gone. No continues, no extra life — but the mission isn’t going anywhere.',
   ],
   cta: { label: 'Return to the mission', href: '/' },
+  konamiLabel: 'hint:',
   konami: 'Maintainers know the code. ↑ ↑ ↓ ↓ ← → ← → B A — start',
 } as const;
 
@@ -594,6 +603,7 @@ export const notFound = {
 export const seo = {
   defaultTitle: 'ManagedCode — Patrons of the Digital Commons',
   titleTemplate: '%s — ManagedCode',
+  awayTitle: 'Come back — the commons needs you',
   ogImage: '/og.png',
   ogImageAlt:
     'Mission by Managed Code — patrons of the digital commons. Fund a team of maintainers.',

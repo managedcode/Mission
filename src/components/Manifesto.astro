@@ -139,12 +139,15 @@ const signoffParts = manifesto.signoff
   .manifesto__inner {
     position: relative;
     z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, var(--phi-minor-fr)) minmax(0, var(--phi-major-fr));
+    gap: var(--phi-gap);
+    align-items: start;
   }
 
   /* ---- Intro ---- */
   .manifesto__head {
     max-width: 22ch;
-    margin-bottom: clamp(2.5rem, 1.5rem + 4vw, 4.5rem);
   }
   .manifesto__heading {
     font-family: var(--font-display);
@@ -215,6 +218,7 @@ const signoffParts = manifesto.signoff
   .manifesto__signoff {
     position: relative;
     z-index: 1;
+    grid-column: 1 / -1;
     margin-top: clamp(3rem, 2rem + 5vw, 5.5rem);
     text-align: center;
   }
@@ -267,6 +271,10 @@ const signoffParts = manifesto.signoff
   }
 
   @media (max-width: 40rem) {
+    .manifesto__inner {
+      grid-template-columns: 1fr;
+      gap: clamp(2.5rem, 1.5rem + 4vw, 4.5rem);
+    }
     .manifesto__prose {
       padding-left: clamp(1rem, 4vw, 1.5rem);
     }

@@ -200,8 +200,8 @@ const recaptchaNotice = apply.recaptchaNotice;
   }
   .apply__inner {
     display: grid;
-    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-    gap: clamp(2rem, 1rem + 4vw, 4.5rem);
+    grid-template-columns: minmax(0, var(--phi-minor-fr)) minmax(0, var(--phi-major-fr));
+    gap: var(--phi-gap);
     align-items: start;
   }
 

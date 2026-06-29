@@ -96,7 +96,11 @@ const analyticsBootstrap = `
 ---
 
 <!doctype html>
-<html lang={site.locale} data-analytics={analyticsEnabled ? 'production' : undefined}>
+<html
+  lang={site.locale}
+  data-analytics={analyticsEnabled ? 'production' : undefined}
+  data-away-title={seo.awayTitle}
+>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

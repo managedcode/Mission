@@ -1,7 +1,7 @@
 import { miniGame } from '../data/site';
 
 /* =================================================================
-   RENT RUN — a savagely on-the-nose platformer about being an open-source
+   MAINTAINER DAY — a savagely on-the-nose platformer about being an open-source
    maintainer. You ship for $0 while the expense monsters keep coming:
    RENT · TAX · ELECTRIC · WATER · MOBILE · SUBS · GAS · LOAN · FEES.
    Bump ? blocks for GitHub ★ (worth $0), grab the COFFEE, and find the secret
@@ -20,6 +20,7 @@ import { miniGame } from '../data/site';
    ================================================================= */
 
 type Game = { launch: () => void };
+type MissionSoundBridge = { play?: (name: string) => void };
 
 export function createMascotGame(): Game {
   const TILE = 16;
@@ -108,6 +109,14 @@ export function createMascotGame(): Game {
   const CASTLE_W = 5 * TILE;
   const PLAYER_SMALL = { w: 11, h: 14, scale: 1 };
   const PLAYER_BIG = { w: PLAYER_SMALL.w * 2, h: PLAYER_SMALL.h * 2, scale: 2 };
+  const VOID_LIMIT_FRAMES = 15 * 60;
+  const VOID_GROUND = VIEW_H - 28;
+  const TRANSITION_SHORT = 32;
+  const TRANSITION_LONG = 56;
+
+  const sound = (name: string) => {
+    (window as Window & { __missionSound?: MissionSoundBridge }).__missionSound?.play?.(name);
+  };
 
   // ---- Solid tiles + ? lookup ----
   const solidSet = new Set<string>();
@@ -267,6 +276,7 @@ export function createMascotGame(): Game {
   // out to a dead stop — exactly how a normal platformer feels.
   let leftHeld = false;
   let rightHeld = false;
+  let downHeld = false;
   let dirLast = 0; // -1 | 0 | 1 — which side was pressed most recently
   let jumpHeld = false;
   let jumpBuf = 0;
@@ -290,6 +300,9 @@ export function createMascotGame(): Game {
   function moveDir(): number {
     if (leftHeld && rightHeld) return dirLast;
     return leftHeld ? -1 : rightHeld ? 1 : 0;
+  }
+  function setDown(on: boolean) {
+    downHeld = on;
   }
   // Buffer a jump only on the rising edge from no source held. Auto-repeat
   // keydowns (allowBuffer=false) for unknown sources are ignored; repeats for an
@@ -327,9 +340,18 @@ export function createMascotGame(): Game {
   let camX = 0;
   let stars = 0;
   let lives = 3;
-  type GameState = 'play' | 'ending' | 'win' | 'dying' | 'over';
+  type GameState = 'play' | 'pipe' | 'void' | 'ending' | 'win' | 'dying' | 'over';
   let state: GameState = 'play';
   let tick = 0;
+  type DeathScene = 'main' | 'void';
+  let deathScene: DeathScene = 'main';
+  type Transition = {
+    kind: 'launch' | 'restart' | 'pipe' | 'void' | 'win' | 'death';
+    t: number;
+    duration: number;
+    label: string;
+  };
+  let transition: Transition | null = null;
 
   type Q = {
     tx: number;
@@ -361,12 +383,17 @@ export function createMascotGame(): Game {
   let particles: Particle[] = [];
   const brickBumps = new Map<string, number>();
   const brokenBricks = new Set<string>();
+  type BrickBit = { x: number; y: number; vx: number; vy: number; life: number; color: string };
+  let brickBits: BrickBit[] = [];
   type BlockStar = { x: number; y: number; vx: number; vy: number; life: number };
   let blockStars: BlockStar[] = [];
   type Pickup = { x: number; y: number; vx: number; vy: number; got: boolean };
   let oneups: Pickup[] = []; // "NEW PROJECT IDEA" 1-ups dropped by secret blocks
   let enterT = 0; // castle-entry timer for the ending scene
   let overT = 0; // delayed game-over timer, so the loss has a readable beat
+  let pipeT = 0;
+  let voidT = 0;
+  let voidDragon = { x: 0, y: 0, t: 0, mouth: 0 };
   type PlayerPose = 'none' | 'hit' | 'shrink' | 'grow' | 'stomp';
   let playerPose: PlayerPose = 'none';
   let poseT = 0;
@@ -404,6 +431,7 @@ export function createMascotGame(): Game {
   function clearInput() {
     leftHeld = false;
     rightHeld = false;
+    downHeld = false;
     dirLast = 0;
     jumpHeld = false;
     jumpBuf = 0;
@@ -417,6 +445,14 @@ export function createMascotGame(): Game {
   function setPlayerPose(pose: PlayerPose, frames: number) {
     playerPose = pose;
     poseT = frames;
+  }
+  function startTransition(kind: Transition['kind'], label: string, duration = TRANSITION_SHORT) {
+    transition = { kind, label, duration, t: duration };
+  }
+  function updateTransition() {
+    if (!transition) return;
+    transition.t--;
+    if (transition.t <= 0) transition = null;
   }
   function activePlayerPose(): PlayerPose | 'death-squash' | 'death' {
     if (state === 'dying') return overT <= GAME_OVER_SQUASH_FRAMES ? 'death-squash' : 'death';
@@ -525,6 +561,8 @@ export function createMascotGame(): Game {
     stars = 0;
     lives = 3;
     state = 'play';
+    deathScene = 'main';
+    transition = null;
     clearInput();
     qblocks = QDEF.map(([tx, ty, kind]) => ({ tx, ty, kind, used: false, bump: 0 }));
     qmap.clear();
@@ -534,10 +572,14 @@ export function createMascotGame(): Game {
     particles = [];
     brickBumps.clear();
     brokenBricks.clear();
+    brickBits = [];
     blockStars = [];
     oneups = [];
     enterT = 0;
     overT = 0;
+    pipeT = 0;
+    voidT = 0;
+    voidDragon = { x: START.x - 92, y: VOID_GROUND - 34, t: 0, mouth: 0 };
     setPlayerPose('none', 0);
     sparks = [];
     rockets = [];
@@ -560,10 +602,11 @@ export function createMascotGame(): Game {
     });
   }
   function explodeRocket(x: number, y: number, color: string) {
-    const n = 18;
+    const n = 28;
+    sound('firework');
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2;
-      const sp = 0.9 + Math.random() * 1.0;
+      const sp = 0.9 + Math.random() * 1.35;
       sparks.push({
         x,
         y,
@@ -573,6 +616,7 @@ export function createMascotGame(): Game {
         color,
       });
     }
+    addParticle(x - 2, y - 7, '+', C.starHi);
   }
   function updateFireworks() {
     for (const r of rockets) {
@@ -619,22 +663,33 @@ export function createMascotGame(): Game {
     const key = kk(tx, ty);
     return ty < GROUND_ROW && !qmap.has(key) && !isPipeTile(tx, ty) && solidSet.has(key);
   }
+  function burstBrick(tx: number, ty: number) {
+    const x = tx * TILE;
+    const y = ty * TILE;
+    brickBits.push(
+      { x: x + 2, y: y + 2, vx: -1.4, vy: -3.8, life: 36, color: C.brickHi },
+      { x: x + 9, y: y + 2, vx: 1.3, vy: -3.5, life: 34, color: C.brick },
+      { x: x + 1, y: y + 9, vx: -1.0, vy: -2.4, life: 32, color: C.brick },
+      { x: x + 10, y: y + 9, vx: 1.1, vy: -2.2, life: 32, color: C.dirt }
+    );
+  }
   function bumpBrick(tx: number, ty: number) {
     const key = kk(tx, ty);
     if (!isBreakableBrick(tx, ty) || brokenBricks.has(key)) return;
-    if (player.projectScale > PLAYER_SMALL.scale) {
-      brokenBricks.add(key);
-      addParticle(tx * TILE + 1, ty * TILE - 5, 'CRACK', C.starHi);
-      return;
-    }
-    brickBumps.set(key, 8);
+    brokenBricks.add(key);
+    brickBumps.delete(key);
+    burstBrick(tx, ty);
+    sound('brick');
+    addParticle(tx * TILE + 1, ty * TILE - 5, 'CRACK', C.starHi);
   }
   function bumpBlock(q: Q) {
     q.used = true;
     q.bump = 8;
+    sound('block');
     if (q.kind === 'coin') {
       stars += 3;
       popGithubStars(q.tx, q.ty);
+      sound('star');
     } else if (q.kind === 'power') {
       popPowerFlower(q.tx, q.ty);
     } else {
@@ -646,6 +701,7 @@ export function createMascotGame(): Game {
     lives -= 1;
     updateHud();
     if (lives <= 0) return gameOver();
+    sound('hurt');
     clearInput();
     player.w = PLAYER_SMALL.w;
     player.h = PLAYER_SMALL.h;
@@ -666,12 +722,14 @@ export function createMascotGame(): Game {
       player.invuln = 100;
       player.vy = -3;
       setPlayerPose('shrink', 38);
+      sound('shrink');
       addParticle(player.x - 10, player.y - 8, 'TOO MUCH', C.rent);
       return;
     }
     lives -= 1;
     updateHud();
     if (lives <= 0) return gameOver();
+    sound('hurt');
     player.invuln = 100;
     player.vy = -4;
     player.vx = -player.face * 3;
@@ -706,6 +764,9 @@ export function createMascotGame(): Game {
     enterT = 0;
     overT = 0;
     celebrate = true;
+    deathScene = 'main';
+    startTransition('win', 'FUNDED', TRANSITION_LONG);
+    sound('win');
     if (boss) boss.dead = 1; // the layoff monster loses; you got the job
     fireballs = [];
     clearInput();
@@ -717,12 +778,13 @@ export function createMascotGame(): Game {
     setPlaying(false);
     // celebrate stays true → the fireworks keep bursting behind the win card.
     showMsg(
-      `YOU'RE FUNDED ✓   ★ ${stars}\nthe castle is ManagedCode — they pay you to\nmaintain the stuff you shipped free for years.\nyour ★ GitHub stars are still worth $0 →`,
+      `YOU'RE FUNDED [check]   [star] ${stars}\nthe castle is ManagedCode — they pay you to\nmaintain the stuff you shipped free for years.\nyour [star] GitHub stars are still worth $0 →`,
       true
     );
   }
   function gameOver() {
     clearInput();
+    deathScene = state === 'void' || deathScene === 'void' ? 'void' : 'main';
     state = 'dying';
     setPlaying(false);
     celebrate = false;
@@ -733,8 +795,10 @@ export function createMascotGame(): Game {
     player.vx = -player.face * 0.45;
     player.vy = 0;
     player.onGround = false;
-    if (player.y > VIEW_H) player.y = GROUND_TOP - player.h;
+    if (player.y > VIEW_H) player.y = (deathScene === 'void' ? VOID_GROUND : GROUND_TOP) - player.h;
     setPlayerPose('none', 0);
+    startTransition('death', 'BURNOUT', TRANSITION_LONG);
+    sound('death');
     addParticle(player.x - 4, player.y - 10, 'OOF', C.rent);
     hideMsg();
   }
@@ -752,10 +816,112 @@ export function createMascotGame(): Game {
     }
     if (overT >= GAME_OVER_CARD_DELAY_FRAMES) showGameOver();
   }
+  function standingPipe() {
+    const center = player.x + player.w / 2;
+    const feet = player.y + player.h;
+    for (const [px, ph] of PIPES) {
+      const pipeX = px * TILE;
+      const top = (GROUND_ROW - ph) * TILE;
+      if (center >= pipeX - 2 && center <= pipeX + TILE * 2 + 2 && Math.abs(feet - top) <= 2) {
+        return { px, ph, pipeX, top };
+      }
+    }
+    return null;
+  }
+  function startPipeDescent() {
+    const pipe = standingPipe();
+    if (!pipe) return;
+    state = 'pipe';
+    pipeT = 0;
+    player.vx = 0;
+    player.vy = 0;
+    player.onGround = true;
+    player.face = 1;
+    player.x = pipe.pipeX + TILE - player.w / 2;
+    clearInput();
+    setPlaying(false);
+    startTransition('pipe', 'DOWN PIPE', TRANSITION_LONG);
+    sound('pipe');
+  }
+  function updatePipeDescent() {
+    pipeT++;
+    player.vx = 0;
+    player.vy = 0;
+    player.y += pipeT < 34 ? 1.45 : 0.65;
+    player.step += 0.08;
+    if (pipeT >= 62) startVoidChase();
+  }
+  function startVoidChase() {
+    state = 'void';
+    deathScene = 'void';
+    voidT = 0;
+    player.w = PLAYER_SMALL.w;
+    player.h = PLAYER_SMALL.h;
+    player.projectScale = PLAYER_SMALL.scale;
+    player.x = 44;
+    player.y = VOID_GROUND - player.h;
+    player.vx = 1.6;
+    player.vy = 0;
+    player.onGround = true;
+    player.face = 1;
+    player.power = 0;
+    player.invuln = 0;
+    camX = 0;
+    voidDragon = { x: player.x - 110, y: VOID_GROUND - 38, t: 0, mouth: 0 };
+    fireballs = [];
+    particles = [];
+    clearInput();
+    setPlaying(true);
+    startTransition('void', miniGame.voidTitle, TRANSITION_LONG);
+    sound('void');
+  }
+  function updateVoidChase() {
+    voidT++;
+    voidDragon.t++;
+    if (voidDragon.mouth > 0) voidDragon.mouth--;
+    const dir = moveDir();
+    player.vx += 0.035 + dir * 0.045;
+    player.vx = Math.max(1.45, Math.min(2.65, player.vx));
+    player.face = 1;
+    player.step += 0.26;
+    if (jumpBuf > 0 && player.onGround) {
+      player.vy = JUMP * 0.94;
+      jumpBuf = 0;
+      player.onGround = false;
+      sound('jump');
+    }
+    let g = GRAV;
+    if (player.vy < 0 && jumpHeld) g = ASCEND_G;
+    player.vy += g;
+    if (player.vy > MAXFALL) player.vy = MAXFALL;
+    if (!jumpHeld && player.vy < CUT) player.vy = CUT;
+    player.x += player.vx;
+    player.y += player.vy;
+    if (player.y + player.h >= VOID_GROUND) {
+      player.y = VOID_GROUND - player.h;
+      player.vy = 0;
+      player.onGround = true;
+    }
+    camX = Math.max(0, player.x - 78);
+    const catchDistance = Math.max(18, 98 - voidT * 0.085);
+    voidDragon.x += (player.x - catchDistance - voidDragon.x) * 0.055;
+    voidDragon.y = VOID_GROUND - 38 + Math.sin(voidDragon.t * 0.12) * 2;
+    if (voidT % 105 === 0) {
+      voidDragon.mouth = 30;
+      sound('fire');
+      addParticle(player.x + 42, VOID_GROUND - 74, 'FEATURE?', C.subs);
+    }
+    if (voidT >= VOID_LIMIT_FRAMES) {
+      addParticle(player.x - 18, player.y - 16, 'BURNOUT', C.rent);
+      gameOver();
+    }
+  }
   function showGameOver() {
     state = 'over';
     showMsg(
-      `BURNED OUT   ★ ${stars}\nyou archived the repo. somewhere a Fortune 500\nstill ships it in prod — for free.`,
+      deathScene === 'void'
+        ? miniGame.voidGameOver
+        : `BURNED OUT   ★ ${stars}\nyou archived the repo. somewhere a Fortune 500\nstill ships it in prod — for free.`,
       false
     );
   }
@@ -870,6 +1036,7 @@ export function createMascotGame(): Game {
         e.vx = 0;
         player.vy = JUMP * 0.5;
         setPlayerPose('stomp', 14);
+        sound('stomp');
         addParticle(e.x - 2, e.y - 10, 'BONK', C.starHi);
       } // stomp a moving shell → stop it
       else hurt();
@@ -893,6 +1060,7 @@ export function createMascotGame(): Game {
       stars++;
       player.vy = JUMP * 0.55;
       setPlayerPose('stomp', 14);
+      sound('stomp');
       addParticle(e.x - 2, e.y - 10, 'BONK', C.starHi);
       updateHud();
     } else if (player.power > 0) {
@@ -904,6 +1072,7 @@ export function createMascotGame(): Game {
 
   function update() {
     tick++;
+    updateTransition();
     if (poseT > 0) poseT--;
     else playerPose = 'none';
     updateFireworks();
@@ -919,6 +1088,13 @@ export function createMascotGame(): Game {
       s.life--;
     }
     blockStars = blockStars.filter((s) => s.life > 0);
+    for (const b of brickBits) {
+      b.x += b.vx;
+      b.y += b.vy;
+      b.vy += 0.26;
+      b.life--;
+    }
+    brickBits = brickBits.filter((b) => b.life > 0);
     for (const p of particles) {
       p.y += p.vy;
       p.life--;
@@ -929,6 +1105,14 @@ export function createMascotGame(): Game {
         f.y -= 0.65;
         f.emerge--;
       }
+    }
+    if (state === 'pipe') {
+      updatePipeDescent();
+      return;
+    }
+    if (state === 'void') {
+      updateVoidChase();
+      return;
     }
     if (state === 'ending') {
       updateEnding();
@@ -966,6 +1150,7 @@ export function createMascotGame(): Game {
       player.vy = JUMP;
       coyote = 0;
       jumpBuf = 0;
+      sound('jump');
     }
     let g = GRAV;
     if (player.vy < 0 && jumpHeld) g = ASCEND_G;
@@ -978,12 +1163,17 @@ export function createMascotGame(): Game {
     settleGround();
 
     if (player.y > VIEW_H + 48) return loseLifeFromStart();
+    if (downHeld && standingPipe()) {
+      startPipeDescent();
+      return;
+    }
 
     for (const f of flowers)
       if (!f.got && ov(player.x, player.y, player.w, player.h, f.x, f.y, 10, 12)) {
         f.got = true;
         player.power = 420;
         setPlayerPose('grow', 24);
+        sound('power');
         addParticle(f.x - 8, f.y - 4, 'CAFFEINE', C.starHi);
       }
 
@@ -1009,6 +1199,7 @@ export function createMascotGame(): Game {
         u.got = true;
         resizePlayer(PLAYER_BIG.scale);
         setPlayerPose('grow', 42);
+        sound('power');
         addParticle(u.x - 20, u.y - 4, 'NEW PROJECT IDEA', C.life);
       }
     }
@@ -1050,6 +1241,7 @@ export function createMascotGame(): Game {
     if (near && boss.t % 95 === 0) {
       boss.mouth = 26;
       fireballs.push({ x: boss.x - 4, y: boss.y + 13, vx: -2.1, vy: -1.4, life: 170 });
+      sound('fire');
     }
     // contact: COFFEE blows straight through (and topples the layoff); else you're hit
     if (ov(player.x, player.y, player.w, player.h, boss.x, boss.y, boss.w, boss.h)) {
@@ -1145,18 +1337,37 @@ export function createMascotGame(): Game {
     block(x + 3, y + 13, 8, 1, C.bodyHi); // green "new project" base
     drawTag(x + 7, y - 12, 'NEW PROJECT IDEA', 'subs');
   }
+  function drawBrickTile(x: number, y: number, used = false) {
+    const base = used ? C.used : C.brick;
+    const hi = used ? '#6b5a2c' : C.brickHi;
+    const shade = used ? '#2f2714' : '#7a5a16';
+    block(x, y, TILE, TILE, base);
+    block(x + 1, y + 1, 4, 2, hi);
+    block(x + 9, y + 1, 5, 2, hi);
+    block(x + 2, y + 6, 3, 2, shade);
+    block(x + 8, y + 7, 6, 2, shade);
+    block(x + 1, y + 12, 5, 2, shade);
+    block(x + 11, y + 12, 3, 2, hi);
+  }
+  function drawGroundTile(x: number, y: number, isTop: boolean) {
+    block(x, y, TILE, TILE, C.dirt);
+    if (!isTop) return;
+    block(x, y, TILE, 4, C.grass);
+    const alt = Math.abs(Math.floor(x / TILE)) % 2;
+    block(x + 1 + alt, y, 5, 1, C.grassHi);
+    block(x + 9 - alt, y + 1, 4, 1, C.grassHi);
+    block(x + 3, y + 4, 3, 2, C.dirt);
+    block(x + 10, y + 5, 4, 2, '#3d341a');
+  }
   function drawQBlock(q: Q) {
     const x = q.tx * TILE;
     const y = q.ty * TILE - (q.bump > 0 ? 4 : 0);
     if (q.kind === 'hidden' && !q.used) return;
     if (q.used) {
-      block(x, y, TILE, TILE, C.used);
-      block(x, y, TILE, 2, '#6b5a2c');
+      drawBrickTile(x, y, true);
       return;
     }
-    block(x, y, TILE, TILE, C.brick);
-    block(x, y, TILE, 2, C.brickHi);
-    block(x, y, 2, TILE, C.brickHi);
+    drawBrickTile(x, y);
     drawQuestionMark(x + 6, y + 3);
   }
   function drawPipe(px: number, ph: number) {
@@ -1303,18 +1514,79 @@ export function createMascotGame(): Game {
   }
   function drawCastle() {
     const bx = CASTLE_X;
-    const top = GROUND_TOP - 58;
-    block(bx, top, CASTLE_W, 58, C.stone);
-    block(bx, top, CASTLE_W, 3, C.stoneHi);
-    for (let i = 0; i < 5; i++) block(bx + i * 16, top - 8, 10, 8, C.stone);
-    block(bx + 10, top + 16, 6, 9, C.doorDark);
-    block(bx + CASTLE_W - 16, top + 16, 6, 9, C.doorDark);
-    block(bx + CASTLE_W / 2 - 10, GROUND_TOP - 28, 20, 28, C.doorDark);
-    block(bx + CASTLE_W / 2 - 7, GROUND_TOP - 24, 14, 24, '#160f06');
+    const top = GROUND_TOP - 64;
+    const stoneD = '#4b515a';
+    const stoneM = '#747982';
+    const stoneL = '#a8afb6';
+    const roof = '#8f3921';
+    const roofHi = '#df6a35';
+    const mortar = '#bec6ca';
+    const lit = celebrate ? C.starHi : C.cream;
+
+    // classic platformer silhouette: red caps, squat towers, simple readable blocks.
+    block(bx + 4, top + 30, 72, 34, stoneD);
+    block(bx + 7, top + 27, 66, 37, stoneM);
+    block(bx + 7, top + 27, 66, 3, stoneL);
+
+    for (const x of [bx + 7, bx + 25, bx + 47, bx + 65]) {
+      block(x, top + 18, 8, 10, stoneM);
+      block(x, top + 18, 8, 2, stoneL);
+    }
+    block(bx + 7, top + 26, 66, 2, mortar);
+    block(bx + 7, top + 30, 66, 2, stoneD);
+
+    // side towers with little red roofs.
+    for (const tx of [bx - 2, bx + 62]) {
+      block(tx, top + 23, 20, 41, stoneD);
+      block(tx + 2, top + 20, 16, 44, stoneM);
+      block(tx + 2, top + 20, 16, 3, stoneL);
+      block(tx, top + 16, 20, 5, roof);
+      block(tx + 3, top + 11, 14, 5, roof);
+      block(tx + 6, top + 7, 8, 4, roofHi);
+      block(tx + 5, top + 36, 8, 4, stoneL);
+      block(tx + 6, top + 50, 7, 3, stoneD);
+    }
+
+    // taller middle keep.
+    block(bx + 25, top + 13, 30, 51, stoneD);
+    block(bx + 28, top + 10, 24, 54, stoneM);
+    block(bx + 28, top + 10, 24, 3, stoneL);
+    block(bx + 24, top + 6, 32, 6, roof);
+    block(bx + 29, top + 1, 22, 5, roof);
+    block(bx + 34, top - 3, 12, 4, roofHi);
+    block(bx + 29, top + 24, 22, 3, mortar);
+    block(bx + 34, top + 30, 12, 9, C.doorDark);
+    block(bx + 36, top + 32, 8, 3, lit);
+
+    // masonry that reads as stone instead of a flat rectangle.
+    for (let r = 0; r < 4; r++) {
+      const y = top + 36 + r * 7;
+      const offset = r % 2 ? 9 : 0;
+      for (let x = bx + 10 + offset; x < bx + 70; x += 18) {
+        block(x, y, 9, 2, r % 2 ? stoneD : stoneL);
+      }
+    }
+    block(bx + 16, top + 42, 6, 10, C.doorDark);
+    block(bx + 58, top + 42, 6, 10, C.doorDark);
+    block(bx + 17, top + 43, 4, 2, lit);
+    block(bx + 59, top + 43, 4, 2, lit);
+
+    // arched, warm doorway: the castle is the place that finally pays the maintainer.
+    const doorX = bx + CASTLE_W / 2 - 12;
+    const doorY = GROUND_TOP - 31;
+    block(doorX - 2, doorY + 8, 28, 23, C.doorDark);
+    block(doorX + 2, doorY + 3, 20, 7, C.doorDark);
+    block(doorX + 1, doorY + 9, 22, 22, roof);
+    block(doorX + 4, doorY + 5, 16, 5, roof);
+    block(doorX + 5, doorY + 12, 14, 19, lit);
+    block(doorX + 7, doorY + 15, 10, 16, celebrate ? C.starHi : '#160f06');
+    block(doorX + 2, doorY + 10, 3, 21, roofHi);
+    block(doorX + 20, doorY + 10, 3, 21, roofHi);
     // the doorway warms up as you're hired (no flag — fireworks carry the win)
     if (celebrate) {
-      block(bx + CASTLE_W / 2 - 6, GROUND_TOP - 23, 12, 22, C.rent);
-      block(bx + CASTLE_W / 2 - 4, GROUND_TOP - 20, 8, 18, C.starHi);
+      block(doorX + 7, doorY + 15, 10, 16, C.starHi);
+      block(doorX + 10, doorY + 19, 4, 12, C.cream);
+      block(bx + 37, top + 16, 6, 3, C.starHi);
     }
   }
 
@@ -1353,8 +1625,7 @@ export function createMascotGame(): Game {
     const flick = Math.floor(boss.t / 8) % 2 === 0;
     drawBossLabel(x + boss.w / 2, y - 17, 'LAYOFF', flick);
   }
-  function drawBossLabel(cx: number, topY: number, label: string, flick: boolean) {
-    const s = 2;
+  function drawBossLabel(cx: number, topY: number, label: string, flick: boolean, s = 2) {
     const lw = label.length * 4 * s - s;
     const tx = Math.round(cx - lw / 2);
     block(tx - 3, topY - 2, lw + 6, 5 * s + 4, C.sign);
@@ -1369,6 +1640,84 @@ export function createMascotGame(): Game {
       block(f.x, f.y + (fl ? 0 : 1), 5, 4, C.pir);
       block(f.x + 1, f.y + 1, 3, 2, fl ? C.starHi : '#ffb24a');
     }
+  }
+
+  function drawVoidDragon() {
+    const x = voidDragon.x;
+    const y = voidDragon.y;
+    const step = Math.floor(voidDragon.t / 8) % 2;
+    block(x - 10, y + 20, 14, 5, C.pirD); // tail
+    block(x + 2, y + 10, 28, 18, C.shellD);
+    block(x + 4, y + 10, 24, 4, C.shell);
+    block(x + 12, y + 4, 4, 8, C.pir);
+    block(x + 20, y + 2, 4, 10, C.pir);
+    block(x + 29, y + 12, 18, 14, C.shell);
+    block(x + 34, y + 7, 7, 6, C.cream);
+    block(x + 34, y + 13, 3, 3, C.starHi);
+    block(x + 34, y + 13, 1, 3, C.pir);
+    if (voidDragon.mouth > 0) {
+      block(x + 45, y + 18, 12, 6, C.pir);
+      block(x + 52, y + 19, 6, 3, C.starHi);
+    } else {
+      block(x + 43, y + 21, 6, 1, C.ink);
+    }
+    block(x + 8, y + 28, 5, 7, C.shellD);
+    block(x + 24 + step, y + 28, 5, 7, C.shellD);
+    const label = 'BURNOUT';
+    const labelScale = 1;
+    const labelW = label.length * 4 * labelScale - labelScale;
+    const labelLeft = Math.round(x + 23 - labelW / 2) - 3;
+    const labelRight = labelLeft + labelW + 6;
+    if (labelLeft >= camX + 4 && labelRight <= camX + VIEW_W - 4) {
+      drawBossLabel(x + 23, y - 18, label, Math.floor(voidDragon.t / 9) % 2 === 0, labelScale);
+    }
+  }
+
+  function drawVoidWorld() {
+    const grad = ctx.createLinearGradient(0, 0, 0, VIEW_H);
+    grad.addColorStop(0, '#050606');
+    grad.addColorStop(0.62, '#0a0b12');
+    grad.addColorStop(1, '#12070a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = C.grassHi;
+    for (let i = 0; i < 18; i++) {
+      const x = (((i * 97 - camX * 0.36) % 1200) + 1200) % 1200;
+      ctx.fillRect(Math.round(x), 14 + ((i * 19) % 84), 1, 1);
+      ctx.fillRect(Math.round(x) + 24, 28 + ((i * 31) % 74), 2, 1);
+    }
+    ctx.globalAlpha = 1;
+
+    for (let i = -1; i < 24; i++) {
+      const x = Math.floor(camX / TILE) * TILE + i * TILE;
+      block(x, VOID_GROUND, TILE, 3, C.pirD);
+      block(x, VOID_GROUND + 3, TILE, 2, C.sign);
+    }
+
+    miniGame.voidSignLines.forEach((line, i) => {
+      const wx = 120 + i * 220;
+      const y = 58 + (i % 2) * 20;
+      const w = textW(line, 1) + 8;
+      block(wx - 4, y - 4, w, 13, C.sign);
+      block(wx - 4, y - 4, w, 1, i === 0 ? C.subs : i === 1 ? C.mobile : C.rent);
+      text(line, wx, y - 2, 1, C.starHi);
+    });
+
+    text(miniGame.voidTitle, camX + 12, 14, 2, C.rent);
+    text(miniGame.voidWarning.toUpperCase(), camX + 12, 36, 1, C.starHi);
+    const left = Math.max(0, Math.ceil((VOID_LIMIT_FRAMES - voidT) / 60));
+    text(String(left).padStart(2, '0'), camX + VIEW_W - 38, 14, 2, left <= 5 ? C.rent : C.starHi);
+
+    drawVoidDragon();
+    drawPlayer();
+    for (const p of particles) {
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 40));
+      text(p.text, p.x, p.y, 1, p.color);
+      ctx.globalAlpha = 1;
+    }
+    drawGameOverCurtain();
   }
 
   function drawWorld() {
@@ -1417,15 +1766,9 @@ export function createMascotGame(): Game {
         const key = kk(tx, ty);
         const y = ty * TILE - (brickBumps.get(key) ? 3 : 0);
         if (ty >= GROUND_ROW) {
-          block(x, y, TILE, TILE, C.dirt);
-          if (ty === GROUND_ROW) {
-            block(x, y, TILE, 4, C.grass);
-            block(x, y, TILE, 1, C.grassHi);
-          }
+          drawGroundTile(x, y, ty === GROUND_ROW);
         } else {
-          block(x, y, TILE, TILE, C.brick);
-          block(x, y, TILE, 2, C.brickHi);
-          block(x, y, 1, TILE, C.brickHi);
+          drawBrickTile(x, y);
         }
       }
     }
@@ -1435,6 +1778,11 @@ export function createMascotGame(): Game {
     for (const b of blockStars) {
       ctx.globalAlpha = Math.max(0, Math.min(1, b.life / 18));
       drawStar(b.x, b.y);
+      ctx.globalAlpha = 1;
+    }
+    for (const b of brickBits) {
+      ctx.globalAlpha = Math.max(0, Math.min(1, b.life / 14));
+      block(b.x, b.y, 5, 5, b.color);
       ctx.globalAlpha = 1;
     }
     for (const f of flowers) if (!f.got) drawFlower(f.x, f.y);
@@ -1489,6 +1837,25 @@ export function createMascotGame(): Game {
     if (alpha <= 0) return;
     ctx.fillStyle = `rgba(6, 18, 10, ${alpha.toFixed(3)})`;
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+  }
+  function drawTransition() {
+    if (!transition) return;
+    const p = 1 - transition.t / transition.duration;
+    const pulse = Math.sin(p * Math.PI);
+    const alpha = Math.max(0, Math.min(0.72, pulse * 0.72));
+    ctx.fillStyle = `rgba(6, 18, 10, ${alpha.toFixed(3)})`;
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    const labelColor =
+      transition.kind === 'death'
+        ? C.rent
+        : transition.kind === 'pipe' || transition.kind === 'void'
+          ? C.subs
+          : C.starHi;
+    ctx.globalAlpha = Math.max(0, Math.min(1, pulse));
+    const s = transition.label.length > 9 ? 1 : 2;
+    const w = textW(transition.label, s);
+    text(transition.label, camX + VIEW_W / 2 - w / 2, VIEW_H / 2 - 8, s, labelColor);
+    ctx.globalAlpha = 1;
   }
 
   // The maintainer: a dev in a hoodie (hood up → hides hair, so anyone can read
@@ -1598,12 +1965,24 @@ export function createMascotGame(): Game {
 
   function render() {
     ctx.imageSmoothingEnabled = false;
-    drawWorld();
+    if (state === 'void' || (deathScene === 'void' && (state === 'dying' || state === 'over'))) {
+      drawVoidWorld();
+    } else {
+      drawWorld();
+    }
+    drawTransition();
   }
 
   function updateHud() {
     if (starsEl) starsEl.textContent = String(stars);
-    if (livesEl) livesEl.textContent = lives > 0 ? '♥'.repeat(lives) : '—';
+    if (livesEl) {
+      livesEl.replaceChildren();
+      if (lives > 0) {
+        for (let i = 0; i < lives; i++) livesEl.appendChild(makeHeartIcon('life'));
+      } else {
+        livesEl.textContent = '—';
+      }
+    }
   }
   function makeStarIcon(label: string) {
     const star = document.createElement('span');
@@ -1612,16 +1991,32 @@ export function createMascotGame(): Game {
     star.setAttribute('aria-label', label);
     return star;
   }
+  function makeHeartIcon(label: string) {
+    const heart = document.createElement('span');
+    heart.className = 'mgame__heart';
+    heart.setAttribute('role', 'img');
+    heart.setAttribute('aria-label', label);
+    return heart;
+  }
+  function makeCheckIcon(label: string) {
+    const check = document.createElement('span');
+    check.className = 'mgame__check';
+    check.setAttribute('role', 'img');
+    check.setAttribute('aria-label', label);
+    return check;
+  }
   function showMsg(t: string, won: boolean) {
     if (!msgEl || !msgTextEl) return;
     msgTextEl.replaceChildren();
     const lines = t.split('\n');
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
       if (lineIndex > 0) msgTextEl.appendChild(document.createElement('br'));
-      const parts = lines[lineIndex].split('★');
-      for (let i = 0; i < parts.length; i++) {
-        if (parts[i]) msgTextEl.appendChild(document.createTextNode(parts[i]));
-        if (i < parts.length - 1) msgTextEl.appendChild(makeStarIcon('GitHub star'));
+      const parts = lines[lineIndex].split(/(\[star\]|\[check\]|★)/);
+      for (const part of parts) {
+        if (!part) continue;
+        if (part === '[star]' || part === '★') msgTextEl.appendChild(makeStarIcon('GitHub star'));
+        else if (part === '[check]') msgTextEl.appendChild(makeCheckIcon('funded'));
+        else msgTextEl.appendChild(document.createTextNode(part));
       }
     }
     msgEl.dataset.win = String(won);
@@ -1648,6 +2043,7 @@ export function createMascotGame(): Game {
 
   const isLeftKey = (k: string) => k === 'ArrowLeft' || k === 'a' || k === 'A';
   const isRightKey = (k: string) => k === 'ArrowRight' || k === 'd' || k === 'D';
+  const isDownKey = (k: string) => k === 'ArrowDown' || k === 's' || k === 'S';
   const isJumpKey = (k: string) =>
     k === ' ' || k === 'Spacebar' || k === 'ArrowUp' || k === 'w' || k === 'W';
   // collapse the synonyms so a single physical jump key is one source, but Space,
@@ -1658,18 +2054,21 @@ export function createMascotGame(): Game {
     if (!running) return;
     const k = e.key;
     if (isLeftKey(k)) {
-      if (state === 'play') setLeft(true);
+      if (state === 'play' || state === 'void') setLeft(true);
       e.preventDefault();
     } else if (isRightKey(k)) {
-      if (state === 'play') setRight(true);
+      if (state === 'play' || state === 'void') setRight(true);
+      e.preventDefault();
+    } else if (isDownKey(k)) {
+      if (state === 'play') setDown(true);
       e.preventDefault();
     } else if (isJumpKey(k)) {
-      if (state === 'play') jumpDown(jumpKeyId(k), !e.repeat);
-      else if (!e.repeat) restart();
+      if (state === 'play' || state === 'void') jumpDown(jumpKeyId(k), !e.repeat);
+      else if ((state === 'win' || state === 'over') && !e.repeat) restart();
       e.preventDefault();
     } else if (k === 'Escape') {
       close();
-    } else if (k === 'Enter' && state !== 'play' && !e.repeat) {
+    } else if (k === 'Enter' && (state === 'win' || state === 'over') && !e.repeat) {
       restart();
     }
   }
@@ -1677,18 +2076,23 @@ export function createMascotGame(): Game {
     const k = e.key;
     if (isLeftKey(k)) setLeft(false);
     else if (isRightKey(k)) setRight(false);
+    else if (isDownKey(k)) setDown(false);
     else if (isJumpKey(k)) jumpUp(jumpKeyId(k));
   }
 
   function build() {
+    const titleHtml = miniGame.title
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll(' ', '&nbsp;');
     root = document.createElement('div');
     root.className = 'mgame';
     root.setAttribute('role', 'dialog');
-    root.setAttribute('aria-label', 'Rent Run — a mini game');
+    root.setAttribute('aria-label', miniGame.ariaLabel);
     root.innerHTML = `
       <div class="mgame__cab">
         <div class="mgame__bar">
-          <span class="mgame__title font-pixel">RENT&nbsp;RUN</span>
+          <span class="mgame__title font-pixel">${titleHtml}</span>
           <span class="mgame__hud font-pixel"><span class="mgame__star" role="img" aria-label="GitHub stars"></span><span data-mgame-stars>0</span><span class="mgame__sep">·</span><span data-mgame-lives>♥♥♥</span></span>
           <button class="mgame__close" type="button" data-mgame-close aria-label="Close game">×</button>
         </div>
@@ -1823,9 +2227,11 @@ export function createMascotGame(): Game {
       stars,
       lives,
       state,
+      deathScene,
       power: player.power,
       onGround: player.onGround,
       jumpHeld,
+      downHeld,
       blockStars: blockStars.length,
       oneups: oneups.filter((u) => !u.got).length,
       projectScale: player.projectScale,
@@ -1835,6 +2241,9 @@ export function createMascotGame(): Game {
       poseT,
       endingT: enterT,
       overT,
+      pipeT,
+      voidT,
+      transition: transition ? transition.kind : 'none',
       messageVisible: Boolean(msgEl && !msgEl.hidden),
       dir: moveDir(),
       celebrate,
@@ -1854,6 +2263,8 @@ export function createMascotGame(): Game {
         __mgameSpawnExpense?: () => void;
         __mgameWarpBoss?: () => void;
         __mgameBumpBrick?: (tx?: number, ty?: number) => void;
+        __mgameEnterPipe?: () => void;
+        __mgameAdvanceVoid?: (frames?: number) => void;
         __mgameTriggerWin?: () => void;
         __mgameTriggerGameOver?: () => void;
       };
@@ -1882,6 +2293,22 @@ export function createMascotGame(): Game {
       };
       debugWindow.__mgameBumpBrick = (tx = 13, ty = 5) => {
         bumpBrick(tx, ty);
+      };
+      debugWindow.__mgameEnterPipe = () => {
+        const [px, ph] = PIPES[0];
+        const pipeX = px * TILE;
+        const top = (GROUND_ROW - ph) * TILE;
+        player.x = pipeX + TILE - player.w / 2;
+        player.y = top - player.h;
+        player.vx = 0;
+        player.vy = 0;
+        player.onGround = true;
+        camX = Math.max(0, Math.min(WORLD_W - VIEW_W, player.x + player.w / 2 - VIEW_W / 2));
+        startPipeDescent();
+      };
+      debugWindow.__mgameAdvanceVoid = (frames = VOID_LIMIT_FRAMES) => {
+        if (state !== 'void') startVoidChase();
+        for (let i = 0; i < frames && state === 'void'; i++) updateVoidChase();
       };
       debugWindow.__mgameTriggerWin = () => {
         player.x = CASTLE_X + 18 - player.w;
@@ -1912,7 +2339,9 @@ export function createMascotGame(): Game {
     cancelAnimationFrame(raf);
   }
   function restart() {
+    sound('restart');
     reset();
+    startTransition('restart', 'READY', TRANSITION_SHORT);
     startLoop();
   }
   function launch() {
@@ -1922,6 +2351,7 @@ export function createMascotGame(): Game {
       root.dataset.open = 'true';
       document.documentElement.classList.add('mgame-open');
       reset();
+      startTransition('launch', 'READY', TRANSITION_SHORT);
       startLoop();
       canvas.focus();
     } catch {

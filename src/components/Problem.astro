@@ -87,8 +87,8 @@ import { problem } from '../data/site';
   /* ---------- Stat grid ---------- */
   .problem__stats {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: clamp(0.9rem, 0.4rem + 1.6vw, 1.5rem);
+    grid-template-columns: minmax(0, var(--phi-major-fr)) repeat(3, minmax(0, var(--phi-minor-fr)));
+    gap: var(--phi-gap-sm);
     margin-top: clamp(2.25rem, 1.5rem + 3vw, 3.5rem);
   }
   .stat {
@@ -140,8 +140,8 @@ import { problem } from '../data/site';
   /* ---------- Points row ---------- */
   .problem__points {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: clamp(1.5rem, 0.5rem + 3vw, 3rem);
+    grid-template-columns: minmax(0, var(--phi-major-fr)) repeat(2, minmax(0, var(--phi-minor-fr)));
+    gap: var(--phi-gap-sm);
   }
   .point {
     display: flex;

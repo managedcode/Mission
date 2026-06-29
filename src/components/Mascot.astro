@@ -88,6 +88,7 @@ const cells = pixels
     height: var(--mascot-size, 56px);
     image-rendering: pixelated;
     image-rendering: crisp-edges;
+    transition: none;
   }
 
   /* Fixed bottom-left companion. Sits clear of the cursor + scroll bits. */
@@ -141,7 +142,7 @@ const cells = pixels
   }
   .mascot--roaming .mascot__sprite {
     transform: scaleX(var(--face, 1));
-    transition: transform 0.12s var(--ease-out);
+    transition: none;
   }
 
   /* Tiny RPG speech bubble */

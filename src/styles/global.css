@@ -75,6 +75,11 @@
   --space-3xl: 9rem;
 
   /* Structure */
+  --phi: 1.618;
+  --phi-major-fr: 1.618fr;
+  --phi-minor-fr: 1fr;
+  --phi-gap: clamp(1.618rem, 0.7rem + 3.2vw, 4.236rem);
+  --phi-gap-sm: clamp(1rem, 0.55rem + 1.618vw, 2.618rem);
   --maxw: 78rem;
   --maxw-prose: 44rem;
   --radius: 0px; /* sharp / pixel by default */
@@ -945,11 +950,17 @@ body::after {
   gap: 0.8rem;
 }
 .mgame__title {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: clamp(0.6rem, 0.5rem + 0.5vw, 0.82rem);
   color: var(--accent);
 }
 .mgame__hud {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 0.56em;
   font-size: 0.86rem;
@@ -982,11 +993,70 @@ body::after {
   margin-inline-end: -0.04em;
 }
 .mgame__hud [data-mgame-lives] {
-  font-size: 1.18em;
-  letter-spacing: 0.14em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18em;
+  min-inline-size: 4.2em;
+}
+.mgame__heart {
+  display: inline-block;
+  inline-size: 1.22em;
+  block-size: 1.08em;
+  flex: none;
+  background: currentColor;
+  clip-path: polygon(
+    50% 100%,
+    8% 58%,
+    0 28%,
+    10% 8%,
+    31% 0,
+    50% 15%,
+    69% 0,
+    90% 8%,
+    100% 28%,
+    92% 58%
+  );
+  filter: drop-shadow(0.08em 0.08em 0 color-mix(in srgb, var(--bg) 70%, transparent));
 }
 .mgame__msg-text .mgame__star {
-  margin-inline: 0.15em;
+  inline-size: 1.12em;
+  block-size: 1.12em;
+  margin-inline: 0.22em;
+  vertical-align: -0.12em;
+}
+.mgame__check {
+  display: inline-block;
+  inline-size: 1.08em;
+  block-size: 0.82em;
+  margin-inline: 0.2em;
+  vertical-align: -0.04em;
+  background: currentColor;
+  clip-path: polygon(
+    0 52%,
+    19% 52%,
+    19% 68%,
+    34% 68%,
+    34% 84%,
+    50% 84%,
+    50% 68%,
+    66% 68%,
+    66% 50%,
+    82% 50%,
+    82% 34%,
+    100% 34%,
+    100% 52%,
+    84% 52%,
+    84% 68%,
+    68% 68%,
+    68% 84%,
+    52% 84%,
+    52% 100%,
+    32% 100%,
+    32% 84%,
+    16% 84%,
+    16% 68%,
+    0 68%
+  );
 }
 .mgame__sep {
   color: var(--fg-faint);
@@ -1099,7 +1169,8 @@ body::after {
   white-space: pre-line;
 }
 .mgame__msg[data-win='false'] .mgame__msg-text {
-  color: var(--accent-2);
+  color: color-mix(in srgb, var(--accent-2) 72%, var(--paper) 28%);
+  text-shadow: 0.12em 0.12em 0 #06120a;
 }
 .mgame__msg-actions {
   display: flex;

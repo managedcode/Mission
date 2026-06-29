@@ -287,6 +287,26 @@ const barLabel = `${pct}% of the launch funding goal committed`;
   }
 
   /* ---------- Responsive ---------- */
+  @media (min-width: 56rem) {
+    .funding__meter {
+      grid-template-columns: minmax(0, var(--phi-minor-fr)) minmax(0, var(--phi-major-fr));
+      column-gap: var(--phi-gap);
+      align-items: end;
+      max-width: 64rem;
+    }
+    .funding__readout {
+      grid-row: 1 / 4;
+      align-self: end;
+      display: grid;
+      gap: var(--space-xs);
+    }
+    .funding__bar,
+    .funding__labels,
+    .funding__action {
+      grid-column: 2;
+    }
+  }
+
   @media (max-width: 40rem) {
     .funding__pct {
       font-size: var(--step-6);

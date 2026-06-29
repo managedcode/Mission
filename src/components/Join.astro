@@ -124,8 +124,10 @@ const contactHref = `#${join.contact.anchorId}`;
   /* ---------- Cards ---------- */
   .join__grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: clamp(1rem, 0.6rem + 1.6vw, 1.75rem);
+    grid-template-columns:
+      minmax(0, var(--phi-minor-fr)) minmax(0, var(--phi-major-fr))
+      minmax(0, var(--phi-minor-fr));
+    gap: var(--phi-gap-sm);
   }
   .join__card {
     /* Softer than the pricing tiers: raised fill, light hairline, gentle lift. */

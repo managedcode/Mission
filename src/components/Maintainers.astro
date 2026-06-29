@@ -152,8 +152,8 @@ import { team, site } from '../data/site';
   /* ---------- Project grid ---------- */
   .team__grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: clamp(1rem, 0.6rem + 1.4vw, 1.6rem);
+    grid-template-columns: minmax(0, var(--phi-major-fr)) repeat(2, minmax(0, var(--phi-minor-fr)));
+    gap: var(--phi-gap-sm);
     margin-top: var(--space-xl);
   }
   .team__grid > li {
@@ -267,7 +267,7 @@ import { team, site } from '../data/site';
   }
   .team__stats {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: minmax(0, var(--phi-major-fr)) repeat(3, minmax(0, var(--phi-minor-fr)));
     gap: var(--space-l) var(--space-m);
   }
   .team__stat {
@@ -299,8 +299,8 @@ import { team, site } from '../data/site';
   /* ---------- Who we hire ---------- */
   .team__hire {
     display: grid;
-    grid-template-columns: 1.2fr 1fr;
-    gap: clamp(1.5rem, 0.5rem + 4vw, 4rem);
+    grid-template-columns: minmax(0, var(--phi-major-fr)) minmax(0, var(--phi-minor-fr));
+    gap: var(--phi-gap);
     align-items: start;
   }
   .team__hire-text {
