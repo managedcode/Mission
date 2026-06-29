@@ -476,11 +476,13 @@ function initJoinContact() {
   const selectedPrefix = status.dataset.selectedPrefix ?? 'Email subject:';
   const copiedPrefix = status.dataset.copiedPrefix ?? 'Copied email and subject:';
   const fallbackPrefix = status.dataset.copyFallbackPrefix ?? 'Use email and subject:';
+  let selectionVersion = 0;
 
   document.querySelectorAll<HTMLAnchorElement>('[data-join-contact-cta]').forEach((link) => {
     if (link.dataset.joinContactReady === 'true') return;
     link.dataset.joinContactReady = 'true';
     link.addEventListener('click', () => {
+      const version = ++selectionVersion;
       const subject = link.dataset.contactSubject ?? '';
       const copyText = [email, subject ? `Subject: ${subject}` : ''].filter(Boolean).join('\n');
 
@@ -497,11 +499,13 @@ function initJoinContact() {
       void navigator.clipboard
         .writeText(copyText)
         .then(() => {
+          if (version !== selectionVersion) return;
           status.textContent = subject
             ? `${copiedPrefix} ${email} — ${subject}`
             : `${copiedPrefix} ${email}`;
         })
         .catch(() => {
+          if (version !== selectionVersion) return;
           status.textContent = subject
             ? `${fallbackPrefix} ${email} — ${subject}`
             : `${fallbackPrefix} ${email}`;
