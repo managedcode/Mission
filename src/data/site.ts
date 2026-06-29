@@ -53,13 +53,98 @@ export const miniGame = {
   title: 'MAINTAINER DAY',
   ariaLabel: 'Maintainer Day - mini game',
   controlsHintHtml:
-    '←/→ or A/D move&nbsp;·&nbsp;Space/↑/W or JUMP leap&nbsp;·&nbsp;↓/S enters pipes&nbsp;·&nbsp;Esc quits',
+    '←/→ or A/D move/backpedal&nbsp;·&nbsp;Space/↑/W or JUMP leap&nbsp;·&nbsp;↓/S enters pipes&nbsp;·&nbsp;Esc quits',
   voidTitle: 'BURNOUT',
   voidSubtitle: 'endless micro-optimizations and useless features',
-  voidWarning: 'burnout is catching up. run.',
-  voidSignLines: ['ENDLESS MICRO OPTS', 'USELESS FEATURES', 'NOBODY ASKED'],
-  voidGameOver:
-    'BURNED OUT\nyou ran for 15 seconds on vibes and unpaid work.\nnobody funded the maintainer.',
+  voidWarning: 'burnout is behind you. keep moving.',
+  voidSignLines: ['KEEP MOVING', 'OUTRUN BURNOUT', 'IT CATCHES UP'],
+  voidGameOverTitle: 'BURNED OUT',
+  voidGameOverPrefix: 'you lasted',
+  voidSecondLabel: 'second',
+  voidSecondsLabel: 'seconds',
+  voidSecondsShortLabel: 'SEC',
+  winFinale: {
+    title: "YOU'RE FUNDED [check]",
+    lead: 'welcome to ManagedCode - glad to have you here.',
+    detail: 'you kept it alive for years. now the work is paid.',
+    stars: '[star] stars are applause. patronage pays maintainers. →',
+  },
+  gameOverFinales: [
+    {
+      title: 'ARCHIVED REPO',
+      main: 'you archived the repo.',
+      void: 'the repo still went read-only.',
+      detail: 'an enterprise still ships it in prod - for free.',
+    },
+    {
+      title: 'STALE BOT WON',
+      main: 'the stale bot closed the last real bug.',
+      void: 'automation kept smiling while the queue grew.',
+      detail: 'nobody noticed until the next deploy broke.',
+    },
+    {
+      title: 'FREE SLA',
+      main: 'someone demanded a same-day fix for $0.',
+      void: 'the free SLA still followed you home.',
+      detail: 'their incident became your unpaid weekend.',
+    },
+    {
+      title: 'SECURITY FRIDAY',
+      main: 'the CVE arrived at 4:59 on Friday.',
+      void: 'the advisory arrived faster than help did.',
+      detail: 'everyone needed a patch; nobody funded the patch.',
+    },
+    {
+      title: 'PR QUEUE',
+      main: 'the PR queue became a second job.',
+      void: 'review debt kept sprinting behind you.',
+      detail: 'tiny fixes still needed taste, tests, and releases.',
+    },
+    {
+      title: 'QUICK FIX',
+      main: 'the quick fix had five hidden migrations.',
+      void: 'the quick fix brought its own backlog.',
+      detail: 'one line became a week of compatibility work.',
+    },
+    {
+      title: 'BUS FACTOR 1',
+      main: 'the only maintainer stopped answering.',
+      void: 'bus factor one finally caught up.',
+      detail: 'the project did not fail loudly; it just went quiet.',
+    },
+    {
+      title: 'RELEASE NEVER',
+      main: 'the release train waited for one tired human.',
+      void: 'the unreleased patch kept aging behind you.',
+      detail: 'green CI is not the same as maintained.',
+    },
+    {
+      title: 'ISSUE FLOOD',
+      main: 'the issue tracker filled with duplicate reports.',
+      void: 'the duplicate reports learned to run.',
+      detail: 'triage is work, even when the answer is no.',
+    },
+    {
+      title: 'WEEKEND PAGED',
+      main: 'your hobby found your weekend again.',
+      void: 'the weekend pager knew your route.',
+      detail: 'popular dependencies do not stay hobbies for long.',
+    },
+  ],
+} as const;
+
+export const mascotCompanion = {
+  ctaQuip: 'fund me?',
+  idleQuips: [
+    'new project?',
+    'rewrite it in rust?',
+    'who maintains this?',
+    'still unpaid.',
+    'someone has to.',
+    'closing as wontfix',
+    'just one more refactor',
+    'ship it',
+  ],
 } as const;
 
 // Absolute-to-home anchors so the shared header/footer nav also works from
@@ -498,8 +583,7 @@ export const faq = {
 export const finalCta = {
   kicker: 'The trade',
   heading: 'Put a funded maintainer behind your stack.',
-  lede:
-    'The open source your product runs on shouldn’t hang on a volunteer’s spare time. Fund maintained code your team can rely on.',
+  lede: 'The open source your product runs on shouldn’t hang on a volunteer’s spare time. Fund maintained code your team can rely on.',
   primary: { label: 'Become a patron', href: '#apply' },
   secondary: { label: 'Talk to us', href: '#join-contact' },
 } as const;

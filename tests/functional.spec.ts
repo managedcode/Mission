@@ -5,6 +5,11 @@ const NAV_ANCHORS = ['#manifesto', '#how', '#maintainers', '#patronage', '#faq']
 const MOBILE_WIDTHS = [320, 360, 375, 390, 414, 430] as const;
 const MOBILE_PATHS = ['/', '/patrons', '/projects', '/team', '/404'] as const;
 const MOBILE_AUDIT_HEIGHT = 844;
+const DESKTOP_AUDIT_VIEWPORT = { width: 1440, height: 900 } as const;
+
+async function useDesktopAuditViewport(page: import('@playwright/test').Page): Promise<void> {
+  await page.setViewportSize(DESKTOP_AUDIT_VIEWPORT);
+}
 
 function rgb(color: string): [number, number, number] {
   const channels = color.match(/[\d.]+/g)?.map(Number) ?? [];
@@ -215,6 +220,34 @@ test.describe('Home page · structure & SEO', () => {
     expect(errors, `console errors: ${errors.join(' | ')}`).toHaveLength(0);
   });
 
+  test('persisted sound preference does not start WebAudio before a gesture @desktop', async ({
+    page,
+  }) => {
+    await useDesktopAuditViewport(page);
+
+    const audioWarnings: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'warning' && msg.text().includes('AudioContext')) {
+        audioWarnings.push(msg.text());
+      }
+    });
+
+    await page.addInitScript(() => {
+      localStorage.setItem('mission-sound', 'on');
+    });
+    await page.goto('/', { waitUntil: 'networkidle' });
+
+    await expect(page.locator('[data-sound-toggle]')).toBeVisible();
+    await expect(page.locator('.site-header .btn--accent')).toHaveCount(1);
+    await page.locator('.site-header .btn--accent').hover();
+    await page.waitForTimeout(50);
+    expect(audioWarnings, `AudioContext warnings: ${audioWarnings.join(' | ')}`).toHaveLength(0);
+
+    await page.locator('[data-theme-toggle]').click();
+    await page.waitForTimeout(50);
+    expect(audioWarnings, `AudioContext warnings: ${audioWarnings.join(' | ')}`).toHaveLength(0);
+  });
+
   test('motto copy promises maintained open source instead of pass-it-on charity', async ({
     page,
   }) => {
@@ -283,8 +316,10 @@ test.describe('Home page · structure & SEO', () => {
     expect([...offenders, ...pseudoOffenders]).toEqual([]);
   });
 
-  test('how-it-works cards align with the section text column on desktop', async ({ page }) => {
-    test.skip(!test.info().project.name.startsWith('desktop'), 'desktop alignment only');
+  test('how-it-works cards align with the section text column on desktop @desktop', async ({
+    page,
+  }) => {
+    await useDesktopAuditViewport(page);
 
     await page.goto('/#how');
     await prepareForResponsiveAudit(page);
@@ -305,8 +340,8 @@ test.describe('Home page · structure & SEO', () => {
     expect(Math.abs(metrics.cardLeft - metrics.headingLeft)).toBeLessThanOrEqual(1);
   });
 
-  test('manifesto keeps breathing room above the bottom pixel word', async ({ page }) => {
-    test.skip(!test.info().project.name.startsWith('desktop'), 'desktop manifesto composition');
+  test('manifesto keeps breathing room above the bottom pixel word @desktop', async ({ page }) => {
+    await useDesktopAuditViewport(page);
 
     await page.goto('/#manifesto');
     await prepareForResponsiveAudit(page);
@@ -333,13 +368,10 @@ test.describe('Home page · structure & SEO', () => {
     expect(spacing.stampToGhost).toBeGreaterThanOrEqual(48);
   });
 
-  test('mascot speech bubble and sprite keep readable contrast on inverted sections', async ({
+  test('mascot speech bubble and sprite keep readable contrast on inverted sections @desktop', async ({
     page,
   }) => {
-    test.skip(
-      !test.info().project.name.startsWith('desktop'),
-      'corner mascot is hidden on narrow viewports'
-    );
+    await useDesktopAuditViewport(page);
 
     await page.goto('/');
     await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
@@ -393,6 +425,67 @@ test.describe('Home page · structure & SEO', () => {
     );
     expect(bubbleBox?.x ?? -1).toBeGreaterThanOrEqual(0);
     expect((bubbleBox?.x ?? 0) + (bubbleBox?.width ?? 0)).toBeLessThanOrEqual(viewport?.width ?? 0);
+  });
+
+  test('corner mascot runs toward the mouse on desktop when roaming is enabled @desktop', async ({
+    page,
+  }) => {
+    await useDesktopAuditViewport(page);
+
+    await page.addInitScript(() => {
+      (
+        window as Window & {
+          __missionMascotRoamingTest?: boolean;
+        }
+      ).__missionMascotRoamingTest = true;
+    });
+    await page.goto('/');
+    await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
+
+    const mascot = page.locator('[data-mascot]');
+    await expect(mascot).toHaveClass(/mascot--roaming/);
+
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(() =>
+            Number(
+              getComputedStyle(document.querySelector<HTMLElement>('[data-mascot]')!)
+                .getPropertyValue('--mx')
+                .trim()
+            )
+          ),
+        { timeout: 1000 }
+      )
+      .toBeGreaterThan(0);
+
+    await page.mouse.move(640, 500);
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(() =>
+            Number(
+              getComputedStyle(document.querySelector<HTMLElement>('[data-mascot]')!)
+                .getPropertyValue('--mx')
+                .trim()
+            )
+          ),
+        { timeout: 3000 }
+      )
+      .toBeGreaterThan(120);
+
+    await page.mouse.move(40, 500);
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(() =>
+            getComputedStyle(document.querySelector<HTMLElement>('.mascot__sprite')!)
+              .getPropertyValue('--face')
+              .trim()
+          ),
+        { timeout: 3000 }
+      )
+      .toBe('-1');
   });
 });
 
@@ -470,14 +563,7 @@ test.describe('Mobile navigation', () => {
 });
 
 test.describe('Mobile viewport coverage', () => {
-  test('key pages stay readable from 320px through large-phone widths', async ({
-    page,
-  }, testInfo) => {
-    test.skip(
-      testInfo.project.name !== 'desktop',
-      'Runs once with explicit viewport sizes; visual/perf specs cover the full device matrix.'
-    );
-
+  test('key pages stay readable from 320px through large-phone widths', async ({ page }) => {
     for (const path of MOBILE_PATHS) {
       for (const width of MOBILE_WIDTHS) {
         await page.setViewportSize({ width, height: MOBILE_AUDIT_HEIGHT });
@@ -498,7 +584,9 @@ test.describe('Mobile viewport coverage', () => {
 
 test.describe('Mission Run mini-game', () => {
   type MissionRunState = {
+    x: number;
     y: number;
+    vx?: number;
     w: number;
     h: number;
     lives: number;
@@ -509,20 +597,44 @@ test.describe('Mission Run mini-game', () => {
     blocks?: Array<{ tx: number; ty: number; kind: string; used: boolean }>;
     brickBumps?: string[];
     brokenBricks?: string[];
-    enemies?: Array<{ t: string; x: number; label?: string; tone?: string }>;
+    enemies?: Array<{ t: string; x: number; y?: number; label?: string; tone?: string }>;
+    pipeBills?: Array<{
+      x: number;
+      y: number;
+      pipeX: number;
+      label?: string;
+      tone?: string;
+      emerged: number;
+      visible: boolean;
+      dangerous: boolean;
+      blocked: boolean;
+    }>;
     pose?: string;
     poseT?: number;
     endingT?: number;
     overT?: number;
     pipeT?: number;
+    activePipe?: { px: number; ph: number } | null;
+    pipeX?: number | null;
+    pipeTop?: number | null;
+    pipeOccluded?: boolean;
+    camX?: number;
     voidT?: number;
+    voidSeconds?: number;
+    voidDragonX?: number;
+    voidGap?: number;
     deathScene?: string;
     transition?: string;
     messageVisible?: boolean;
+    finaleCount?: number;
+    finaleIndex?: number;
+    messageText?: string;
   };
 
-  test('expense enemies are household bills and regular bricks can be bumped', async ({ page }) => {
-    test.skip(!test.info().project.name.startsWith('desktop'), 'keyboard-only game path');
+  test('expense enemies are household bills and regular bricks can be bumped @desktop', async ({
+    page,
+  }) => {
+    await useDesktopAuditViewport(page);
 
     await page.goto('/');
     await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
@@ -567,8 +679,62 @@ test.describe('Mission Run mini-game', () => {
     expect(bumped?.brokenBricks).toContain('13:5');
   });
 
-  test('pipe descent enters BURNOUT and burns out after the chase timer', async ({ page }) => {
-    test.skip(!test.info().project.name.startsWith('desktop'), 'keyboard-only game path');
+  test('pipe bill stays readable near the player and hides its tag only inside the pipe @desktop', async ({
+    page,
+  }) => {
+    await useDesktopAuditViewport(page);
+
+    await page.goto('/');
+    await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
+    await page.locator('[data-mascot]').click({ force: true });
+
+    const readGame = () =>
+      page.evaluate(() => {
+        const state = (
+          window as Window & {
+            __mgame?: () => MissionRunState;
+          }
+        ).__mgame?.();
+        return state ?? null;
+      });
+
+    await expect.poll(async () => (await readGame())?.onGround, { timeout: 3000 }).toBe(true);
+
+    await page.evaluate(() => {
+      const w = window as Window & {
+        __mgameWarpNearPipeBill?: () => void;
+        __mgameAdvancePlay?: (frames?: number) => void;
+      };
+      w.__mgameWarpNearPipeBill?.();
+      w.__mgameAdvancePlay?.(24);
+    });
+
+    const nearPipe = await readGame();
+    const mobileBill = nearPipe?.pipeBills?.find((bill) => bill.label === 'MOBILE');
+    expect(mobileBill?.blocked).toBe(false);
+    expect(mobileBill?.visible).toBe(true);
+    expect(mobileBill?.emerged ?? 0).toBeGreaterThan(0.35);
+
+    await page.evaluate(() => {
+      const w = window as Window & {
+        __mgameEnterPipe?: () => void;
+        __mgameAdvancePipe?: (frames?: number) => void;
+      };
+      w.__mgameEnterPipe?.();
+      w.__mgameAdvancePipe?.(24);
+    });
+
+    const enteringPipe = await readGame();
+    const hiddenMobileBill = enteringPipe?.pipeBills?.find((bill) => bill.label === 'MOBILE');
+    expect(hiddenMobileBill?.blocked).toBe(true);
+    expect(hiddenMobileBill?.visible).toBe(false);
+    expect(hiddenMobileBill?.dangerous).toBe(false);
+  });
+
+  test('pipe descent enters BURNOUT and the survival chase eventually catches the maintainer @desktop', async ({
+    page,
+  }) => {
+    await useDesktopAuditViewport(page);
 
     await page.goto('/');
     await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
@@ -589,12 +755,55 @@ test.describe('Mission Run mini-game', () => {
     await page.evaluate(() => {
       (
         window as Window & {
+          __mgameForceFinale?: (index?: number | null) => void;
+          __mgameEnterPipe?: () => void;
+        }
+      ).__mgameForceFinale?.(0);
+      (
+        window as Window & {
           __mgameEnterPipe?: () => void;
         }
       ).__mgameEnterPipe?.();
     });
 
     await expect.poll(async () => (await readGame())?.state, { timeout: 1000 }).toBe('pipe');
+
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __mgameAdvancePipe?: (frames?: number) => void;
+        }
+      ).__mgameAdvancePipe?.(18);
+    });
+    const pipeMid = await readGame();
+    expect(pipeMid?.state).toBe('pipe');
+    expect(pipeMid?.pipeOccluded).toBe(true);
+    expect(pipeMid?.activePipe).toEqual({ px: 24, ph: 2 });
+    expect(pipeMid?.y ?? 0).toBeGreaterThan(pipeMid?.pipeTop ?? Number.POSITIVE_INFINITY);
+
+    const pipeMouthPixel = await page.evaluate(() => {
+      const state = (
+        window as Window & {
+          __mgame?: () => MissionRunState;
+        }
+      ).__mgame?.();
+      const canvas = document.querySelector<HTMLCanvasElement>('[data-mgame-canvas]');
+      const context = canvas?.getContext('2d');
+      const pipeX = state?.pipeX;
+      const pipeTop = state?.pipeTop;
+      if (!context || pipeX == null || pipeTop == null) return null;
+      const x = Math.round(pipeX - (state?.camX ?? 0) + 16);
+      const y = Math.round(pipeTop + 8);
+      return Array.from(context.getImageData(x, y, 1, 1).data.slice(0, 3));
+    });
+    expect(pipeMouthPixel).not.toBeNull();
+    const [pipeMouthR, pipeMouthG, pipeMouthB] = pipeMouthPixel ?? [0, 0, 0];
+    expect(pipeMouthR).toBeLessThanOrEqual(12);
+    expect(pipeMouthG).toBeGreaterThanOrEqual(45);
+    expect(pipeMouthG).toBeLessThanOrEqual(60);
+    expect(pipeMouthB).toBeGreaterThanOrEqual(22);
+    expect(pipeMouthB).toBeLessThanOrEqual(32);
+
     await page.evaluate(() => {
       (
         window as Window & {
@@ -606,22 +815,122 @@ test.describe('Mission Run mini-game', () => {
 
     const voidStart = await readGame();
     expect(voidStart?.deathScene).toBe('void');
+    expect(voidStart?.voidGap ?? 0).toBeGreaterThan(120);
 
     await page.evaluate(() => {
-      (
-        window as Window & {
-          __mgameAdvanceVoid?: (frames?: number) => void;
-        }
-      ).__mgameAdvanceVoid?.();
+      const w = window as Window & {
+        __mgameAdvanceVoid?: (frames?: number) => void;
+        __mgameHoldVoidDirection?: (dir?: -1 | 0 | 1) => void;
+      };
+      w.__mgameHoldVoidDirection?.(1);
+      w.__mgameAdvanceVoid?.(15 * 60);
+    });
+
+    const afterFifteenSeconds = await readGame();
+    expect(afterFifteenSeconds?.state).toBe('void');
+    expect(afterFifteenSeconds?.voidSeconds ?? 0).toBeGreaterThanOrEqual(15);
+    expect(afterFifteenSeconds?.x ?? 0).toBeGreaterThan((voidStart?.x ?? 0) + 100);
+    expect(afterFifteenSeconds?.voidGap ?? 0).toBeGreaterThan(26);
+
+    await page.evaluate(() => {
+      const w = window as Window & {
+        __mgameAdvanceVoid?: (frames?: number) => void;
+        __mgameHoldVoidDirection?: (dir?: -1 | 0 | 1) => void;
+      };
+      w.__mgameHoldVoidDirection?.(-1);
+      w.__mgameAdvanceVoid?.(45);
+      w.__mgameHoldVoidDirection?.(1);
+    });
+
+    const afterBackpedal = await readGame();
+    expect(afterBackpedal?.state).toBe('void');
+    expect(afterBackpedal?.vx ?? 0).toBeLessThan(afterFifteenSeconds?.vx ?? 0);
+
+    await page.evaluate(() => {
+      const w = window as Window & {
+        __mgameAdvanceVoid?: (frames?: number) => void;
+      };
+      w.__mgameAdvanceVoid?.();
     });
 
     await expect.poll(async () => (await readGame())?.state, { timeout: 1000 }).toBe('dying');
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __mgameAdvanceGameOver?: (frames?: number) => void;
+        }
+      ).__mgameAdvanceGameOver?.();
+    });
     await expect.poll(async () => (await readGame())?.state, { timeout: 5000 }).toBe('over');
-    await expect(page.locator('[data-mgame-msgtext]')).toContainText('BURNED OUT');
+    await expect(page.locator('[data-mgame-msgtext]')).toContainText('ARCHIVED REPO');
+    await expect(page.locator('[data-mgame-msgtext]')).toContainText('you lasted');
+    await expect(page.locator('[data-mgame-msgtext]')).toContainText(
+      'the repo still went read-only'
+    );
   });
 
-  test('holding Space extends one jump without auto-jumping on landing', async ({ page }) => {
-    test.skip(!test.info().project.name.startsWith('desktop'), 'keyboard-only game path');
+  test('loss card can render ten distinct maintainer-burnout finales @desktop', async ({
+    page,
+  }) => {
+    await useDesktopAuditViewport(page);
+
+    await page.goto('/');
+    await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
+    await page.locator('[data-mascot]').click({ force: true });
+
+    const readGame = () =>
+      page.evaluate(() => {
+        const state = (
+          window as Window & {
+            __mgame?: () => MissionRunState;
+          }
+        ).__mgame?.();
+        return state ?? null;
+      });
+
+    await expect.poll(async () => (await readGame())?.onGround, { timeout: 3000 }).toBe(true);
+    await expect.poll(async () => (await readGame())?.finaleCount, { timeout: 1000 }).toBe(10);
+    const finaleCount = (await readGame())?.finaleCount ?? 0;
+
+    const seen = new Set<string>();
+    for (let index = 0; index < finaleCount; index++) {
+      await page.evaluate((finaleIndex) => {
+        const w = window as Window & {
+          __mgameForceFinale?: (index?: number | null) => void;
+          __mgameTriggerGameOver?: () => void;
+          __mgameAdvanceGameOver?: (frames?: number) => void;
+        };
+        w.__mgameForceFinale?.(finaleIndex);
+        w.__mgameTriggerGameOver?.();
+        w.__mgameAdvanceGameOver?.();
+      }, index);
+
+      await expect.poll(async () => (await readGame())?.state, { timeout: 1000 }).toBe('over');
+      await expect
+        .poll(async () => (await readGame())?.messageVisible, { timeout: 1000 })
+        .toBe(true);
+
+      const message = (await page.locator('[data-mgame-msgtext]').innerText())
+        .replace(/\s+/g, ' ')
+        .trim();
+      expect(message.length).toBeGreaterThan(40);
+      expect(seen.has(message), `finale ${index} repeated: ${message}`).toBe(false);
+      seen.add(message);
+
+      if (index < finaleCount - 1) {
+        await page.locator('[data-mgame-again]').click();
+        await expect.poll(async () => (await readGame())?.state, { timeout: 1000 }).toBe('play');
+        await expect.poll(async () => (await readGame())?.onGround, { timeout: 3000 }).toBe(true);
+      }
+    }
+
+    expect(seen.size).toBe(10);
+  });
+
+  test('holding Space extends one jump without auto-jumping on landing @desktop', async ({
+    page,
+  }) => {
+    await useDesktopAuditViewport(page);
 
     await page.goto('/');
     await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
@@ -696,10 +1005,10 @@ test.describe('Mission Run mini-game', () => {
     });
   });
 
-  test('NEW PROJECT IDEA doubles the maintainer; contact shrinks before losing a life', async ({
+  test('NEW PROJECT IDEA doubles the maintainer; contact shrinks before losing a life @desktop', async ({
     page,
   }) => {
-    test.skip(!test.info().project.name.startsWith('desktop'), 'keyboard-only game path');
+    await useDesktopAuditViewport(page);
 
     await page.goto('/');
     await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
@@ -753,8 +1062,10 @@ test.describe('Mission Run mini-game', () => {
     expect(afterContact?.poseT).toBeGreaterThan(0);
   });
 
-  test('win and loss finales wait for a visible beat before showing the card', async ({ page }) => {
-    test.skip(!test.info().project.name.startsWith('desktop'), 'keyboard-only game path');
+  test('win and loss finales wait for a visible beat before showing the card @desktop', async ({
+    page,
+  }) => {
+    await useDesktopAuditViewport(page);
 
     await page.goto('/');
     await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
@@ -829,6 +1140,14 @@ test.describe('Mission Run mini-game', () => {
     expect(lossStart?.messageVisible).toBe(false);
     expect(lossStart?.pose).toBe('death-squash');
 
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __mgameAdvanceGameOver?: (frames?: number) => void;
+        }
+      ).__mgameAdvanceGameOver?.(14);
+    });
+
     await expect
       .poll(
         async () => {
@@ -842,10 +1161,24 @@ test.describe('Mission Run mini-game', () => {
     const lossFlight = await readGame();
     expect(lossFlight?.y ?? Infinity).toBeLessThan(lossStart?.y ?? 0);
 
-    await page.waitForTimeout(600);
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __mgameAdvanceGameOver?: (frames?: number) => void;
+        }
+      ).__mgameAdvanceGameOver?.(60);
+    });
     const midLoss = await readGame();
     expect(midLoss?.state).toBe('dying');
     expect(midLoss?.messageVisible).toBe(false);
+
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __mgameAdvanceGameOver?: (frames?: number) => void;
+        }
+      ).__mgameAdvanceGameOver?.();
+    });
 
     await expect
       .poll(
@@ -910,8 +1243,8 @@ test.describe('Patronage tiers', () => {
 });
 
 test.describe('CTA interactions', () => {
-  test('hash anchor settling stops after manual scroll input', async ({ page }) => {
-    test.skip(!test.info().project.name.startsWith('desktop'), 'wheel regression is desktop-only');
+  test('hash anchor settling stops after manual scroll input @desktop', async ({ page }) => {
+    await useDesktopAuditViewport(page);
 
     await page.goto('/');
     await page.evaluate(() => {
@@ -938,8 +1271,10 @@ test.describe('CTA interactions', () => {
     expect(afterSettleWindow).toBeGreaterThanOrEqual(afterWheel - 4);
   });
 
-  test('join cards keep equal desktop geometry without a featured card', async ({ page }) => {
-    test.skip(!test.info().project.name.startsWith('desktop'), 'three-column layout only');
+  test('join cards keep equal desktop geometry without a featured card @desktop', async ({
+    page,
+  }) => {
+    await useDesktopAuditViewport(page);
 
     await page.goto('/#join');
     await prepareForResponsiveAudit(page);
@@ -1269,8 +1604,10 @@ test.describe('Secondary pages', () => {
     );
   });
 
-  test('footer keeps desktop utility columns readable without forced wraps', async ({ page }) => {
-    test.skip(!test.info().project.name.startsWith('desktop'), 'desktop footer layout only');
+  test('footer keeps desktop utility columns readable without forced wraps @desktop', async ({
+    page,
+  }) => {
+    await useDesktopAuditViewport(page);
 
     await page.goto('/');
     await prepareForResponsiveAudit(page);

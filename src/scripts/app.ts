@@ -2,6 +2,7 @@
    MISSION · client interactivity. Progressive, reduced-motion-safe.
    ================================================================= */
 
+import { mascotCompanion } from '../data/site';
 import { createMascotGame } from './game';
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -24,6 +25,7 @@ declare global {
   interface Window {
     clarity?: (...args: unknown[]) => void;
     gtag?: (...args: unknown[]) => void;
+    __missionMascotRoamingTest?: boolean;
     __missionSound?: {
       play: (name: MissionSoundName) => void;
       isOn: () => boolean;
@@ -733,12 +735,58 @@ function initSound() {
     window.AudioContext ??
     (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   let ctx: AudioContext | null = null;
+  let audioUnlocked = false;
+  let unlockListenersBound = false;
+  function removeUnlockListeners() {
+    if (!unlockListenersBound) return;
+    unlockListenersBound = false;
+    window.removeEventListener('pointerdown', unlockAudio, true);
+    window.removeEventListener('keydown', unlockAudio, true);
+    window.removeEventListener('touchstart', unlockAudio, true);
+  }
+  function unlockAudio() {
+    if (!on || !AudioCtor) return null;
+    if (!ctx) ctx = new AudioCtor();
+    if (ctx.state === 'suspended') {
+      void ctx
+        .resume()
+        .then(() => {
+          audioUnlocked = true;
+          removeUnlockListeners();
+        })
+        .catch(() => {
+          /* browser may still decline until a stronger gesture */
+        });
+    } else {
+      audioUnlocked = true;
+      removeUnlockListeners();
+    }
+    return ctx;
+  }
+  function bindUnlockListeners() {
+    if (!on || !AudioCtor || audioUnlocked || unlockListenersBound) return;
+    unlockListenersBound = true;
+    window.addEventListener('pointerdown', unlockAudio, { capture: true, passive: true });
+    window.addEventListener('keydown', unlockAudio, { capture: true });
+    window.addEventListener('touchstart', unlockAudio, { capture: true, passive: true });
+  }
   const ensureCtx = () => {
     if (!AudioCtor) return null;
-    if (!ctx) ctx = new AudioCtor();
-    if (ctx.state === 'suspended') void ctx.resume();
+    if (!audioUnlocked) {
+      if (navigator.userActivation?.isActive) return unlockAudio();
+      bindUnlockListeners();
+      return null;
+    }
+    if (!ctx) return unlockAudio();
+    if (ctx.state === 'suspended') {
+      if (!navigator.userActivation?.isActive) return null;
+      void ctx.resume().catch(() => {
+        /* ignore */
+      });
+    }
     return ctx;
   };
+  bindUnlockListeners();
 
   const blip = (
     freq: number,
@@ -876,8 +924,11 @@ function initSound() {
     }
     syncBtn();
     if (on) {
-      ensureCtx();
+      unlockAudio();
       play('power'); // confirmation chirp
+    } else {
+      audioUnlocked = false;
+      removeUnlockListeners();
     }
   });
 
@@ -895,8 +946,9 @@ function initSound() {
 }
 
 /* ---------- Mascot — a little RPG-style maintainer ----------
-   Keep it as a fixed corner affordance for the Mission Run mini-game. It should
-   never roam across editorial content or obscure cards while someone is reading. */
+   On a capable desktop it roams the foot of the page, walks toward your cursor,
+   hops, flips to face where it's going, and occasionally pipes up. Roaming stays
+   off under automation unless a focused test opts in. */
 function initMascot() {
   mascotSurfaceCleanup?.();
   mascotSurfaceCleanup = undefined;
@@ -909,9 +961,35 @@ function initMascot() {
   mascot.style.pointerEvents = 'auto';
   mascot.style.cursor = 'pointer';
 
+  const canRoam =
+    !reduceMotion &&
+    window.matchMedia('(hover: hover) and (pointer: fine)').matches &&
+    (!navigator.webdriver || window.__missionMascotRoamingTest === true);
+  const pick = (arr: readonly string[]) => arr[Math.floor(Math.random() * arr.length)] ?? '';
+
+  let bubble: HTMLElement | null = null;
+  let bubbleT = 0;
+  const speak = (text: string) => {
+    if (!canRoam || !text) return;
+    if (!bubble) {
+      bubble = document.createElement('span');
+      bubble.className = 'mascot__say font-pixel';
+      mascot.appendChild(bubble);
+    }
+    bubble.textContent = text;
+    bubble.dataset.show = 'true';
+    window.clearTimeout(bubbleT);
+    bubbleT = window.setTimeout(() => {
+      if (bubble) bubble.dataset.show = 'false';
+    }, 2600);
+  };
+
   // --- click launches the MISSION RUN mini-game (with a little hop) ---
+  let hopStart = -1;
   const triggerHop = () => {
-    if (sprite?.animate) {
+    if (canRoam) {
+      hopStart = performance.now();
+    } else if (sprite?.animate) {
       sprite.animate(
         [
           { transform: 'translateY(0)' },
@@ -929,10 +1007,20 @@ function initMascot() {
   // The game DOM is built lazily on first launch() — never on load — so it can
   // never surface in screenshots/tests unless a real user clicks the mascot.
   const game = createMascotGame();
-  mascot.addEventListener('click', () => {
+  const onMascotClick = () => {
     triggerHop();
     game.launch();
-  });
+  };
+  mascot.addEventListener('click', onMascotClick);
+
+  if (canRoam) {
+    mascot.classList.add('mascot--roaming');
+  } else {
+    mascot.classList.remove('mascot--roaming', 'is-walking');
+    mascot.style.removeProperty('--mx');
+    mascot.style.removeProperty('--my');
+    sprite?.style.removeProperty('--face');
+  }
 
   const syncSurface = () => {
     const rect = mascot.getBoundingClientRect();
@@ -958,10 +1046,127 @@ function initMascot() {
   syncSurface();
   window.addEventListener('scroll', queueSurfaceSync, { passive: true });
   window.addEventListener('resize', queueSurfaceSync, { passive: true });
+
+  let animationFrame = 0;
+  let idleQuipInterval = 0;
+  const cleanupCallbacks: Array<() => void> = [
+    () => {
+      if (surfaceFrame) window.cancelAnimationFrame(surfaceFrame);
+      window.removeEventListener('scroll', queueSurfaceSync);
+      window.removeEventListener('resize', queueSurfaceSync);
+      window.clearTimeout(bubbleT);
+      bubble?.remove();
+      mascot.classList.remove('mascot--roaming', 'is-walking');
+      mascot.style.removeProperty('--mx');
+      mascot.style.removeProperty('--my');
+      sprite?.style.removeProperty('--face');
+      mascot.removeEventListener('click', onMascotClick);
+    },
+  ];
+
+  if (canRoam) {
+    const mascotWidth = 52;
+    const margin = 10;
+    const minX = margin;
+    const maxX = () => Math.max(minX, window.innerWidth - mascotWidth - margin);
+    const pointerRetargetDeadzone = 5;
+    const arrivalDeadzone = 1.8;
+    const walkBobDeadzone = 7;
+
+    let x = Math.min(maxX(), 48);
+    let target = x;
+    let face = 1;
+    let walking = false;
+    let pointerX = -1;
+    let lastPointer = -1e9;
+    let nextWander = 0;
+    let last = performance.now();
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (pointerX < 0 || Math.abs(e.clientX - pointerX) >= pointerRetargetDeadzone) {
+        pointerX = e.clientX;
+      }
+      lastPointer = performance.now();
+    };
+    const onResize = () => {
+      x = Math.min(x, maxX());
+      target = Math.min(target, maxX());
+    };
+    const onCtaEnter = () => {
+      triggerHop();
+      if (Math.random() < 0.5) speak(mascotCompanion.ctaQuip);
+    };
+
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('resize', onResize, { passive: true });
+    document
+      .querySelectorAll<HTMLElement>('.btn--accent')
+      .forEach((button) => button.addEventListener('mouseenter', onCtaEnter));
+
+    const loop = (now: number) => {
+      if (document.hidden) {
+        last = now;
+        animationFrame = window.requestAnimationFrame(loop);
+        return;
+      }
+
+      const dt = Math.min(now - last, 48);
+      last = now;
+
+      if (now - lastPointer < 2600 && pointerX >= 0) {
+        target = Math.max(minX, Math.min(maxX(), pointerX - mascotWidth / 2));
+      } else if (now > nextWander) {
+        target = minX + Math.random() * (maxX() - minX);
+        nextWander = now + 5000 + Math.random() * 8000;
+      }
+
+      const d = target - x;
+      if (Math.abs(d) > arrivalDeadzone) {
+        face = d < 0 ? -1 : 1;
+        x += Math.sign(d) * Math.min(Math.abs(d), 0.14 * dt);
+        walking = Math.abs(d) > walkBobDeadzone;
+      } else {
+        x = target;
+        walking = false;
+      }
+
+      let my = 0;
+      if (walking) my += -Math.abs(Math.sin(now / 110)) * 3;
+      if (hopStart >= 0) {
+        const ht = (now - hopStart) / 430;
+        if (ht >= 1) {
+          hopStart = -1;
+        } else {
+          my += -Math.sin(ht * Math.PI) * 14;
+        }
+      }
+
+      mascot.style.setProperty('--mx', x.toFixed(1));
+      mascot.style.setProperty('--my', my.toFixed(1));
+      sprite?.style.setProperty('--face', String(face));
+      mascot.classList.toggle('is-walking', walking);
+
+      animationFrame = window.requestAnimationFrame(loop);
+    };
+    animationFrame = window.requestAnimationFrame(loop);
+
+    idleQuipInterval = window.setInterval(() => {
+      if (!walking && Math.random() < 0.45) speak(pick(mascotCompanion.idleQuips));
+    }, 17000);
+
+    cleanupCallbacks.push(() => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('resize', onResize);
+      document
+        .querySelectorAll<HTMLElement>('.btn--accent')
+        .forEach((button) => button.removeEventListener('mouseenter', onCtaEnter));
+      if (animationFrame) window.cancelAnimationFrame(animationFrame);
+      window.clearInterval(idleQuipInterval);
+    });
+  }
+
   mascotSurfaceCleanup = () => {
-    if (surfaceFrame) window.cancelAnimationFrame(surfaceFrame);
-    window.removeEventListener('scroll', queueSurfaceSync);
-    window.removeEventListener('resize', queueSurfaceSync);
+    cleanupCallbacks.forEach((cleanup) => cleanup());
   };
 }
 

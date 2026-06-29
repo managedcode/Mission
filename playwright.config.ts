@@ -15,6 +15,7 @@ import { defineConfig, devices } from '@playwright/test';
 // already hold the local dev port (4323). Override with PORT if needed.
 const PORT = Number(process.env.PORT ?? 4333);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
+const DESKTOP_ONLY = /@desktop/;
 
 export default defineConfig({
   testDir: './tests',
@@ -67,6 +68,7 @@ export default defineConfig({
       // Small Android phone — no built-in descriptor, so a custom viewport with
       // mobile emulation flags set explicitly.
       name: 'phone-sm',
+      grepInvert: DESKTOP_ONLY,
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 360, height: 640 },
@@ -76,18 +78,22 @@ export default defineConfig({
     },
     {
       name: 'phone-md',
+      grepInvert: DESKTOP_ONLY,
       use: { ...devices['iPhone 13'] }, // 390x844
     },
     {
       name: 'phone-lg',
+      grepInvert: DESKTOP_ONLY,
       use: { ...devices['iPhone 14 Pro Max'] }, // 430x932
     },
     {
       name: 'tablet',
+      grepInvert: DESKTOP_ONLY,
       use: { ...devices['iPad Mini'] }, // 768x1024
     },
     {
       name: 'tablet-lg',
+      grepInvert: DESKTOP_ONLY,
       use: { ...devices['iPad Pro 11'] }, // 834x1194
     },
     {
