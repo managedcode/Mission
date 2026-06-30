@@ -948,6 +948,9 @@ test.describe('Mission Run mini-game', () => {
     voidWarning?: string;
     voidSignLines?: readonly string[];
     voidPressureBursts?: readonly string[];
+    voidCommentsCount?: number;
+    voidCommentSpeed?: number;
+    visibleVoidComments?: Array<{ slot: number; text: string; x: number; y: number }>;
     voidSeconds?: number;
     voidDragonX?: number;
     voidGap?: number;
@@ -1226,6 +1229,11 @@ test.describe('Mission Run mini-game', () => {
       'WHY SLOW?',
       'NO OWNER',
     ]);
+    expect(voidStart?.voidCommentsCount ?? 0).toBeGreaterThanOrEqual(20);
+    expect(voidStart?.voidCommentsCount ?? 0).toBeLessThanOrEqual(40);
+    expect(voidStart?.voidCommentSpeed ?? 0).toBeGreaterThan(0);
+    expect(voidStart?.voidCommentSpeed ?? 0).toBeLessThan(0.5);
+    expect(voidStart?.visibleVoidComments?.length ?? 0).toBeGreaterThanOrEqual(2);
     expect(voidStart?.voidGap ?? 0).toBeGreaterThan(120);
 
     await page.evaluate(() => {
@@ -1248,14 +1256,38 @@ test.describe('Mission Run mini-game', () => {
         __mgameHoldVoidDirection?: (dir?: -1 | 0 | 1) => void;
       };
       w.__mgameHoldVoidDirection?.(1);
-      w.__mgameAdvanceVoid?.(15 * 60);
+      w.__mgameAdvanceVoid?.(20 * 60);
     });
 
-    const afterFifteenSeconds = await readGame();
-    expect(afterFifteenSeconds?.state).toBe('void');
-    expect(afterFifteenSeconds?.voidSeconds ?? 0).toBeGreaterThanOrEqual(15);
-    expect(afterFifteenSeconds?.x ?? 0).toBeGreaterThan((voidStart?.x ?? 0) + 100);
-    expect(afterFifteenSeconds?.voidGap ?? 0).toBeGreaterThan(26);
+    const afterTwentySeconds = await readGame();
+    expect(afterTwentySeconds?.state).toBe('void');
+    expect(afterTwentySeconds?.voidSeconds ?? 0).toBeGreaterThanOrEqual(20);
+    expect(afterTwentySeconds?.x ?? 0).toBeGreaterThan((voidStart?.x ?? 0) + 100);
+    expect(afterTwentySeconds?.voidGap ?? 0).toBeGreaterThan(26);
+    expect(afterTwentySeconds?.visibleVoidComments?.length ?? 0).toBeGreaterThanOrEqual(2);
+    const smoothComment = afterTwentySeconds?.visibleVoidComments?.find(
+      (comment) => comment.x > 60 && comment.x < 240
+    );
+    expect(
+      smoothComment,
+      'expected a readable mid-screen burnout comment after 20 seconds'
+    ).toBeTruthy();
+
+    await page.evaluate(() => {
+      const w = window as Window & {
+        __mgameAdvanceVoid?: (frames?: number) => void;
+      };
+      w.__mgameAdvanceVoid?.(30);
+    });
+
+    const afterSmoothMove = await readGame();
+    const sameComment = afterSmoothMove?.visibleVoidComments?.find(
+      (comment) => comment.slot === smoothComment?.slot
+    );
+    expect(sameComment, 'expected the same comment to remain visible while moving').toBeTruthy();
+    const movedPx = (smoothComment?.x ?? 0) - (sameComment?.x ?? 0);
+    expect(movedPx).toBeGreaterThanOrEqual(3);
+    expect(movedPx).toBeLessThanOrEqual(12);
 
     await page.evaluate(() => {
       const w = window as Window & {
@@ -1269,7 +1301,7 @@ test.describe('Mission Run mini-game', () => {
 
     const afterBackpedal = await readGame();
     expect(afterBackpedal?.state).toBe('void');
-    expect(afterBackpedal?.vx ?? 0).toBeLessThan(afterFifteenSeconds?.vx ?? 0);
+    expect(afterBackpedal?.vx ?? 0).toBeLessThan(afterTwentySeconds?.vx ?? 0);
 
     await page.evaluate(() => {
       const w = window as Window & {

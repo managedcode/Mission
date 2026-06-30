@@ -119,6 +119,9 @@ export function createMascotGame(): Game {
   const TRANSITION_LONG = 56;
   const PIPE_DESCENT_FRAMES = 62;
   const PIPE_SCENE_TRANSITION_FRAMES = PIPE_DESCENT_FRAMES * 2;
+  const VOID_COMMENT_SPEED = 0.18;
+  const VOID_COMMENT_SPACING = 86;
+  const VOID_COMMENT_LANES = [60, 72, 84] as const;
 
   const sound = (name: string) => {
     (window as Window & { __missionSound?: MissionSoundBridge }).__missionSound?.play?.(name);
@@ -1400,6 +1403,47 @@ export function createMascotGame(): Game {
     }
   }
   const textW = (str: string, s: number) => str.length * 4 * s - s;
+  type VoidComment = {
+    slot: number;
+    text: string;
+    x: number;
+    y: number;
+    color: string;
+  };
+  const voidCommentPool = () => [...miniGame.voidSignLines, ...miniGame.voidComments];
+  function visibleVoidComments(): VoidComment[] {
+    const comments: readonly string[] = voidCommentPool();
+    if (comments.length === 0) return [];
+    const trackW = Math.max(VIEW_W + 180, comments.length * VOID_COMMENT_SPACING);
+    const travel = voidT * VOID_COMMENT_SPEED;
+    const items: VoidComment[] = [];
+    const colors = [C.subs, C.mobile, C.rent, C.electric, C.tax, C.water, C.fees, C.life];
+
+    for (let slot = 0; slot < comments.length; slot++) {
+      const text = comments[(slot * 11 + 5) % comments.length];
+      const width = textW(text, 1) + 8;
+      const raw = (slot * VOID_COMMENT_SPACING - travel) % trackW;
+      const x = ((raw + trackW) % trackW) - 80;
+      if (x < 4 || x + width > VIEW_W - 4) continue;
+
+      items.push({
+        slot,
+        text,
+        x,
+        y: VOID_COMMENT_LANES[(slot * 5 + 1) % VOID_COMMENT_LANES.length],
+        color: colors[(slot * 7 + 3) % colors.length],
+      });
+    }
+
+    return items;
+  }
+  function drawVoidComment(comment: VoidComment) {
+    const w = textW(comment.text, 1) + 8;
+    const wx = camX + comment.x;
+    block(wx - 4, comment.y - 4, w, 13, C.sign);
+    block(wx - 4, comment.y - 4, w, 1, comment.color);
+    text(comment.text, wx, comment.y - 2, 1, C.starHi);
+  }
   function drawPixelMask(x: number, y: number, rows: string[], color: string) {
     for (let r = 0; r < rows.length; r++)
       for (let c = 0; c < rows[r].length; c++)
@@ -1821,15 +1865,7 @@ export function createMascotGame(): Game {
       block(x, VOID_GROUND + 3, TILE, 2, C.sign);
     }
 
-    const signColors = [C.subs, C.mobile, C.rent, C.electric, C.tax, C.water, C.fees, C.life];
-    miniGame.voidSignLines.forEach((line, i) => {
-      const wx = 120 + i * 220;
-      const y = 58 + (i % 2) * 20;
-      const w = textW(line, 1) + 8;
-      block(wx - 4, y - 4, w, 13, C.sign);
-      block(wx - 4, y - 4, w, 1, signColors[i % signColors.length]);
-      text(line, wx, y - 2, 1, C.starHi);
-    });
+    for (const comment of visibleVoidComments()) drawVoidComment(comment);
 
     text(miniGame.voidTitle, camX + 12, 14, 2, C.rent);
     text(miniGame.voidSubtitle.toUpperCase(), camX + 12, 34, 1, C.mobile);
@@ -2389,6 +2425,14 @@ export function createMascotGame(): Game {
       voidWarning: miniGame.voidWarning,
       voidSignLines: [...miniGame.voidSignLines],
       voidPressureBursts: [...miniGame.voidPressureBursts],
+      voidCommentsCount: voidCommentPool().length,
+      voidCommentSpeed: VOID_COMMENT_SPEED,
+      visibleVoidComments: visibleVoidComments().map((comment) => ({
+        slot: comment.slot,
+        text: comment.text,
+        x: Math.round(comment.x),
+        y: comment.y,
+      })),
       voidSeconds: voidSeconds(),
       voidDragonX: Math.round(voidDragon.x),
       voidGap: Math.round(voidGap()),
