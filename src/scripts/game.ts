@@ -5,7 +5,7 @@ import { miniGame } from '../data/site';
    maintainer. You ship for $0 while the expense monsters keep coming:
    RENT · TAX · ELECTRIC · WATER · MOBILE · SUBS · GAS · LOAN · FEES.
    Bump ? blocks for GitHub ★ (worth $0), grab the COFFEE, and find the secret
-   NEW PROJECT IDEA — the maintenance debt grows, so the maintainer grows with it.
+   NEW PROJECT IDEA — the pressure grows, so the maintainer grows with it.
 
    Reach the finale and you win, obviously: the lights warm up and fireworks go up
    because ManagedCode is glad to have you here, funding the maintenance work
@@ -458,7 +458,7 @@ export function createMascotGame(): Game {
     const { finale } = pickGameOverFinale();
     if (!finale)
       return `${miniGame.voidGameOverTitle}\n${miniGame.voidGameOverPrefix} ${seconds} ${label}.`;
-    return `${finale.title}\n${miniGame.voidGameOverPrefix} ${seconds} ${label}.\n${finale.void}\n${finale.detail}`;
+    return `${miniGame.voidGameOverTitle} / ${finale.title}\n${miniGame.voidGameOverPrefix} ${seconds} ${label}.\n${finale.void}\n${finale.detail}`;
   };
   const formatMainGameOver = () => {
     const { finale } = pickGameOverFinale();
@@ -1019,7 +1019,12 @@ export function createMascotGame(): Game {
     if (voidT % 105 === 0) {
       voidDragon.mouth = 30;
       sound('fire');
-      addParticle(player.x + 42, VOID_GROUND - 74, 'FEATURE?', C.subs);
+      const pressureBursts: readonly string[] = miniGame.voidPressureBursts;
+      const label =
+        pressureBursts.length > 0
+          ? pressureBursts[Math.floor(voidT / 105) % pressureBursts.length]
+          : 'URGENT?';
+      addParticle(player.x + 42, VOID_GROUND - 74, label, C.subs);
     }
     if (voidGap() <= VOID_DRAGON_HIT_GAP) {
       gameOver();
@@ -1816,17 +1821,19 @@ export function createMascotGame(): Game {
       block(x, VOID_GROUND + 3, TILE, 2, C.sign);
     }
 
+    const signColors = [C.subs, C.mobile, C.rent, C.electric, C.tax, C.water, C.fees, C.life];
     miniGame.voidSignLines.forEach((line, i) => {
       const wx = 120 + i * 220;
       const y = 58 + (i % 2) * 20;
       const w = textW(line, 1) + 8;
       block(wx - 4, y - 4, w, 13, C.sign);
-      block(wx - 4, y - 4, w, 1, i === 0 ? C.subs : i === 1 ? C.mobile : C.rent);
+      block(wx - 4, y - 4, w, 1, signColors[i % signColors.length]);
       text(line, wx, y - 2, 1, C.starHi);
     });
 
     text(miniGame.voidTitle, camX + 12, 14, 2, C.rent);
-    text(miniGame.voidWarning.toUpperCase(), camX + 12, 36, 1, C.starHi);
+    text(miniGame.voidSubtitle.toUpperCase(), camX + 12, 34, 1, C.mobile);
+    text(miniGame.voidWarning.toUpperCase(), camX + 12, 46, 1, C.starHi);
     const seconds = voidSeconds();
     const gap = Math.max(0, Math.min(1, (voidGap() - VOID_DRAGON_HIT_GAP) / 180));
     const danger = gap < 0.18;
@@ -2378,8 +2385,10 @@ export function createMascotGame(): Game {
       camX: Math.round(camX),
       voidT,
       voidTitle: miniGame.voidTitle,
+      voidSubtitle: miniGame.voidSubtitle,
       voidWarning: miniGame.voidWarning,
       voidSignLines: [...miniGame.voidSignLines],
+      voidPressureBursts: [...miniGame.voidPressureBursts],
       voidSeconds: voidSeconds(),
       voidDragonX: Math.round(voidDragon.x),
       voidGap: Math.round(voidGap()),

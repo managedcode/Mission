@@ -944,8 +944,10 @@ test.describe('Mission Run mini-game', () => {
     camX?: number;
     voidT?: number;
     voidTitle?: string;
+    voidSubtitle?: string;
     voidWarning?: string;
     voidSignLines?: readonly string[];
+    voidPressureBursts?: readonly string[];
     voidSeconds?: number;
     voidDragonX?: number;
     voidGap?: number;
@@ -1112,7 +1114,7 @@ test.describe('Mission Run mini-game', () => {
     expect(after?.poseT).toBeGreaterThan(0);
   });
 
-  test('pipe descent crossfades into the survival chase without flashing the old scene @desktop', async ({
+  test('pipe descent crossfades into a burnout chase with grounded pressure labels @desktop', async ({
     page,
   }) => {
     await useDesktopAuditViewport(page);
@@ -1202,11 +1204,43 @@ test.describe('Mission Run mini-game', () => {
     expect(voidStart?.transitionLabel).toBe('DOWN PIPE');
     expect(voidStart?.transitionT ?? 0).toBeGreaterThan(0);
     expect(voidStart?.transitionDuration ?? 0).toBeGreaterThan(voidStart?.transitionT ?? 0);
-    expect(voidStart?.voidTitle).toBe('MAINTENANCE DEBT');
-    expect(voidStart?.voidTitle).not.toBe('BACKLOG');
-    expect(voidStart?.voidWarning).toBe('unfunded maintenance is catching up. keep moving.');
-    expect(voidStart?.voidSignLines).toEqual(['KEEP MOVING', 'CVE DRIFT', 'RELEASE LAG']);
+    expect(voidStart?.voidTitle).toBe('BURNOUT');
+    expect(voidStart?.voidTitle).not.toBe('MAINTENANCE DEBT');
+    expect(voidStart?.voidSubtitle).toBe('unpaid urgency / no backup / no rest');
+    expect(voidStart?.voidWarning).toBe('burnout is catching up. keep moving.');
+    expect(voidStart?.voidSignLines).toEqual([
+      'FREE SLA',
+      '4:59 CVE',
+      'PR FLOOD',
+      'NO BACKUP',
+      'HARD DEADLINE',
+      'WEEKEND PAGE',
+      'DM PING',
+      'NO REST',
+    ]);
+    expect(voidStart?.voidPressureBursts).toEqual([
+      'ONE MORE?',
+      'URGENT?',
+      'JUST FIX',
+      'ANY UPDATE?',
+      'WHY SLOW?',
+      'NO OWNER',
+    ]);
     expect(voidStart?.voidGap ?? 0).toBeGreaterThan(120);
+
+    await page.evaluate(() => {
+      const w = window as Window & {
+        __mgameAdvanceVoid?: (frames?: number) => void;
+        __mgameHoldVoidDirection?: (dir?: -1 | 0 | 1) => void;
+      };
+      w.__mgameHoldVoidDirection?.(1);
+      w.__mgameAdvanceVoid?.(106);
+    });
+
+    const afterFirstPressureBurst = await readGame();
+    expect(
+      afterFirstPressureBurst?.particles?.some((particle) => particle.text === 'URGENT?')
+    ).toBe(true);
 
     await page.evaluate(() => {
       const w = window as Window & {
@@ -1256,10 +1290,11 @@ test.describe('Mission Run mini-game', () => {
       ).__mgameAdvanceGameOver?.();
     });
     await expect.poll(async () => (await readGame())?.state, { timeout: 5000 }).toBe('over');
+    await expect(page.locator('[data-mgame-msgtext]')).toContainText('BURNOUT CAUGHT UP');
     await expect(page.locator('[data-mgame-msgtext]')).toContainText('ARCHIVED REPO');
     await expect(page.locator('[data-mgame-msgtext]')).toContainText('you lasted');
     await expect(page.locator('[data-mgame-msgtext]')).toContainText(
-      'the repo still went read-only'
+      'you stopped before the repo did'
     );
   });
 
