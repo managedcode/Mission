@@ -280,6 +280,50 @@ function initTerminal() {
   const spans = Array.from(code.querySelectorAll<HTMLElement>('span'));
   if (spans.length === 0) return;
   const lines = spans.map((el) => ({ el, text: el.textContent ?? '' }));
+  const terminal = code.closest<HTMLElement>('.terminal__body');
+  let terminalPrepared = false;
+  const reserveTerminalHeight = () => {
+    if (!terminal) return;
+    const width = terminal.getBoundingClientRect().width;
+    const clone = terminal.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll<HTMLElement>('span').forEach((span, i) => {
+      span.textContent = lines[i]?.text ?? '';
+    });
+    clone.style.position = 'absolute';
+    clone.style.visibility = 'hidden';
+    clone.style.pointerEvents = 'none';
+    clone.style.left = '-9999px';
+    clone.style.top = '0';
+    clone.style.width = `${width}px`;
+    clone.style.blockSize = 'auto';
+    clone.style.minBlockSize = '0';
+    terminal.after(clone);
+    const height = clone.getBoundingClientRect().height;
+    clone.remove();
+    if (height > 0) terminal.style.minBlockSize = `${height}px`;
+  };
+  const prepareTerminal = () => {
+    if (terminalPrepared) return Promise.resolve();
+    const markPrepared = () => {
+      reserveTerminalHeight();
+      terminalPrepared = true;
+    };
+    if ('fonts' in document) {
+      return Promise.race([
+        document.fonts.ready,
+        new Promise<void>((resolve) => window.setTimeout(resolve, 700)),
+      ]).then(
+        () => markPrepared(),
+        () => markPrepared()
+      );
+    }
+    markPrepared();
+    return Promise.resolve();
+  };
+  reserveTerminalHeight();
+  if ('fonts' in document) {
+    void document.fonts.ready.then(reserveTerminalHeight);
+  }
   const lastEl = spans[spans.length - 1];
   const setCaret = (el: HTMLElement) => {
     spans.forEach((s) => s.classList.remove('caret'));
@@ -298,7 +342,10 @@ function initTerminal() {
   };
   (window as Window & { __finishTerminal?: () => void }).__finishTerminal = finish;
 
-  if (reduceMotion) return; // keep the static, fully-typed terminal
+  if (reduceMotion) {
+    void prepareTerminal();
+    return; // keep the static, fully-typed terminal
+  }
 
   const typeAll = () => {
     if (done) return;
@@ -331,16 +378,19 @@ function initTerminal() {
     };
     typeLine();
   };
+  const startTypeAll = () => {
+    void prepareTerminal().then(typeAll);
+  };
 
   if (!('IntersectionObserver' in window)) {
-    typeAll();
+    startTypeAll();
     return;
   }
   const io = new IntersectionObserver(
     (entries, obs) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          typeAll();
+          startTypeAll();
           obs.unobserve(entry.target);
         }
       });

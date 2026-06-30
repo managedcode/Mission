@@ -72,6 +72,7 @@ const mottoHalf = Array.from({ length: 4 })
         </div>
         <pre
           class="crest__status terminal__body font-mono"
+          style={`--terminal-lines:${hero.terminalLines.length}`}
           aria-hidden="true"><code set:html={terminalHtml} /></pre>
       </aside>
     </div>
@@ -228,6 +229,7 @@ const mottoHalf = Array.from({ length: 4 })
   /* ── The hero emblem — the GitHub octocat mark on a soft gold halo, with a
      slim 3-line mono "mission status" caption below it. */
   .hero__crest {
+    --reveal-y: 0px;
     align-self: center;
     width: 100%;
     padding-top: 0;
@@ -285,6 +287,7 @@ const mottoHalf = Array.from({ length: 4 })
     font-size: clamp(0.66rem, 0.6rem + 0.28vw, 0.78rem);
     line-height: 1.75;
     letter-spacing: 0.01em;
+    min-block-size: calc(var(--terminal-lines, 4) * 1.75em);
     white-space: pre-wrap;
     word-break: break-word;
     color: var(--fg-faint);

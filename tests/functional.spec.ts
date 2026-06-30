@@ -143,6 +143,80 @@ test.describe('Home page · structure & SEO', () => {
     await expect(page.locator('#hero-heading')).toBeVisible();
   });
 
+  test('hero terminal keeps its anchor when the typewriter clears text @desktop', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await prepareForResponsiveAudit(page);
+    await page.locator('.crest__status').waitFor({ state: 'visible' });
+    await page.waitForFunction(() =>
+      document.querySelector<HTMLElement>('.crest__status')?.style.minBlockSize.endsWith('px')
+    );
+
+    const samples = await page.evaluate(async () => {
+      (window as Window & { __finishTerminal?: () => void }).__finishTerminal?.();
+      const crest = document.querySelector<HTMLElement>('.hero__crest');
+      const status = document.querySelector<HTMLElement>('.crest__status');
+      const code = document.querySelector<HTMLElement>('.terminal__body code');
+      if (!crest || !status || !code) return null;
+
+      const spans = Array.from(code.querySelectorAll<HTMLElement>('span'));
+      const originalText = spans.map((span) => span.textContent ?? '');
+      const measure = () => {
+        const crestRect = crest.getBoundingClientRect();
+        const statusRect = status.getBoundingClientRect();
+        return {
+          crestTop: crestRect.top,
+          statusTop: statusRect.top,
+          statusHeight: statusRect.height,
+        };
+      };
+
+      const frames: Array<ReturnType<typeof measure> & { textLength: number }> = [];
+      frames.push({ ...measure(), textLength: code.textContent?.length ?? 0 });
+
+      spans.forEach((span) => {
+        span.textContent = '';
+        span.classList.remove('caret');
+      });
+      spans[0]?.classList.add('caret');
+      await new Promise((resolve) => window.requestAnimationFrame(resolve));
+      frames.push({ ...measure(), textLength: code.textContent?.length ?? 0 });
+
+      if (spans[0]) spans[0].textContent = originalText[0]?.slice(0, 8) ?? '';
+      await new Promise((resolve) => window.requestAnimationFrame(resolve));
+      frames.push({ ...measure(), textLength: code.textContent?.length ?? 0 });
+
+      spans.forEach((span, i) => {
+        span.textContent = originalText[i] ?? '';
+      });
+      await new Promise((resolve) => window.requestAnimationFrame(resolve));
+      frames.push({ ...measure(), textLength: code.textContent?.length ?? 0 });
+
+      return frames;
+    });
+
+    expect(samples).not.toBeNull();
+    const frames = samples ?? [];
+    const heightDelta =
+      Math.max(...frames.map((frame) => frame.statusHeight)) -
+      Math.min(...frames.map((frame) => frame.statusHeight));
+    const crestTopDelta =
+      Math.max(...frames.map((frame) => frame.crestTop)) -
+      Math.min(...frames.map((frame) => frame.crestTop));
+    const statusTopDelta =
+      Math.max(...frames.map((frame) => frame.statusTop)) -
+      Math.min(...frames.map((frame) => frame.statusTop));
+    const typedDelta =
+      Math.max(...frames.map((frame) => frame.textLength)) -
+      Math.min(...frames.map((frame) => frame.textLength));
+
+    expect(heightDelta).toBeLessThanOrEqual(1);
+    expect(crestTopDelta).toBeLessThanOrEqual(1);
+    expect(statusTopDelta).toBeLessThanOrEqual(1);
+    expect(typedDelta).toBeGreaterThan(10);
+  });
+
   test('tab-away title is human-readable and restores the SEO title', async ({ page }) => {
     await page.addInitScript(() => {
       Object.defineProperty(navigator, 'webdriver', { configurable: true, get: () => false });
