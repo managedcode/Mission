@@ -4,6 +4,8 @@ import '../styles/global.css';
 import { motto, site, seo } from '../data/site';
 import Mascot from '../components/Mascot.astro';
 import pkg from '../../package.json';
+import jetbrainsMonoFontUrl from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2?url';
+import newsreaderFontUrl from '@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2?url';
 import pressStartFontUrl from '@fontsource/press-start-2p/files/press-start-2p-latin-400-normal.woff2?url';
 import spaceGroteskFontUrl from '@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2?url';
 
@@ -198,6 +200,8 @@ const analyticsBootstrap = `
     <link rel="sitemap" href="/sitemap-index.xml" />
     <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt" />
     <link rel="preload" href={spaceGroteskFontUrl} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={newsreaderFontUrl} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={jetbrainsMonoFontUrl} as="font" type="font/woff2" crossorigin />
     <link rel="preload" href={pressStartFontUrl} as="font" type="font/woff2" crossorigin />
 
     <!-- No-flash theme + first-load intro arm: runs before paint -->
