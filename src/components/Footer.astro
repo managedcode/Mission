@@ -1,5 +1,5 @@
 ---
-import { site, nav } from '../data/site';
+import { site, nav, miniGame } from '../data/site';
 import Logo from './Logo.astro';
 const year = 2026;
 ---
@@ -10,8 +10,10 @@ const year = 2026;
     <div class="site-footer__brand">
       <a class="brand" href="/">
         <Logo size={40} tight decorative />
-        <span class="site-footer__word">{site.brand}</span>
-        <span class="site-footer__word-tag font-pixel">{site.initiativeTag}</span>
+        <span class="site-footer__brand-text">
+          <span class="site-footer__word">{site.brand}</span>
+          <span class="site-footer__word-tag font-pixel">{site.initiativeTag}</span>
+        </span>
         <span class="visually-hidden">{site.homeLinkHint}</span>
       </a>
       <p class="site-footer__tag font-serif">{site.tagline}</p>
@@ -38,6 +40,13 @@ const year = 2026;
           <li><a href={site.github} target="_blank" rel="noopener">GitHub org</a></li>
           <li><a href={site.repo} target="_blank" rel="noopener">This repo</a></li>
           <li><a href="/projects">Projects</a></li>
+          <li>
+            <button class="site-footer__playlink" type="button" data-game-launch>
+              {miniGame.footerLabel}
+              <span aria-hidden="true">▸</span>
+              <span class="visually-hidden"> — {miniGame.footerHint}</span>
+            </button>
+          </li>
           <li><a href={site.parentSite} target="_blank" rel="noopener">managed-code.com</a></li>
         </ul>
       </div>
@@ -104,6 +113,13 @@ const year = 2026;
     color: var(--fg);
     flex: none;
   }
+  /* Baseline-align the wordmark + pixel tag (like the header), so MISSION sits
+     on ManagedCode's baseline instead of floating at its mid-height. */
+  .site-footer__brand-text {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
   .site-footer__word {
     font-family: var(--font-display);
     font-weight: 700;
@@ -147,6 +163,27 @@ const year = 2026;
     transition: color 0.2s;
   }
   .site-footer__nav a:hover {
+    color: var(--fg);
+  }
+  /* Game launcher styled exactly like a footer link, but it's a real button. */
+  .site-footer__playlink {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: var(--step--1);
+    color: var(--fg-soft);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .site-footer__playlink span {
+    color: var(--accent);
+  }
+  .site-footer__playlink:hover {
     color: var(--fg);
   }
 

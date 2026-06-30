@@ -145,12 +145,13 @@ const meterCells = (fill: number) =>
   }
 
   /* ---------- Intro ---------- */
+  /* Left-aligned like every other section intro (Problem/How/Maintainers/
+     Funding) — the conversion section shouldn't read as a template "pricing"
+     block. The three cards stay a centered grid below. */
   .tiers__intro {
     max-width: 52rem;
-    margin-inline: auto;
-    text-align: center;
     display: grid;
-    justify-items: center;
+    justify-items: start;
     gap: var(--space-s);
   }
   .tiers__heading {

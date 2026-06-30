@@ -14,6 +14,31 @@ const subjectFor = (title: string) => {
 
 const mailto = (subject: string) => `mailto:${site.email}?subject=${encodeURIComponent(subject)}`;
 const contactHref = `#${join.contact.anchorId}`;
+
+// Per-card identity: a theme-aware accent + a crisp, symmetric pixel glyph
+// (solid silhouettes — bold, low-detail, shape-rendering:crispEdges, no blur).
+// Maintainers = green "alive", burnout-recovery = amber "calm", juniors = blue
+// "learning". Glyphs precomputed as trusted strings → set:html (CLAUDE.md gotcha).
+const roleArt = [
+  {
+    // wrench — the maintainer's craft
+    accent: 'var(--accent)',
+    glyph:
+      '<rect x="2" y="6" width="2" height="4"/><rect x="3" y="5" width="3" height="1"/><rect x="3" y="10" width="3" height="1"/><rect x="5" y="6" width="3" height="4"/><rect x="8" y="7" width="6" height="2"/>',
+  },
+  {
+    // crescent moon — rest / a calmer orbit
+    accent: 'var(--accent-2)',
+    glyph:
+      '<rect x="6" y="2" width="5" height="1"/><rect x="4" y="3" width="4" height="1"/><rect x="3" y="4" width="3" height="2"/><rect x="2" y="6" width="3" height="4"/><rect x="3" y="10" width="3" height="2"/><rect x="4" y="12" width="4" height="1"/><rect x="6" y="13" width="5" height="1"/>',
+  },
+  {
+    // sprout — juniors growing in the open
+    accent: 'var(--accent-3)',
+    glyph:
+      '<rect x="7" y="4" width="2" height="2"/><rect x="3" y="5" width="3" height="2"/><rect x="10" y="5" width="3" height="2"/><rect x="5" y="7" width="2" height="1"/><rect x="9" y="7" width="2" height="1"/><rect x="7" y="7" width="2" height="7"/>',
+  },
+] as const;
 ---
 
 <section class="section join" id="join" aria-labelledby="join-h">
@@ -31,17 +56,22 @@ const contactHref = `#${join.contact.anchorId}`;
     <ul class="join__grid" role="list">
       {
         join.cards.map((card, i) => (
-          <li class="join__card" data-reveal style={`--reveal-delay:${260 + i * 90}ms`}>
-            <span class="join__pixel" aria-hidden="true">
-              <svg viewBox="0 0 16 16" width="22" height="22" aria-hidden="true" focusable="false">
-                {/* a tiny open door — a place to walk in */}
-                <g fill="currentColor" shape-rendering="crispEdges">
-                  <rect x="2" y="1" width="9" height="14" />
-                  <rect x="3" y="2" width="7" height="12" fill="var(--bg-raised)" />
-                  <rect x="8" y="7" width="1" height="2" />
-                  <rect x="11" y="6" width="3" height="9" />
-                </g>
-              </svg>
+          <li
+            class="join__card"
+            style={`--role-accent:${roleArt[i % roleArt.length].accent};--reveal-delay:${260 + i * 90}ms`}
+            data-reveal
+          >
+            <span class="join__icon" aria-hidden="true">
+              <svg
+                class="join__glyph"
+                viewBox="0 0 16 16"
+                width="24"
+                height="24"
+                fill="currentColor"
+                shape-rendering="crispEdges"
+                focusable="false"
+                set:html={roleArt[i % roleArt.length].glyph}
+              />
             </span>
 
             <h3 class="join__card-title">{card.title}</h3>
@@ -129,39 +159,53 @@ const contactHref = `#${join.contact.anchorId}`;
     gap: clamp(1rem, 0.65rem + 1.4vw, 1.75rem);
   }
   .join__card {
-    /* Softer than the pricing tiers: raised fill, light hairline, gentle lift. */
+    /* Canonical card vocabulary — same 2px ink border + pixel shadow + signature
+       diagonal lift as the repo/Tiers cards; a per-card accent left-rule and an
+       accent glyph chip give each role its own identity. */
     display: flex;
     flex-direction: column;
     gap: var(--space-xs);
     min-width: 0;
-    min-height: 18rem;
     background: var(--bg-raised);
-    border: 1.5px solid var(--hairline-strong);
+    border: var(--border-px) solid var(--fg);
+    border-left: 4px solid var(--role-accent, var(--fg));
     box-shadow: var(--shadow-px-sm);
     padding: clamp(1.1rem, 0.9rem + 0.9vw, 1.45rem);
     transition:
-      transform 0.2s var(--ease-out),
-      box-shadow 0.2s var(--ease-out),
-      border-color 0.2s var(--ease-out);
+      transform 0.16s var(--ease-out),
+      box-shadow 0.16s var(--ease-out);
   }
-  .join__card:hover {
-    transform: translateY(-3px);
-    border-color: var(--fg);
-    box-shadow: var(--shadow-px);
+  .join__card:hover,
+  .join__card:focus-within {
+    transform: translate(-3px, -3px);
+    box-shadow: 6px 6px 0 var(--fg);
   }
 
-  .join__pixel {
+  .join__icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 2.6rem;
     height: 2.6rem;
-    color: var(--accent-deep);
-    background: var(--bg-sunken);
-    border: 1.5px solid var(--hairline-strong);
+    margin-bottom: var(--space-2xs);
+    color: var(--role-accent, var(--accent));
+    background: color-mix(in srgb, var(--role-accent, var(--accent)) 12%, var(--bg-sunken));
+    border: var(--border-px) solid var(--role-accent, var(--fg));
+    box-shadow: 2px 2px 0 color-mix(in srgb, var(--role-accent, var(--fg)) 40%, var(--fg));
   }
-  :global(:root[data-theme='dark']) .join__pixel {
-    color: var(--accent);
+  .join__glyph {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .join__card {
+      transition: none;
+    }
+    .join__card:hover,
+    .join__card:focus-within {
+      transform: none;
+      box-shadow: var(--shadow-px-sm);
+    }
   }
 
   .join__card-title {
@@ -234,14 +278,16 @@ const contactHref = `#${join.contact.anchorId}`;
       color 0.2s var(--ease-out);
     word-break: break-word;
   }
+  /* Thicken the underline on hover — NOT a full-height fill (that turned the
+     whole email into a solid green slab). */
   .join__knock-mail:hover,
   .join__knock-mail:focus-visible {
     color: var(--accent-deep);
-    background-size: 100% 100%;
+    background-size: 100% 0.12em;
   }
   :global(:root[data-theme='dark']) .join__knock-mail:hover,
   :global(:root[data-theme='dark']) .join__knock-mail:focus-visible {
-    color: var(--bg);
+    color: var(--accent);
   }
   .join__knock-caret {
     display: inline-block;
@@ -261,9 +307,6 @@ const contactHref = `#${join.contact.anchorId}`;
   @media (max-width: 56rem) {
     .join__grid {
       grid-template-columns: 1fr;
-    }
-    .join__card {
-      min-height: 17.25rem;
     }
     .join__card-body {
       max-width: none;

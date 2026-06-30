@@ -183,19 +183,11 @@ const mottoHalf = Array.from({ length: 4 })
     color: var(--amber);
     text-shadow: none;
   }
+  /* Crisp amber on near-black needs no halo — the heavy glow muddied the
+     letterforms. Keep the type sharp in both themes. */
   :global(:root[data-theme='dark'] .hero__line:last-child .hero__word-inner) {
     color: var(--accent-2);
-    text-shadow:
-      0 0 18px color-mix(in srgb, var(--amber) 55%, transparent),
-      0 0 4px color-mix(in srgb, var(--amber) 35%, transparent);
-  }
-  @media (prefers-reduced-motion: reduce) {
-    :global(.hero__line:last-child .hero__word-inner) {
-      text-shadow: none;
-    }
-    :global(:root[data-theme='dark'] .hero__line:last-child .hero__word-inner) {
-      text-shadow: 0 0 14px color-mix(in srgb, var(--amber) 40%, transparent);
-    }
+    text-shadow: none;
   }
 
   .hero__lede {
@@ -209,7 +201,9 @@ const mottoHalf = Array.from({ length: 4 })
   .hero__cta {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-s);
+    /* enough room that the chunky 8-bit drop-shadows (and the magnetic nudge)
+       never collide with the neighbouring button */
+    gap: clamp(1.1rem, 0.7rem + 1.4vw, 1.75rem);
     margin-top: var(--space-m);
   }
   .hero__badges {
@@ -344,18 +338,42 @@ const mottoHalf = Array.from({ length: 4 })
   @media (max-width: 56rem) {
     .hero__row {
       grid-template-columns: 1fr;
-      gap: 1.75rem;
+      gap: 1.5rem;
     }
+    /* Stacked: the emblem + status read as ONE compact, left-aligned signature
+       row — no more octocat floating in a tall reserved box with empty gaps. */
     .hero__crest {
       order: 2;
-      max-width: 22rem;
+      max-width: 100%;
+      display: flex;
+      align-items: center;
+      gap: clamp(0.9rem, 0.4rem + 2.4vw, 1.6rem);
     }
-    .crest,
+    .crest {
+      flex: none;
+      width: clamp(4rem, 13vw, 5.5rem);
+      aspect-ratio: 1;
+      max-width: none;
+      margin-inline: 0;
+    }
+    :global(.crest__github-mark) {
+      width: 66%;
+    }
     .crest__status {
-      max-width: 16rem;
+      flex: 1 1 auto;
+      margin: 0;
+      max-width: 34rem;
+      margin-inline: 0;
     }
     .hero__lede {
       max-width: 48ch;
+    }
+  }
+  @media (max-width: 26rem) {
+    .hero__crest {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.85rem;
     }
   }
 </style>

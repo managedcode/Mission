@@ -277,21 +277,24 @@ p {
 }
 .kicker::before {
   content: '';
-  width: 1.45em;
-  height: 0.7em;
+  width: 1.5em;
+  /* Proportional to the pixel text + cap-centered: margin-top + height/2 == the
+     text font-box centre (~0.70em), so the tricolour sits on the optical centre
+     of the caps without dominating them. */
+  height: 0.72em;
   background: linear-gradient(
     90deg,
     var(--flag-fr-blue) 0 33.333%,
     var(--flag-fr-white) 33.333% 66.666%,
     var(--flag-fr-red) 66.666% 100%
   );
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 18%, transparent);
   flex: none;
-  margin-top: 0.36em;
+  margin-top: 0.34em;
 }
 @media (min-width: 48rem) {
   .kicker::before {
-    width: 1.8em;
+    width: 1.85em;
   }
 }
 
@@ -1193,6 +1196,12 @@ body::after {
   line-height: 1.7;
   color: var(--tier-gold);
   white-space: pre-line;
+}
+/* Lose card sits over the frozen death scene: a near-opaque scrim (on top of the
+   canvas curtain) so the finale text is crisp and never fights the sprites. The
+   win card keeps the lighter base so its fireworks still show through. */
+.mgame__msg[data-win='false'] {
+  background: color-mix(in srgb, #06120a 96%, transparent);
 }
 .mgame__msg[data-win='false'] .mgame__msg-text {
   color: color-mix(in srgb, var(--accent-2) 72%, var(--paper) 28%);

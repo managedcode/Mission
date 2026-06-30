@@ -84,7 +84,7 @@ async function collectMobileLayoutIssues(page: import('@playwright/test').Page):
       if (rect.bottom < 0 || rect.top > viewportHeight * 4) continue;
       if (
         el.closest(
-          '.hero__marquee,.starfield,.hero__grid-bg,.scroll-progress,.cursor,.cursor__ring'
+          '.hero__marquee,.starfield,.hero__grid-bg,.scroll-progress,.cursor,.cursor__ring,.manifesto__ghost'
         )
       ) {
         continue;

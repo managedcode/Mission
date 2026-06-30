@@ -1859,6 +1859,19 @@ export function createMascotGame(): Game {
     }
     ctx.globalAlpha = 1;
 
+    // Burnout-chase streaks — always some motion (you're being chased), more as
+    // you push forward. Reddish = the urgency closing in; sells the running feel.
+    const vsp = Math.min(1, 0.3 + Math.abs(player.vx) / 1.6);
+    ctx.fillStyle = C.rent;
+    for (let i = 0; i < 10; i++) {
+      const ly = 8 + ((i * 37) % (VOID_GROUND - 14));
+      const lx = ((((i * 64 - camX * 1.4 - tick * (2.5 + vsp * 7)) % VIEW_W) + VIEW_W) % VIEW_W);
+      const len = 6 + vsp * 18;
+      ctx.globalAlpha = 0.05 + vsp * 0.1;
+      ctx.fillRect(Math.round(lx), ly, Math.round(len), 1);
+    }
+    ctx.globalAlpha = 1;
+
     for (let i = -1; i < 24; i++) {
       const x = Math.floor(camX / TILE) * TILE + i * TILE;
       block(x, VOID_GROUND, TILE, 3, C.pirD);
@@ -1895,6 +1908,21 @@ export function createMascotGame(): Game {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
+    // Far skyline — slowest parallax (0.16), so depth reads behind everything.
+    ctx.fillStyle = C.hill;
+    ctx.globalAlpha = 0.16;
+    for (let i = 0; i < 9; i++) {
+      const mx = ((((i * 250 - camX * 0.16) % 1900) + 1900) % 1900) - 80;
+      const ph = 30 + ((i * 53) % 28);
+      ctx.beginPath();
+      ctx.moveTo(mx - 48, GROUND_TOP);
+      ctx.lineTo(mx, GROUND_TOP - ph);
+      ctx.lineTo(mx + 48, GROUND_TOP);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
     ctx.fillStyle = C.cloud;
     for (let i = 0; i < 8; i++) {
       const cx = (((i * 210 - camX * 0.4) % 1500) + 1500) % 1500;
@@ -1910,6 +1938,22 @@ export function createMascotGame(): Game {
       ctx.beginPath();
       ctx.arc(i * 150 - camX * 0.6, GROUND_TOP + 6, 46, Math.PI, 0);
       ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // Speed streaks — faint horizontal whoosh in the sky band that lengthens and
+    // brightens with how fast you're actually running (player.vx). This is what
+    // sells the "running" feel; it fades to nothing when you stop.
+    const sp = Math.min(1, Math.abs(player.vx) / RUN);
+    if (sp > 0.22) {
+      ctx.fillStyle = C.grassHi;
+      for (let i = 0; i < 7; i++) {
+        const ly = 12 + ((i * 47) % (GROUND_TOP - 46));
+        const lx = ((((i * 90 - camX * 1.3 - tick * sp * 5) % VIEW_W) + VIEW_W) % VIEW_W);
+        const len = 5 + sp * 16;
+        ctx.globalAlpha = 0.05 + sp * 0.12;
+        ctx.fillRect(Math.round(lx), ly, Math.round(len), 1);
+      }
       ctx.globalAlpha = 1;
     }
 
@@ -2001,10 +2045,15 @@ export function createMascotGame(): Game {
     }
   }
   function drawGameOverCurtain() {
-    if (state !== 'dying') return;
+    // The curtain must PERSIST once the game is over — it used to stop at the
+    // 'dying'→'over' transition, so the dimmed scene flashed bright again right
+    // as the lose card appeared. Ramp it in while dying, then hold it dark.
+    if (state !== 'dying' && state !== 'over') return;
     const start = GAME_OVER_POP_FRAMES + 18;
     const range = GAME_OVER_CARD_DELAY_FRAMES - start;
-    const alpha = Math.max(0, Math.min(0.68, ((overT - start) / range) * 0.68));
+    const MAX = 0.82;
+    const alpha =
+      state === 'over' ? MAX : Math.max(0, Math.min(MAX, ((overT - start) / range) * MAX));
     if (alpha <= 0) return;
     ctx.fillStyle = `rgba(6, 18, 10, ${alpha.toFixed(3)})`;
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);

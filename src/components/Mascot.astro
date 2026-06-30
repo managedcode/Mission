@@ -123,7 +123,7 @@ const cells = pixels
   }
   /* Reveal once the page is interactive (set by app.ts after intro). */
   :global(:root.mascot-ready) .mascot--corner {
-    opacity: 0.92;
+    opacity: 1;
     transform: none;
     animation: mascot-bob 3.4s ease-in-out infinite;
   }
@@ -218,7 +218,7 @@ const cells = pixels
      guarantees the resting sprite looks correct without it. */
   @media (prefers-reduced-motion: reduce) {
     .mascot--corner {
-      opacity: 0.92;
+      opacity: 1;
       transform: none;
       animation: none;
       transition: none;

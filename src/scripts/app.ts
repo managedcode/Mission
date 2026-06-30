@@ -54,6 +54,42 @@ type MissionSoundName =
 
 type MascotGame = { launch: () => void };
 
+/* ---------- Mission Run — shared lazy launcher ----------
+   The mini-game is the signature interaction, reachable from BOTH the corner
+   mascot AND real labelled <button>s (the Problem band + the footer link). The
+   game chunk is import()ed lazily on first launch only — zero eager weight. */
+let missionGame: MascotGame | null = null;
+let missionGameLoad: Promise<MascotGame> | null = null;
+function getMissionGame(): Promise<MascotGame> {
+  if (missionGame) return Promise.resolve(missionGame);
+  missionGameLoad ??= import('./game')
+    .then(({ createMascotGame }) => {
+      missionGame = createMascotGame();
+      return missionGame;
+    })
+    .catch((error) => {
+      missionGameLoad = null;
+      throw error;
+    });
+  return missionGameLoad;
+}
+function launchMissionRun(): void {
+  void getMissionGame()
+    .then((game) => game.launch())
+    .catch(() => {
+      /* keep the page usable if the optional game chunk fails to load */
+    });
+}
+function initGameLaunchers() {
+  document.querySelectorAll<HTMLElement>('[data-game-launch]').forEach((el) => {
+    if (el.dataset.gameLaunchReady === 'true') return;
+    el.dataset.gameLaunchReady = 'true';
+    // A native <button> fires click on both Enter and Space, so one click
+    // handler covers pointer + keyboard with a visible focus ring for free.
+    el.addEventListener('click', () => launchMissionRun());
+  });
+}
+
 /* ---------- Scroll reveal ---------- */
 function initReveal() {
   const items = document.querySelectorAll<HTMLElement>('[data-reveal]');
@@ -584,7 +620,9 @@ function initMagnetic() {
       rect ??= el.getBoundingClientRect();
       const x = e.clientX - (rect.left + rect.width / 2);
       const y = e.clientY - (rect.top + rect.height / 2);
-      el.style.transform = `translate(${x * 0.25}px, ${y * 0.32}px)`;
+      // Gentle + clamped so the button never shoves into a neighbouring CTA.
+      const clamp = (v: number, max: number) => Math.max(-max, Math.min(max, v));
+      el.style.transform = `translate(${clamp(x * 0.16, 7)}px, ${clamp(y * 0.22, 7)}px)`;
     });
     el.addEventListener('mouseleave', () => {
       rect = null;
@@ -1021,9 +1059,13 @@ function initMascot() {
   if (!mascot) return;
   const sprite = mascot.querySelector<HTMLElement>('.mascot__sprite');
 
-  // the sprite is decorative (pointer-events:none) — make it clickable
-  mascot.style.pointerEvents = 'auto';
-  mascot.style.cursor = 'pointer';
+  // Make ONLY the sprite clickable; the container stays pointer-events:none
+  // (base CSS) so a roaming mascot at z-index 8600 can never swallow a click or
+  // tap meant for a CTA / content beneath its empty box or its speech bubble.
+  if (sprite) {
+    sprite.style.pointerEvents = 'auto';
+    sprite.style.cursor = 'pointer';
+  }
   const firstQuip = mascot.dataset.firstQuip ?? '';
   const ctaQuip = mascot.dataset.ctaQuip ?? '';
   const idleQuips = (() => {
@@ -1120,29 +1162,11 @@ function initMascot() {
       window.setTimeout(() => mascot.classList.remove('is-hop'), 500);
     }
   };
-  // The game code and DOM are built lazily on first launch() — never on load.
-  let game: MascotGame | null = null;
-  let gameLoad: Promise<MascotGame> | null = null;
-  const getGame = () => {
-    if (game) return Promise.resolve(game);
-    gameLoad ??= import('./game')
-      .then(({ createMascotGame }) => {
-        game = createMascotGame();
-        return game;
-      })
-      .catch((error) => {
-        gameLoad = null;
-        throw error;
-      });
-    return gameLoad;
-  };
+  // Click the mascot → a little hop, then launch the shared lazy game (same
+  // entry point as the labelled in-page launchers).
   const onMascotClick = () => {
     triggerHop();
-    void getGame()
-      .then((loadedGame) => loadedGame.launch())
-      .catch(() => {
-        /* keep the page usable if the optional game chunk fails */
-      });
+    launchMissionRun();
   };
   mascot.addEventListener('click', onMascotClick);
 
@@ -1300,6 +1324,44 @@ function initMascot() {
   };
 }
 
+/* ---------- Scrollspy — "you are here" in the primary nav ----------
+   Toggles aria-current on the nav link whose section is in the reading band.
+   Attribute-only (no layout shift); the active style reuses the nav underline. */
+function initScrollSpy() {
+  if (!('IntersectionObserver' in window)) return;
+  const links = Array.from(
+    document.querySelectorAll<HTMLAnchorElement>('.primary-nav ul a[href*="#"]')
+  );
+  if (!links.length) return;
+  const byId = new Map<string, HTMLAnchorElement>();
+  links.forEach((a) => {
+    const id = a.getAttribute('href')?.split('#')[1];
+    if (id) byId.set(id, a);
+  });
+  const sections = [...byId.keys()]
+    .map((id) => document.getElementById(id))
+    .filter((el): el is HTMLElement => Boolean(el));
+  if (!sections.length) return;
+
+  let current = '';
+  const setCurrent = (id: string) => {
+    if (id === current) return;
+    current = id;
+    links.forEach((a) => a.removeAttribute('aria-current'));
+    byId.get(id)?.setAttribute('aria-current', 'true');
+  };
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) setCurrent((entry.target as HTMLElement).id);
+      });
+    },
+    // a thin band ~45% down the viewport acts as the "you are here" line
+    { rootMargin: '-45% 0px -50% 0px', threshold: 0 }
+  );
+  sections.forEach((s) => io.observe(s));
+}
+
 /* ---------- Tab-title egg — a quiet note when you leave ---------- */
 function initTabEgg() {
   if (navigator.webdriver) return; // never under test automation
@@ -1327,6 +1389,8 @@ function init() {
   initKonami();
   initSound();
   initMascot();
+  initGameLaunchers();
+  initScrollSpy();
   initTabEgg();
   initConsoleEgg();
   // Safety net: ensure the mascot reveals even if the intro overlay was absent.

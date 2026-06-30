@@ -42,6 +42,7 @@ const recaptchaNotice = apply.recaptchaNotice;
         data-endpoint={formEndpoint}
         data-error={apply.errorBody}
         data-sending={apply.sendingLabel}
+        data-verifying={apply.verifyingLabel}
         data-recaptcha-api-url={recaptchaApiUrl}
         data-recaptcha-site-key={recaptchaSiteKey}
         data-recaptcha-action={recaptchaAction}
@@ -460,6 +461,7 @@ const recaptchaNotice = apply.recaptchaNotice;
     const status = form.querySelector<HTMLElement>('[data-apply-status]');
     const success = document.querySelector<HTMLElement>('[data-apply-success]');
     const sendingLabel = form.dataset.sending || 'Sending…';
+    const verifyingLabel = form.dataset.verifying || 'Verifying…';
     const errorMsg = form.dataset.error || 'Something went wrong. Try again.';
     form.dataset.formVisibleStartedAt = String(Date.now());
 
@@ -725,7 +727,9 @@ const recaptchaNotice = apply.recaptchaNotice;
       }
       if (status) {
         status.dataset.state = 'sending';
-        status.textContent = '';
+        // Announce the reCAPTCHA wait on the conversion action (the status line
+        // already reserves its height, so this adds no layout shift).
+        status.textContent = verifyingLabel;
       }
 
       try {

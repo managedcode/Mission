@@ -53,6 +53,16 @@ export const miniGame = {
   ariaLabel: 'Maintainer Day - mini game',
   controlsHintHtml:
     '←/→ or A/D move/backpedal&nbsp;·&nbsp;Space/↑/W or JUMP leap&nbsp;·&nbsp;↓/S enters pipes&nbsp;·&nbsp;Esc quits',
+  // Accessible, discoverable launch — the game is the signature interaction,
+  // so it gets a real labelled <button> in the page (Problem band + footer link),
+  // not only the corner sprite (which is decorative + desktop-only).
+  launchCta: 'Press start',
+  // Visually-hidden continuations so each launcher's accessible name CONTAINS its
+  // visible text (WCAG 2.5.3 Label in Name) while still describing the game to a
+  // screen reader / speech-input user.
+  launchHint: 'a mini-game about a maintainer outrunning burnout, the bills and entitled tickets',
+  footerLabel: 'Maintainer Day',
+  footerHint: 'play the mini-game',
   voidTitle: 'BURNOUT',
   voidSubtitle: 'unpaid urgency / no backup / no rest',
   voidWarning: 'burnout is catching up. keep moving.',
@@ -311,6 +321,12 @@ export const problem = {
       source: 'Linux Foundation OSS ROI survey',
     },
   ],
+  // A playable proof of the thesis, right where the problem is stated. The
+  // mini-game dramatizes a maintainer's day; this is its discoverable entry.
+  play: {
+    kicker: 'Or feel it',
+    line: 'A maintainer’s day is mostly other people’s urgency — the bills keep coming, the tickets don’t stop. Try outrunning it for sixty seconds.',
+  },
 } as const;
 
 export const manifesto = {
@@ -362,6 +378,13 @@ export const team = {
   kicker: 'The team',
   heading: 'Run by a working open-source shop whose libraries are in production today',
   lede: 'Mission is run by Managed Code — a .NET open-source community whose libraries run in production at other companies. Not a thought experiment. We already do the work.',
+  // A maker's note in the org's own first-person voice — real, not a fabricated
+  // third-party testimonial (we won't put words in a maintainer's mouth, and the
+  // named roster stays sealed until funded). The work and the year are real.
+  quote: {
+    text: 'We’ve kept these libraries alive on our own time since 2021. Mission is how we finally pay the people who do the work — and train the ones who’ll do it next.',
+    attribution: 'The maintainers at Managed Code',
+  },
   orgBio:
     'Open Source Community for .NET Developers — reliable, actively maintained, community-driven.',
   // Real repositories and NuGet package-family totals — refreshed 2026-06-28.
@@ -726,6 +749,7 @@ export const apply = {
   },
   submitLabel: 'Send it to the maintainers',
   sendingLabel: 'Sending…',
+  verifyingLabel: 'Verifying…',
   disabledLabel: 'Form opens soon',
   disabledNote:
     'The application form goes live shortly. In the meantime, email us at opensource@managed-code.com.',

@@ -57,6 +57,11 @@ import { team, site } from '../data/site';
       }
     </ul>
 
+    <figure class="team__quote" data-reveal>
+      <blockquote class="team__quote-text font-serif">{team.quote.text}</blockquote>
+      <figcaption class="team__quote-by font-mono">— {team.quote.attribution}</figcaption>
+    </figure>
+
     <hr class="rule rule--dotted team__divider" />
   </div>
 
@@ -254,6 +259,27 @@ import { team, site } from '../data/site';
   :global(:root[data-theme='dark']) .repo:hover .repo__go,
   :global(:root[data-theme='dark']) .repo:focus-visible .repo__go {
     color: var(--accent);
+  }
+
+  /* ---------- Maker's note — the org's own voice (real, not a testimonial) ---------- */
+  .team__quote {
+    margin: var(--space-l) 0 0;
+    max-width: 48rem;
+    padding-left: clamp(1rem, 0.5rem + 2vw, 2rem);
+    border-left: var(--border-px) solid var(--accent);
+  }
+  .team__quote-text {
+    font-size: clamp(1.3rem, 1.05rem + 1vw, 1.9rem);
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    color: var(--fg);
+    text-wrap: pretty;
+  }
+  .team__quote-by {
+    margin-top: var(--space-s);
+    font-size: var(--step--1);
+    letter-spacing: 0.02em;
+    color: var(--fg-faint);
   }
 
   .team__divider {

@@ -55,11 +55,12 @@ const { kicker, heading, lede, steps } = howItWorks;
                   aria-hidden="true"
                 >
                   <span class="how__arrow-x">
-                    <span class="how__arrow-px" />
-                    <span class="how__arrow-head">▶</span>
+                    <span class="how__arrow-shaft" />
+                    <span class="how__arrow-tip how__arrow-tip--right" />
                   </span>
                   <span class="how__arrow-y">
-                    <span class="how__arrow-head">▼</span>
+                    <span class="how__arrow-shaft how__arrow-shaft--v" />
+                    <span class="how__arrow-tip how__arrow-tip--down" />
                   </span>
                 </span>
               )}
@@ -296,23 +297,43 @@ const { kicker, heading, lede, steps } = howItWorks;
     pointer-events: none;
     z-index: 2;
   }
+  /* Crisp connector: a solid pixel shaft + a clip-path triangle tip. No font
+     glyph (which rendered fuzzy/off-baseline) — the tip is geometry, perfectly
+     centred on the shaft. */
   .how__arrow-x {
     display: inline-flex;
     align-items: center;
+    gap: 3px;
   }
   .how__arrow-y {
     display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
   }
-  .how__arrow-head {
-    font-size: var(--step-1);
-    line-height: 1;
-  }
-  /* a short pixel-dashed shaft so the arrow reads as a wire, not a single glyph */
-  .how__arrow-px {
-    display: inline-block;
+  .how__arrow-shaft {
+    display: block;
     width: clamp(0.7rem, 0.2rem + 1.4vw, 1.4rem);
-    height: 3px;
-    background-image: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px);
+    height: 4px;
+    background: currentColor;
+  }
+  .how__arrow-shaft--v {
+    width: 4px;
+    height: clamp(0.7rem, 0.2rem + 1.4vw, 1.4rem);
+  }
+  .how__arrow-tip {
+    display: block;
+    background: currentColor;
+  }
+  .how__arrow-tip--right {
+    width: 9px;
+    height: 12px;
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+  }
+  .how__arrow-tip--down {
+    width: 12px;
+    height: 9px;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
   }
   /* Horizontal arrow sits in the gutter to the right (desktop). */
   .how__arrow {

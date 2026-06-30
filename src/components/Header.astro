@@ -164,8 +164,12 @@ import Logo from './Logo.astro';
   .primary-nav ul a:hover {
     color: var(--fg);
   }
-  .primary-nav ul a:hover::after {
+  .primary-nav ul a:hover::after,
+  .primary-nav ul a[aria-current='true']::after {
     transform: scaleX(1);
+  }
+  .primary-nav ul a[aria-current='true'] {
+    color: var(--fg);
   }
   .primary-nav__cta .btn {
     padding: 0.6em 1em;

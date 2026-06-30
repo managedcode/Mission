@@ -1,5 +1,15 @@
 ---
-import { problem } from '../data/site';
+import { problem, miniGame } from '../data/site';
+
+// Render each stat's final, formatted value into static HTML so the page's most
+// quotable numbers exist for no-JS visitors, crawlers and answer engines. JS
+// only enhances by counting up from 0 (animateCounter reads data-count). Match
+// app.ts formatting exactly: group thousands, keep prefix/suffix.
+const formatStat = (s: { value: number; prefix?: string; suffix?: string }) => {
+  const prefix = s.prefix ?? '';
+  const num = s.value >= 1000 ? s.value.toLocaleString('en-US') : String(s.value);
+  return `${prefix}${num}${s.suffix ?? ''}`;
+};
 ---
 
 <section class="section problem" id="problem" aria-labelledby="problem-h">
@@ -20,7 +30,7 @@ import { problem } from '../data/site';
               data-prefix={'prefix' in stat ? stat.prefix : ''}
               data-suffix={stat.suffix ?? ''}
             >
-              {'prefix' in stat ? stat.prefix : ''}
+              {formatStat(stat)}
             </span>
             <p class="stat__label">{stat.label}</p>
             <p class="stat__source font-mono">
@@ -58,6 +68,18 @@ import { problem } from '../data/site';
         ))
       }
     </ol>
+
+    <aside class="problem__play" data-reveal>
+      <div class="problem__play-copy">
+        <p class="problem__play-kicker font-pixel">{problem.play.kicker}</p>
+        <p class="problem__play-line">{problem.play.line}</p>
+      </div>
+      <button class="btn problem__play-btn" type="button" data-game-launch>
+        <span class="problem__play-glyph" aria-hidden="true">▶</span>
+        <span class="font-pixel">{miniGame.launchCta}</span>
+        <span class="visually-hidden"> — {miniGame.launchHint}</span>
+      </button>
+    </aside>
   </div>
 </section>
 
@@ -99,6 +121,26 @@ import { problem } from '../data/site';
     display: flex;
     flex-direction: column;
     gap: var(--space-2xs);
+    transition:
+      transform 0.16s var(--ease-out),
+      box-shadow 0.16s var(--ease-out);
+  }
+  /* Shared lift gesture with the repo/Join cards so every pixel-shadow card
+     feels the same alive. Native arrow cursor keeps these honestly non-clickable. */
+  @media (hover: hover) {
+    .stat:hover {
+      transform: translate(-3px, -3px);
+      box-shadow: 7px 7px 0 var(--fg);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .stat {
+      transition: none;
+    }
+    .stat:hover {
+      transform: none;
+      box-shadow: var(--shadow-px);
+    }
   }
   .stat__num {
     font-size: var(--step-6);
@@ -194,6 +236,54 @@ import { problem } from '../data/site';
   .point__src::before {
     content: 'source: ';
     opacity: 0.7;
+  }
+
+  /* ---------- Playable proof — discoverable, accessible game launcher ---------- */
+  .problem__play {
+    margin-top: clamp(2.5rem, 1.6rem + 3.5vw, 4rem);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: clamp(1rem, 0.6rem + 1.6vw, 1.75rem);
+    padding: clamp(1.1rem, 0.9rem + 1vw, 1.6rem) clamp(1.1rem, 0.8rem + 1.4vw, 2rem);
+    background: var(--bg-sunken);
+    border: var(--border-px) solid var(--fg);
+    box-shadow: var(--shadow-px);
+  }
+  .problem__play-copy {
+    min-width: 0;
+    flex: 1 1 22rem;
+  }
+  .problem__play-kicker {
+    font-size: clamp(0.5rem, 0.42rem + 0.35vw, 0.62rem);
+    letter-spacing: 0.04em;
+    color: var(--accent-deep);
+  }
+  :global(:root[data-theme='dark']) .problem__play-kicker {
+    color: var(--accent);
+  }
+  .problem__play-line {
+    margin-top: var(--space-xs);
+    font-size: var(--step-0);
+    line-height: 1.5;
+    color: var(--fg-soft);
+    max-width: 46ch;
+    text-wrap: pretty;
+  }
+  .problem__play-btn {
+    flex: 0 0 auto;
+    font-family: var(--font-pixel);
+    /* min stays >=10px (0.66rem) so the launcher passes the mobile critical-text
+       readability budget even at 320px. */
+    font-size: clamp(0.66rem, 0.56rem + 0.4vw, 0.8rem);
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .problem__play-glyph {
+    color: var(--green-glow);
+    font-size: 0.9em;
+    line-height: 1;
   }
 
   @media (min-width: 56.001rem) {
