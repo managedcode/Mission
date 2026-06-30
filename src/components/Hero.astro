@@ -131,6 +131,21 @@ const mottoHalf = Array.from({ length: 4 })
     margin-top: var(--space-m);
     letter-spacing: -0.04em;
   }
+  @media (max-width: 56rem) {
+    .hero__headline {
+      min-height: calc(6 * 0.92em);
+    }
+  }
+  @media (min-width: 44rem) and (max-width: 56rem) {
+    .hero__headline {
+      min-height: calc(5 * 0.92em);
+    }
+  }
+  @media (max-width: 26rem) {
+    .hero__headline {
+      min-height: calc(7 * 0.92em);
+    }
+  }
   /* Keep each scripted line intact on wide screens; allow wrap on small.
      The headline now spans the full inner width, so the longest line
      ("everything has") has the whole row to hold on one line. Below the
