@@ -1859,23 +1859,59 @@ export function createMascotGame(): Game {
     }
     ctx.globalAlpha = 1;
 
-    // Burnout-chase streaks — always some motion (you're being chased), more as
-    // you push forward. Reddish = the urgency closing in; sells the running feel.
-    const vsp = Math.min(1, 0.3 + Math.abs(player.vx) / 1.6);
-    ctx.fillStyle = C.rent;
-    for (let i = 0; i < 10; i++) {
-      const ly = 8 + ((i * 37) % (VOID_GROUND - 14));
-      const lx = ((((i * 64 - camX * 1.4 - tick * (2.5 + vsp * 7)) % VIEW_W) + VIEW_W) % VIEW_W);
-      const len = 6 + vsp * 18;
-      ctx.globalAlpha = 0.05 + vsp * 0.1;
-      ctx.fillRect(Math.round(lx), ly, Math.round(len), 1);
-    }
-    ctx.globalAlpha = 1;
+    // ---- Cave parallax: three receding rock layers that scroll past at
+    // different speeds, so running through the burnout cavern reads as real
+    // depth (no "wind" lines). Each layer = ceiling stalactites + floor
+    // stalagmites carved as triangles; nearer layers are lighter + faster. ----
+    const caveLayer = (
+      count: number,
+      span: number,
+      factor: number,
+      fill: string,
+      hi: string,
+      tooth: number
+    ) => {
+      const period = span * count;
+      for (let i = 0; i < count; i++) {
+        const x = ((((i * span - camX * factor) % period) + period) % period) - 80;
+        const ch = 16 + ((i * 37) % 30);
+        ctx.fillStyle = fill;
+        ctx.beginPath();
+        ctx.moveTo(x - tooth, 0);
+        ctx.lineTo(x, ch);
+        ctx.lineTo(x + tooth, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = hi; // lit tip so the eye can track it sweeping past
+        ctx.fillRect(Math.round(x) - 1, Math.round(ch) - 4, 2, 4);
+        const gx = x + Math.round(span * 0.5);
+        const gh = 16 + ((i * 53) % 28);
+        ctx.fillStyle = fill;
+        ctx.beginPath();
+        ctx.moveTo(gx - tooth, VOID_GROUND);
+        ctx.lineTo(gx, VOID_GROUND - gh);
+        ctx.lineTo(gx + tooth, VOID_GROUND);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = hi;
+        ctx.fillRect(Math.round(gx) - 1, VOID_GROUND - Math.round(gh), 2, 4);
+      }
+    };
+    caveLayer(7, 230, 0.3, '#1c1830', '#3a3056', 32); // far wall — slow
+    caveLayer(8, 185, 0.62, '#33274a', '#5a4680', 15); // mid rock — brighter, clearly moving
+    caveLayer(5, 270, 1.08, '#120c1c', '#6e3450', 11); // near pillars — fast, reddish-lit tips
 
     for (let i = -1; i < 24; i++) {
       const x = Math.floor(camX / TILE) * TILE + i * TILE;
       block(x, VOID_GROUND, TILE, 3, C.pirD);
       block(x, VOID_GROUND + 3, TILE, 2, C.sign);
+      // Distinct rubble per tile (hashed by world-tile index) so the floor
+      // visibly RUSHES BY underfoot — the clearest cue that you're running.
+      const wt = Math.round(x / TILE);
+      const h = ((wt * 374761393) >>> 0) % 16;
+      block(x + (h % 11), VOID_GROUND - 1, 3, 1, '#5a4670');
+      if (h % 3 === 0) block(x + 5 + (h % 5), VOID_GROUND + 1, 2, 2, '#2e2440');
+      if (h % 4 === 0) block(x + 9, VOID_GROUND - 1, 1, 2, '#7a5a92');
     }
 
     for (const comment of visibleVoidComments()) drawVoidComment(comment);
@@ -1932,28 +1968,23 @@ export function createMascotGame(): Game {
       ctx.fillRect(Math.round(cx) + 5, cy - 4, 10, 5);
       ctx.globalAlpha = 1;
     }
+    // Mid hills — a second parallax band between the far skyline and the ground.
+    ctx.fillStyle = C.hill;
+    for (let i = 0; i < 10; i++) {
+      const hx = ((((i * 200 - camX * 0.42) % 2000) + 2000) % 2000) - 100;
+      ctx.globalAlpha = 0.32;
+      ctx.beginPath();
+      ctx.arc(hx, GROUND_TOP + 14, 64, Math.PI, 0);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    // Near hills — fastest band, hugs the ground for a strong sense of travel.
     ctx.fillStyle = C.hill;
     for (let i = 0; i < 13; i++) {
       ctx.globalAlpha = 0.5;
       ctx.beginPath();
-      ctx.arc(i * 150 - camX * 0.6, GROUND_TOP + 6, 46, Math.PI, 0);
+      ctx.arc(i * 150 - camX * 0.62, GROUND_TOP + 6, 46, Math.PI, 0);
       ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-
-    // Speed streaks — faint horizontal whoosh in the sky band that lengthens and
-    // brightens with how fast you're actually running (player.vx). This is what
-    // sells the "running" feel; it fades to nothing when you stop.
-    const sp = Math.min(1, Math.abs(player.vx) / RUN);
-    if (sp > 0.22) {
-      ctx.fillStyle = C.grassHi;
-      for (let i = 0; i < 7; i++) {
-        const ly = 12 + ((i * 47) % (GROUND_TOP - 46));
-        const lx = ((((i * 90 - camX * 1.3 - tick * sp * 5) % VIEW_W) + VIEW_W) % VIEW_W);
-        const len = 5 + sp * 16;
-        ctx.globalAlpha = 0.05 + sp * 0.12;
-        ctx.fillRect(Math.round(lx), ly, Math.round(len), 1);
-      }
       ctx.globalAlpha = 1;
     }
 
