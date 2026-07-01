@@ -209,6 +209,34 @@ test.describe('Home page · structure & SEO', () => {
     expect(typedDelta).toBeGreaterThan(10);
   });
 
+  test('hero emblem cursor parallax stays subtle on desktop @desktop', async ({ page }) => {
+    await useDesktopAuditViewport(page);
+    await page.goto('/');
+
+    const mark = page.locator('.crest__mark');
+    await expect(mark).toBeVisible();
+
+    const sampleTransform = async (x: number, y: number) => {
+      await page.mouse.move(x, y);
+      await page.waitForTimeout(50);
+      return await mark.evaluate((el) => (el as HTMLElement).style.transform);
+    };
+
+    const transforms = [
+      await sampleTransform(128, 180),
+      await sampleTransform(720, 360),
+      await sampleTransform(1370, 540),
+    ];
+
+    for (const transform of transforms) {
+      const offsets = Array.from(transform.matchAll(/([-+]?\d+(?:\.\d+)?)px/g)).map((match) =>
+        Math.abs(Number(match[1]))
+      );
+      expect(offsets.length, transform).toBe(2);
+      expect(Math.max(...offsets), transform).toBeLessThanOrEqual(3);
+    }
+  });
+
   test('tab-away title is human-readable and restores the SEO title', async ({ page }) => {
     await page.addInitScript(() => {
       Object.defineProperty(navigator, 'webdriver', { configurable: true, get: () => false });

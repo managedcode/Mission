@@ -29,7 +29,7 @@ float fbm(vec2 p){ float s=0.0, a=0.5; for(int i=0;i<5;i++){ s+=a*noise(p); p*=2
 
 void main(){
   vec2 uv = (gl_FragCoord.xy - 0.5*u_res) / u_res.y;
-  uv += u_mouse * 0.05;
+  uv += u_mouse * 0.014;
   float t = u_time * 0.045;
 
   // slow domain-warped energy — "the commons is alive"
@@ -42,31 +42,31 @@ void main(){
   float pts = 0.0;
   float gold = 0.0;
   float links = 0.0;
-  for(int L=0; L<4; L++){
+  for(int L=0; L<3; L++){
     float fl = float(L);
-    float sc = 5.5 + fl*6.5;
-    vec2 gp = uv*sc + vec2(t*(0.32+fl*0.16), t*0.11 + fl*1.7);
+    float sc = 6.0 + fl*7.2;
+    vec2 gp = uv*sc + vec2(t*(0.22+fl*0.1), t*0.08 + fl*1.7);
     vec2 cell = floor(gp);
     vec2 f = fract(gp) - 0.5;
     // this cell's node + the neighbour node to build a short link
     vec2 rnd = hash22(cell);
     vec2 rnd2 = hash22(cell + vec2(1.0, 0.0));
     float layerFade = 1.0 / (1.0 + fl*0.5);
-    if (rnd.x >= 0.42) {
-      vec2 off = (rnd - 0.5) * 0.74;
+    if (rnd.x >= 0.58) {
+      vec2 off = (rnd - 0.5) * 0.68;
       float d = length(f - off);
       float tw = 0.5 + 0.5*sin(u_time*(0.7+rnd.x*2.4) + rnd.y*6.2831);
-      float pt = smoothstep(0.085, 0.0, d) * tw * layerFade;
+      float pt = smoothstep(0.044, 0.0, d) * tw * layerFade;
       pts += pt;
       if (rnd.y > 0.8) gold += pt;              // a few nodes are patron-gold
       // link to the node one cell to the right, if it exists
-      if (rnd2.x >= 0.42) {
+      if (rnd2.x >= 0.58) {
         vec2 a = off;
-        vec2 b = (rnd2 - 0.5)*0.74 + vec2(1.0, 0.0);
+        vec2 b = (rnd2 - 0.5)*0.68 + vec2(1.0, 0.0);
         vec2 pa = f - a, ba = b - a;
         float h = clamp(dot(pa, ba)/dot(ba, ba), 0.0, 1.0);
         float dl = length(pa - ba*h);
-        links += smoothstep(0.02, 0.0, dl) * 0.5 * layerFade;
+        links += smoothstep(0.01, 0.0, dl) * 0.38 * layerFade;
       }
     }
   }
@@ -85,29 +85,29 @@ void main(){
     // more patron nodes light + fire as the launch goal fills (live funding %)
     float active = smoothstep(fi*0.25 - 0.12, fi*0.25 + 0.12, u_fund + 0.18);
     float ang = fi*1.5708 + t*0.22;
-    float rad = 0.62 + 0.1*sin(t*0.8 + fi*1.3);
+    float rad = 0.6 + 0.07*sin(t*0.7 + fi*1.3);
     vec2 pn = vec2(cos(ang), sin(ang)) * rad;
     float pulse = pow(0.5 + 0.5*sin(u_time*0.8 + fi*2.1), 8.0);  // sharp + infrequent
-    patron += smoothstep(0.06, 0.0, length(uv - pn)) * (0.3 + pulse*1.4) * active;
+    patron += smoothstep(0.038, 0.0, length(uv - pn)) * (0.22 + pulse*1.0) * active;
     vec2 pa = uv - pn, ba = -pn;
     float h = clamp(dot(pa, ba)/dot(ba, ba), 0.0, 1.0);
-    beam += smoothstep(0.013, 0.0, length(pa - ba*h)) * pulse * (1.0 - h*0.25) * active;
+    beam += smoothstep(0.007, 0.0, length(pa - ba*h)) * pulse * (1.0 - h*0.25) * active;
   }
 
   vec3 cGreen = vec3(0.24, 0.88, 0.48);
   vec3 cGold  = vec3(0.91, 0.72, 0.29);
 
-  vec3 col = cGreen*(pts-gold)*1.9 + cGold*gold*2.1 + cGreen*links*1.1;
-  col += cGold*(patron*1.5 + beam*1.4);         // patrons + funding beams
-  col += cGreen*flow*0.14*core;                 // living energy
-  col += cGold*core*0.07;                       // soft central gilt
+  vec3 col = cGreen*(pts-gold)*1.55 + cGold*gold*1.7 + cGreen*links*0.75;
+  col += cGold*(patron*1.08 + beam*1.05);       // patrons + funding beams
+  col += cGreen*flow*0.055*core;                // living energy
+  col += cGold*core*0.035;                      // soft central gilt
 
-  float alpha = (pts*1.9 + links*0.9 + patron*1.4 + beam*1.15 + flow*0.13*core + core*0.06) * vig;
+  float alpha = (pts*1.4 + links*0.52 + patron*0.95 + beam*0.85 + flow*0.05*core + core*0.025) * vig;
 
   // light theme: no glow reads on parchment, so ink the field down + soften
   vec3 cInk = vec3(0.10, 0.10, 0.07);
-  col = mix(mix(cInk, cGold*0.55, gold*0.9) * (pts + core*0.25), col, u_dark);
-  alpha *= mix(0.42, 1.0, u_dark);
+  col = mix(mix(cInk, cGold*0.46, gold*0.75) * (pts + core*0.12), col, u_dark);
+  alpha *= mix(0.32, 1.0, u_dark);
 
   gl_FragColor = vec4(col, clamp(alpha, 0.0, 1.0));
 }`;

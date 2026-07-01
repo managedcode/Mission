@@ -677,8 +677,8 @@ function initMagnetic() {
     });
     hero.addEventListener('pointermove', (e) => {
       hr ??= hero.getBoundingClientRect();
-      const tx = ((e.clientX - hr.left) / hr.width - 0.5) * 14;
-      const ty = ((e.clientY - hr.top) / hr.height - 0.5) * 14;
+      const tx = ((e.clientX - hr.left) / hr.width - 0.5) * 5;
+      const ty = ((e.clientY - hr.top) / hr.height - 0.5) * 5;
       mark.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px))`;
     });
     hero.addEventListener('pointerleave', () => {
