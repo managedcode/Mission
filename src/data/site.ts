@@ -116,6 +116,8 @@ export const miniGame = {
   voidSecondLabel: 'second',
   voidSecondsLabel: 'seconds',
   voidSecondsShortLabel: 'SEC',
+  // The toy closes its own argument: survived-seconds vs. a funded year.
+  gameOverPitch: 'A funded maintainer lasts all year — not sixty seconds.',
   blockPunchlines: [
     'NO REPRO?',
     'NEEDS TESTS',

@@ -1178,9 +1178,8 @@ body::after {
   flex-wrap: wrap;
   justify-content: center;
 }
-.mgame__msg[data-win='false'] .mgame__patron {
-  display: none;
-}
+/* The toy closes its own argument: even on a loss, the survived-seconds line is
+   followed by the funded-year pitch + the patron CTA — the game converts. */
 .mgame__hint {
   margin: 0;
   text-align: center;

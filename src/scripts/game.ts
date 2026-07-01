@@ -460,13 +460,14 @@ export function createMascotGame(): Game {
     const label = seconds === 1 ? miniGame.voidSecondLabel : miniGame.voidSecondsLabel;
     const { finale } = pickGameOverFinale();
     if (!finale)
-      return `${miniGame.voidGameOverTitle}\n${miniGame.voidGameOverPrefix} ${seconds} ${label}.`;
-    return `${miniGame.voidGameOverTitle} / ${finale.title}\n${miniGame.voidGameOverPrefix} ${seconds} ${label}.\n${finale.void}\n${finale.detail}`;
+      return `${miniGame.voidGameOverTitle}\n${miniGame.voidGameOverPrefix} ${seconds} ${label}.\n${miniGame.gameOverPitch}`;
+    return `${miniGame.voidGameOverTitle} / ${finale.title}\n${miniGame.voidGameOverPrefix} ${seconds} ${label}.\n${finale.void}\n${finale.detail}\n${miniGame.gameOverPitch}`;
   };
   const formatMainGameOver = () => {
     const { finale } = pickGameOverFinale();
-    if (!finale) return `${miniGame.voidGameOverTitle}   ★ ${stars}\nyou ran out of lives.`;
-    return `${finale.title}   ★ ${stars}\n${finale.main}\n${finale.detail}`;
+    if (!finale)
+      return `${miniGame.voidGameOverTitle}   ★ ${stars}\nyou ran out of lives.\n${miniGame.gameOverPitch}`;
+    return `${finale.title}   ★ ${stars}\n${finale.main}\n${finale.detail}\n${miniGame.gameOverPitch}`;
   };
   type PlayerPose = 'none' | 'hit' | 'shrink' | 'grow' | 'stomp';
   let playerPose: PlayerPose = 'none';

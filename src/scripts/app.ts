@@ -1430,6 +1430,49 @@ function initTabEgg() {
   });
 }
 
+/* ---------- Hero "digital commons" WebGL spectacle (lazy, gated) ----------
+   The one deliberate spectacle. Enhancement only: never under reduced-motion or
+   automation, lazy-imported + started only while the hero is on screen, paused
+   off-screen. If WebGL or the chunk fails, the static < > mark + halo remain. */
+function initHeroFieldSpectacle() {
+  if (reduceMotion) return;
+  if (navigator.webdriver) return;
+  const crest = document.querySelector<HTMLElement>('[data-hero-field]');
+  const canvas = crest?.querySelector<HTMLCanvasElement>('.crest__field');
+  if (!crest || !canvas) return;
+  let controller: { start: () => void; stop: () => void } | null = null;
+  let loading = false;
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          if (controller) {
+            controller.start();
+            crest.classList.add('is-live');
+          } else if (!loading) {
+            loading = true;
+            import('./hero-field')
+              .then((m) => {
+                controller = m.initHeroField(canvas);
+                if (controller) {
+                  controller.start();
+                  crest.classList.add('is-live');
+                }
+              })
+              .catch(() => {
+                /* WebGL unavailable or chunk failed → keep the static emblem */
+              });
+          }
+        } else if (controller) {
+          controller.stop();
+        }
+      }
+    },
+    { threshold: 0.01 }
+  );
+  io.observe(crest);
+}
+
 function init() {
   initIntro();
   initReveal();
@@ -1450,6 +1493,7 @@ function init() {
   initScrollSpy();
   initTabEgg();
   initConsoleEgg();
+  initHeroFieldSpectacle();
   // Safety net: ensure the mascot reveals even if the intro overlay was absent.
   window.setTimeout(() => document.documentElement.classList.add('mascot-ready'), 50);
 }

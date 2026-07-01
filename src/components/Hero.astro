@@ -1,6 +1,10 @@
 ---
-import { hero, motto, miniGame } from '../data/site';
+import { hero, motto, miniGame, funding } from '../data/site';
 import Logo from './Logo.astro';
+
+// The WebGL commons field reflects real state: the share of the launch goal
+// funded biases how many gold "patron" nodes/beams light into the < > core.
+const fundedPct = Math.round((funding.committed / funding.goal) * 100);
 
 // Precompute the headline as a trusted HTML string. Keep the H1 visible at
 // first paint: this text is the LCP candidate, so it must not wait for JS reveal.
@@ -74,7 +78,8 @@ const mottoHalf = Array.from({ length: 4 })
       </div>
 
       <aside class="hero__crest" data-reveal style="--reveal-delay:320ms">
-        <div class="crest">
+        <div class="crest" data-hero-field data-fund={fundedPct}>
+          <canvas class="crest__field" aria-hidden="true"></canvas>
           <Logo size={160} decorative class="crest__mark" />
         </div>
         <pre
@@ -289,6 +294,35 @@ const mottoHalf = Array.from({ length: 4 })
     aspect-ratio: 8 / 9;
     max-width: clamp(13rem, 21vw, 18rem);
     margin-inline: auto;
+  }
+  /* The lazy WebGL "digital commons" field (app.ts). Sits between the halo and
+     the mark; bleeds a little past the crest box (its shader vignette fades the
+     edges). Transparent until the field starts, so no-WebGL / reduced-motion /
+     no-JS keep the clean static emblem. */
+  .crest__field {
+    position: absolute;
+    top: -42%;
+    left: -42%;
+    width: 184%;
+    height: 184%;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.1s var(--ease-out);
+  }
+  .crest.is-live .crest__field {
+    opacity: 1;
+  }
+  /* when the field is live it supplies the glow + motion — stop the halo breathe
+     and quiet it so they don't double up into mush */
+  .crest.is-live::before {
+    animation: none;
+    opacity: 0.4;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .crest__field {
+      display: none;
+    }
   }
   :global(.crest__mark) {
     position: absolute;
