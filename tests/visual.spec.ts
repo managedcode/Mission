@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { prepareForVisual, setTheme } from './helpers';
+import { prepareForVisual, setTheme, waitForStableLocatorBox } from './helpers';
 
 /**
  * Pixel-by-pixel visual regression.
@@ -46,7 +46,9 @@ test.describe('Home · hero region', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await prepareForVisual(page);
     await page.waitForTimeout(SETTLE_MS);
-    await expect(page.locator('section.hero')).toHaveScreenshot('hero-light.png', {
+    const hero = page.locator('section.hero');
+    await waitForStableLocatorBox(page, hero);
+    await expect(hero).toHaveScreenshot('hero-light.png', {
       timeout: SECTION_SCREENSHOT_TIMEOUT_MS,
     });
   });
@@ -56,7 +58,9 @@ test.describe('Home · hero region', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await prepareForVisual(page);
     await page.waitForTimeout(SETTLE_MS);
-    await expect(page.locator('section.hero')).toHaveScreenshot('hero-dark.png', {
+    const hero = page.locator('section.hero');
+    await waitForStableLocatorBox(page, hero);
+    await expect(hero).toHaveScreenshot('hero-dark.png', {
       timeout: SECTION_SCREENSHOT_TIMEOUT_MS,
     });
   });
@@ -68,7 +72,9 @@ test.describe('Home · sections', () => {
     await page.goto('/');
     await prepareForVisual(page);
     await page.waitForTimeout(SETTLE_MS);
-    await expect(page.locator('#patronage')).toHaveScreenshot('tiers-light.png', {
+    const patronage = page.locator('#patronage');
+    await waitForStableLocatorBox(page, patronage);
+    await expect(patronage).toHaveScreenshot('tiers-light.png', {
       timeout: SECTION_SCREENSHOT_TIMEOUT_MS,
     });
   });
@@ -78,7 +84,9 @@ test.describe('Home · sections', () => {
     await page.goto('/');
     await prepareForVisual(page);
     await page.waitForTimeout(SETTLE_MS);
-    await expect(page.locator('#manifesto')).toHaveScreenshot('manifesto-light.png', {
+    const manifesto = page.locator('#manifesto');
+    await waitForStableLocatorBox(page, manifesto);
+    await expect(manifesto).toHaveScreenshot('manifesto-light.png', {
       timeout: SECTION_SCREENSHOT_TIMEOUT_MS,
     });
   });

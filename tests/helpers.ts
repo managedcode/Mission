@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 export type Theme = 'light' | 'dark';
 
@@ -53,6 +53,46 @@ export async function prepareForVisual(page: Page): Promise<void> {
       '[data-header]{position:static!important;}';
     document.head.appendChild(style);
   });
+}
+
+export async function waitForStableLocatorBox(
+  page: Page,
+  locator: Locator,
+  options: { stableSamples?: number; intervalMs?: number; timeoutMs?: number } = {}
+): Promise<void> {
+  const stableSamples = options.stableSamples ?? 3;
+  const intervalMs = options.intervalMs ?? 100;
+  const timeoutMs = options.timeoutMs ?? 5_000;
+  const deadline = Date.now() + timeoutMs;
+  let previous: string | null = null;
+  let stableCount = 0;
+
+  await locator.waitFor({ state: 'visible' });
+
+  while (Date.now() < deadline) {
+    const box = await locator.evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      return {
+        x: Math.round(rect.x * 100) / 100,
+        y: Math.round(rect.y * 100) / 100,
+        width: Math.round(rect.width * 100) / 100,
+        height: Math.round(rect.height * 100) / 100,
+      };
+    });
+    const next = JSON.stringify(box);
+
+    if (next === previous) {
+      stableCount += 1;
+      if (stableCount >= stableSamples) return;
+    } else {
+      previous = next;
+      stableCount = 0;
+    }
+
+    await page.waitForTimeout(intervalMs);
+  }
+
+  throw new Error(`Locator box did not stabilize within ${timeoutMs}ms`);
 }
 
 /**
