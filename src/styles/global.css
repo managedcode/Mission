@@ -585,8 +585,8 @@ p {
    only starts after a user gesture. */
 .sound-toggle {
   position: fixed;
-  /* bottom corner — must NOT overlap the header's nav/theme controls */
-  bottom: clamp(1rem, 2.4vw, 1.6rem);
+  /* Keep the control clear of the bottom-right reCAPTCHA badge once the form loads it. */
+  bottom: calc(clamp(1rem, 2.4vw, 1.6rem) + 5.25rem);
   right: clamp(1rem, 2.4vw, 1.6rem);
   z-index: 1200;
   display: inline-grid;

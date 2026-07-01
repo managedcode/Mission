@@ -33,6 +33,18 @@ test.describe('Apply form retry behaviour', () => {
         status: 200,
         contentType: 'application/javascript',
         body: `
+          const badge = document.createElement('div');
+          badge.className = 'grecaptcha-badge';
+          badge.setAttribute('aria-hidden', 'true');
+          Object.assign(badge.style, {
+            position: 'fixed',
+            right: '14px',
+            bottom: '14px',
+            width: '256px',
+            height: '60px',
+            zIndex: '1000'
+          });
+          document.body.appendChild(badge);
           window.__missionRecaptchaExecuted = [];
           window.grecaptcha = {
             ready: function(cb) { cb(); },
@@ -75,6 +87,30 @@ test.describe('Apply form retry behaviour', () => {
     await expect(page.locator('[data-apply-submit]')).toBeEnabled();
     await expect(page.locator('[data-apply-submit]')).toContainText('Send it to the maintainers');
     await expect(page.locator('[data-apply-status]')).toBeEmpty();
+    const floatingControlGap = await page.evaluate(() => {
+      const sound = document.querySelector('[data-sound-toggle]');
+      const badge = document.querySelector('.grecaptcha-badge');
+      if (!sound || !badge) return null;
+
+      const soundRect = sound.getBoundingClientRect();
+      const badgeRect = badge.getBoundingClientRect();
+      const overlapX = Math.max(
+        0,
+        Math.min(soundRect.right, badgeRect.right) - Math.max(soundRect.left, badgeRect.left)
+      );
+      const overlapY = Math.max(
+        0,
+        Math.min(soundRect.bottom, badgeRect.bottom) - Math.max(soundRect.top, badgeRect.top)
+      );
+
+      return {
+        overlapArea: Math.round(overlapX * overlapY),
+        verticalGap: Math.round(badgeRect.top - soundRect.bottom),
+      };
+    });
+    expect(floatingControlGap).not.toBeNull();
+    expect(floatingControlGap?.overlapArea).toBe(0);
+    expect(floatingControlGap?.verticalGap ?? 0).toBeGreaterThanOrEqual(16);
     await expect(page.locator('[data-apply-form]')).toHaveAttribute(
       'data-recaptcha-state',
       'ready'
