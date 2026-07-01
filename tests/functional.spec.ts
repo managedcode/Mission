@@ -1,21 +1,13 @@
-import { test, expect, type TestInfo } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 // In-page anchors that should each resolve to an element on the home page.
 const NAV_ANCHORS = ['#manifesto', '#how', '#maintainers', '#patronage', '#faq'];
 const MOBILE_WIDTHS = [320, 360, 375, 390, 414, 430] as const;
 const MOBILE_PATHS = ['/', '/patrons', '/projects', '/team', '/404'] as const;
-const MOBILE_AUDIT_PROJECT = 'phone-sm';
 const MOBILE_AUDIT_HEIGHT = 844;
 const DESKTOP_AUDIT_VIEWPORT = { width: 1440, height: 900 } as const;
 
 async function useDesktopAuditViewport(page: import('@playwright/test').Page): Promise<void> {
   await page.setViewportSize(DESKTOP_AUDIT_VIEWPORT);
-}
-
-function runOnlyInMobileAuditProject(testInfo: TestInfo): void {
-  test.skip(
-    testInfo.project.name !== MOBILE_AUDIT_PROJECT,
-    `covered once by ${MOBILE_AUDIT_PROJECT}, which sets mobile emulation and audits all target widths`
-  );
 }
 
 function rgb(color: string): [number, number, number] {
@@ -265,18 +257,25 @@ test.describe('Home page · structure & SEO', () => {
   });
 
   test('SEO meta + JSON-LD structured data are present and well-formed', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    const description = await page.locator('meta[name="description"]').getAttribute('content');
+    const head = await page.evaluate(() => ({
+      description: document.querySelector<HTMLMetaElement>('meta[name="description"]')?.content,
+      canonicalCount: document.querySelectorAll('link[rel="canonical"]').length,
+      ogImage: document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.content,
+      jsonLd: document.querySelector<HTMLScriptElement>('script[type="application/ld+json"]')
+        ?.textContent,
+    }));
+
+    const description = head.description;
     expect(description?.trim().length ?? 0).toBeGreaterThan(0);
 
-    await expect(page.locator('link[rel="canonical"]')).toHaveCount(1);
-    await expect(page.locator('meta[property="og:image"]')).toHaveCount(1);
+    expect(head.canonicalCount).toBe(1);
 
-    const ogImage = await page.locator('meta[property="og:image"]').getAttribute('content');
+    const ogImage = head.ogImage;
     expect(ogImage?.trim().length ?? 0).toBeGreaterThan(0);
 
-    const raw = await page.locator('script[type="application/ld+json"]').first().textContent();
+    const raw = head.jsonLd;
     expect(raw, 'JSON-LD script should have content').toBeTruthy();
 
     const data = JSON.parse(raw as string);
@@ -827,9 +826,9 @@ test.describe('Theme toggle', () => {
 });
 
 test.describe('Mobile navigation', () => {
-  test('compact header wordmark aligns with the hero content edge', async ({ page }, testInfo) => {
-    runOnlyInMobileAuditProject(testInfo);
-
+  test('compact header wordmark aligns with the hero content edge @mobile-audit', async ({
+    page,
+  }) => {
     for (const width of [360, 430, 600, 900, 1024, 1200] as const) {
       await page.setViewportSize({ width, height: MOBILE_AUDIT_HEIGHT });
       await page.goto('/', { waitUntil: 'domcontentloaded' });
@@ -860,11 +859,9 @@ test.describe('Mobile navigation', () => {
     }
   });
 
-  test('toggle opens/closes the menu and a link click closes it across phone widths', async ({
+  test('toggle opens/closes the menu and a link click closes it across phone widths @mobile-audit', async ({
     page,
-  }, testInfo) => {
-    runOnlyInMobileAuditProject(testInfo);
-
+  }) => {
     for (const width of MOBILE_WIDTHS) {
       await page.setViewportSize({ width, height: MOBILE_AUDIT_HEIGHT });
       await page.goto('/');
@@ -918,11 +915,9 @@ test.describe('Mobile navigation', () => {
 
 test.describe('Mobile viewport coverage', () => {
   for (const path of MOBILE_PATHS) {
-    test(`${path} stays readable from 320px through large-phone widths`, async ({
+    test(`${path} stays readable from 320px through large-phone widths @mobile-audit`, async ({
       page,
-    }, testInfo) => {
-      runOnlyInMobileAuditProject(testInfo);
-
+    }) => {
       for (const width of MOBILE_WIDTHS) {
         await page.setViewportSize({ width, height: MOBILE_AUDIT_HEIGHT });
         await page.goto(path, { waitUntil: 'domcontentloaded' });

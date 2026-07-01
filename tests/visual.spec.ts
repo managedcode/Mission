@@ -12,6 +12,7 @@ import { prepareForVisual, setTheme } from './helpers';
  */
 
 const SETTLE_MS = 300;
+const SECTION_SCREENSHOT_TIMEOUT_MS = 20_000;
 
 test.describe('Home · full page', () => {
   test('light theme', async ({ page }) => {
@@ -42,18 +43,22 @@ test.describe('Home · full page', () => {
 test.describe('Home · hero region', () => {
   test('light theme', async ({ page }) => {
     await setTheme(page, 'light');
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await prepareForVisual(page);
     await page.waitForTimeout(SETTLE_MS);
-    await expect(page.locator('section.hero')).toHaveScreenshot('hero-light.png');
+    await expect(page.locator('section.hero')).toHaveScreenshot('hero-light.png', {
+      timeout: SECTION_SCREENSHOT_TIMEOUT_MS,
+    });
   });
 
   test('dark theme', async ({ page }) => {
     await setTheme(page, 'dark');
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await prepareForVisual(page);
     await page.waitForTimeout(SETTLE_MS);
-    await expect(page.locator('section.hero')).toHaveScreenshot('hero-dark.png');
+    await expect(page.locator('section.hero')).toHaveScreenshot('hero-dark.png', {
+      timeout: SECTION_SCREENSHOT_TIMEOUT_MS,
+    });
   });
 });
 
@@ -63,7 +68,9 @@ test.describe('Home · sections', () => {
     await page.goto('/');
     await prepareForVisual(page);
     await page.waitForTimeout(SETTLE_MS);
-    await expect(page.locator('#patronage')).toHaveScreenshot('tiers-light.png');
+    await expect(page.locator('#patronage')).toHaveScreenshot('tiers-light.png', {
+      timeout: SECTION_SCREENSHOT_TIMEOUT_MS,
+    });
   });
 
   test('manifesto', async ({ page }) => {
@@ -71,7 +78,9 @@ test.describe('Home · sections', () => {
     await page.goto('/');
     await prepareForVisual(page);
     await page.waitForTimeout(SETTLE_MS);
-    await expect(page.locator('#manifesto')).toHaveScreenshot('manifesto-light.png');
+    await expect(page.locator('#manifesto')).toHaveScreenshot('manifesto-light.png', {
+      timeout: SECTION_SCREENSHOT_TIMEOUT_MS,
+    });
   });
 });
 

@@ -838,7 +838,6 @@ body::after {
   font-variation-settings: 'wght' 700;
 }
 
-
 /* ---------- Mascot click egg — a little hop + a floating 1-UP ---------- */
 @keyframes mascot-hop {
   0%,

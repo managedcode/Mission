@@ -125,8 +125,11 @@ function compile(gl: WebGLRenderingContext, type: number, src: string): WebGLSha
 }
 
 export function initHeroField(canvas: HTMLCanvasElement): Controller | null {
-  const gl = (canvas.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: false }) ||
-    canvas.getContext('experimental-webgl', { alpha: true })) as WebGLRenderingContext | null;
+  const gl = (canvas.getContext('webgl', {
+    alpha: true,
+    antialias: true,
+    premultipliedAlpha: false,
+  }) || canvas.getContext('experimental-webgl', { alpha: true })) as WebGLRenderingContext | null;
   if (!gl) return null;
 
   const vs = compile(gl, gl.VERTEX_SHADER, VERT);

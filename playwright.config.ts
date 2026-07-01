@@ -16,6 +16,8 @@ import { defineConfig, devices } from '@playwright/test';
 const PORT = Number(process.env.PORT ?? 4333);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const DESKTOP_ONLY = /@desktop/;
+const MOBILE_AUDIT_ONLY = /@mobile-audit/;
+const NON_TARGETED_MOBILE_TESTS = /@desktop|@mobile-audit/;
 
 export default defineConfig({
   testDir: './tests',
@@ -78,30 +80,32 @@ export default defineConfig({
     },
     {
       name: 'phone-md',
-      grepInvert: DESKTOP_ONLY,
+      grepInvert: NON_TARGETED_MOBILE_TESTS,
       use: { ...devices['iPhone 13'] }, // 390x844
     },
     {
       name: 'phone-lg',
-      grepInvert: DESKTOP_ONLY,
+      grepInvert: NON_TARGETED_MOBILE_TESTS,
       use: { ...devices['iPhone 14 Pro Max'] }, // 430x932
     },
     {
       name: 'tablet',
-      grepInvert: DESKTOP_ONLY,
+      grepInvert: NON_TARGETED_MOBILE_TESTS,
       use: { ...devices['iPad Mini'] }, // 768x1024
     },
     {
       name: 'tablet-lg',
-      grepInvert: DESKTOP_ONLY,
+      grepInvert: NON_TARGETED_MOBILE_TESTS,
       use: { ...devices['iPad Pro 11'] }, // 834x1194
     },
     {
       name: 'desktop',
+      grepInvert: MOBILE_AUDIT_ONLY,
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
     },
     {
       name: 'desktop-xl',
+      grepInvert: MOBILE_AUDIT_ONLY,
       use: { ...devices['Desktop Chrome'], viewport: { width: 1920, height: 1080 } },
     },
   ],

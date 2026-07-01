@@ -69,10 +69,18 @@ const mottoHalf = Array.from({ length: 4 })
           {hero.badges.map((badge) => <li class="chip chip--dot">{badge}</li>)}
         </ul>
 
-        <button class="hero__play" type="button" data-game-launch data-reveal style="--reveal-delay:820ms">
+        <button
+          class="hero__play"
+          type="button"
+          data-game-launch
+          data-reveal
+          style="--reveal-delay:820ms"
+        >
           <span class="hero__play-glyph" aria-hidden="true">▶</span>
           <span class="hero__play-text font-pixel">{miniGame.launchCta}</span>
-          <span class="hero__play-tag font-mono" aria-hidden="true">{miniGame.footerLabel} · 60s</span>
+          <span class="hero__play-tag font-mono" aria-hidden="true"
+            >{miniGame.footerLabel} · 60s</span
+          >
           <span class="visually-hidden"> — {miniGame.footerLabel}, {miniGame.launchHint}</span>
         </button>
       </div>

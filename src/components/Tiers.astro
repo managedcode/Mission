@@ -397,7 +397,10 @@ const meterCells = (fill: number) =>
      reveals — motion that communicates the reserved band filling up. Gated on
      :root.js so a no-JS / crawler paint shows the meter already full; the
      visual-test helper reveals every card, so frames settle on the lit state. */
-  :root.js .tiers__plan[data-reveal]:not(.is-visible) .plan__meter-bar :global(.plan__cell[data-on]) {
+  :root.js
+    .tiers__plan[data-reveal]:not(.is-visible)
+    .plan__meter-bar
+    :global(.plan__cell[data-on]) {
     border-color: color-mix(in srgb, var(--plan-tone) 30%, transparent);
     background: color-mix(in srgb, var(--plan-tone) 8%, transparent);
     box-shadow: none;
