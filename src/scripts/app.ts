@@ -192,11 +192,24 @@ function initNav() {
   const toggle = document.querySelector<HTMLButtonElement>('[data-nav-toggle]');
   const menu = document.querySelector<HTMLElement>('[data-nav-menu]');
   if (!toggle || !menu) return;
+  const header = toggle.closest<HTMLElement>('.site-header') ?? document.body;
+  const scrim = header.querySelector<HTMLElement>('[data-nav-scrim]');
   const firstLink = () => menu.querySelector<HTMLAnchorElement>('a');
+  const isOpen = () => toggle.getAttribute('aria-expanded') === 'true';
+  // Trap to the visible header chrome (drawer + bar controls) so Tab can never
+  // reach the page behind an open drawer. Recomputed per keystroke because which
+  // controls are visible depends on the breakpoint.
+  const focusables = () =>
+    Array.from(
+      header.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter((el) => el.getClientRects().length > 0);
   const close = (returnFocus = false) => {
     toggle.setAttribute('aria-expanded', 'false');
     toggle.setAttribute('aria-label', 'Open menu');
     menu.dataset.open = 'false';
+    if (scrim) scrim.dataset.open = 'false';
     document.body.style.removeProperty('overflow');
     if (returnFocus) toggle.focus();
   };
@@ -204,17 +217,38 @@ function initNav() {
     toggle.setAttribute('aria-expanded', 'true');
     toggle.setAttribute('aria-label', 'Close menu');
     menu.dataset.open = 'true';
+    if (scrim) scrim.dataset.open = 'true';
     document.body.style.overflow = 'hidden';
     // wait a frame so the menu is visible before moving focus into it
     requestAnimationFrame(() => firstLink()?.focus());
   };
   toggle.addEventListener('click', () => {
-    if (toggle.getAttribute('aria-expanded') === 'true') close();
+    if (isOpen()) close();
     else open();
   });
   menu.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => close()));
+  // click-away on the backdrop dismisses the drawer
+  scrim?.addEventListener('click', () => close());
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') close(true);
+    if (!isOpen()) return;
+    if (e.key === 'Escape') {
+      close(true);
+      return;
+    }
+    if (e.key === 'Tab') {
+      const nodes = focusables();
+      if (nodes.length < 2) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey && (active === first || !header.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || !header.contains(active))) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
   });
 }
 
@@ -629,6 +663,29 @@ function initMagnetic() {
       el.style.transform = '';
     });
   });
+
+  // Hero emblem — a subtle cursor-magnetic parallax: the `< >` mark leans toward
+  // the pointer within the hero, so the most-judged frame feels alive and
+  // responsive. Composited (transform only), rAF-throttled, fine-pointer +
+  // motion-OK gated above; the mark's base centering is `translate(-50%,-50%)`.
+  const hero = document.querySelector<HTMLElement>('.hero');
+  const mark = document.querySelector<HTMLElement>('.crest__mark');
+  if (hero && mark) {
+    let hr: DOMRect | null = null;
+    hero.addEventListener('pointerenter', () => {
+      hr = hero.getBoundingClientRect();
+    });
+    hero.addEventListener('pointermove', (e) => {
+      hr ??= hero.getBoundingClientRect();
+      const tx = ((e.clientX - hr.left) / hr.width - 0.5) * 14;
+      const ty = ((e.clientY - hr.top) / hr.height - 0.5) * 14;
+      mark.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px))`;
+    });
+    hero.addEventListener('pointerleave', () => {
+      hr = null;
+      mark.style.transform = '';
+    });
+  }
 }
 
 /* ---------- Team/contact CTAs ----------

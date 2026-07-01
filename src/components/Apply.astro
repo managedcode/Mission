@@ -41,6 +41,9 @@ const recaptchaNotice = apply.recaptchaNotice;
         data-apply-form
         data-endpoint={formEndpoint}
         data-error={apply.errorBody}
+        data-fallback-email={site.email}
+        data-mailto-label={apply.errorMailtoLabel}
+        data-mailto-subject={apply.errorMailtoSubject}
         data-sending={apply.sendingLabel}
         data-verifying={apply.verifyingLabel}
         data-recaptcha-api-url={recaptchaApiUrl}
@@ -185,7 +188,14 @@ const recaptchaNotice = apply.recaptchaNotice;
         </noscript>
       </form>
 
-      <div class="apply__success card" data-apply-success hidden tabindex="-1">
+      <div
+        class="apply__success card"
+        data-apply-success
+        hidden
+        tabindex="-1"
+        role="status"
+        aria-live="polite"
+      >
         <p class="apply__success-mark font-pixel" aria-hidden="true">✓</p>
         <h3 class="apply__success-h font-display">{apply.successHeading}</h3>
         <p class="apply__success-body font-serif">{apply.successBody}</p>
@@ -350,6 +360,17 @@ const recaptchaNotice = apply.recaptchaNotice;
   }
   :global(:root[data-theme='dark']) .apply__status[data-state='error'] {
     color: var(--accent-2);
+  }
+  .apply__status-mailto {
+    display: inline-block;
+    margin-top: 0.4rem;
+    color: var(--accent-2-text);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-weight: 600;
+  }
+  .apply__status-mailto:hover {
+    text-decoration: none;
   }
   .apply__disabled {
     font-size: var(--step--2);
@@ -746,6 +767,37 @@ const recaptchaNotice = apply.recaptchaNotice;
         if (status) {
           status.dataset.state = 'error';
           status.textContent = errorMsg;
+          // One-tap escape hatch for the highest-intent action: a mailto
+          // pre-filled with what they already typed, so a script-blocked /
+          // reCAPTCHA-down / offline CTO never dead-ends on a generic error.
+          const fallbackEmail = form.dataset.fallbackEmail;
+          const mailtoLabel = form.dataset.mailtoLabel;
+          if (fallbackEmail && mailtoLabel) {
+            const fd = new FormData(form);
+            const get = (k: string) => String(fd.get(k) ?? '').trim();
+            const subject = `${form.dataset.mailtoSubject || 'Open-source patronage'}${
+              get('company') ? ` — ${get('company')}` : ''
+            }`;
+            const body = [
+              get('company') && `Company: ${get('company')}`,
+              get('email') && `Work email: ${get('email')}`,
+              get('name') && `Name: ${get('name')}`,
+              get('grade') && `Grade: ${get('grade')}`,
+              get('budget') && `Funding shape: ${get('budget')}`,
+              get('timeline') && `Timeline: ${get('timeline')}`,
+              get('stack') && `Open source we depend on:\n${get('stack')}`,
+              get('notes') && `Notes: ${get('notes')}`,
+            ]
+              .filter(Boolean)
+              .join('\n\n');
+            const link = document.createElement('a');
+            link.href = `mailto:${fallbackEmail}?subject=${encodeURIComponent(
+              subject
+            )}&body=${encodeURIComponent(body)}`;
+            link.className = 'apply__status-mailto';
+            link.textContent = mailtoLabel;
+            status.append(document.createElement('br'), link);
+          }
         }
         if (submit) {
           submit.disabled = false;

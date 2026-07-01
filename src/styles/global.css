@@ -838,51 +838,6 @@ body::after {
   font-variation-settings: 'wght' 700;
 }
 
-/* ---------- Custom pixel cursor (desktop, fine pointer only) ---------- */
-.cursor,
-.cursor__ring {
-  position: fixed;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  z-index: 9500;
-  will-change: transform;
-  opacity: 0;
-}
-.cursor {
-  width: 10px;
-  height: 10px;
-  background: var(--amber);
-  transform: translate3d(-100px, -100px, 0) translate(-50%, -50%);
-  box-shadow: 0 0 0 1.5px var(--fg);
-}
-.cursor__ring {
-  width: 30px;
-  height: 30px;
-  border: var(--border-px) solid var(--fg);
-  transform: translate3d(-100px, -100px, 0) translate(-50%, -50%);
-  transition:
-    width 0.18s var(--ease-out),
-    height 0.18s var(--ease-out),
-    background-color 0.18s,
-    border-color 0.18s;
-}
-:root.cursor-ready .cursor,
-:root.cursor-ready .cursor__ring {
-  opacity: 1;
-}
-:root.cursor-ready.cursor-hot .cursor__ring {
-  width: 46px;
-  height: 46px;
-  background: color-mix(in srgb, var(--amber) 18%, transparent);
-  border-color: var(--amber);
-}
-@media (prefers-reduced-motion: reduce), (pointer: coarse) {
-  .cursor,
-  .cursor__ring {
-    display: none;
-  }
-}
 
 /* ---------- Mascot click egg — a little hop + a floating 1-UP ---------- */
 @keyframes mascot-hop {
@@ -952,16 +907,14 @@ body::after {
 .mgame * {
   cursor: auto;
 }
+.mgame a,
+.mgame .btn,
 .mgame button,
 .mgame [role='button'] {
   cursor: pointer;
 }
 .mgame__canvas:focus {
   outline: none;
-}
-:root.mgame-open .cursor,
-:root.mgame-open .cursor__ring {
-  display: none !important;
 }
 .mgame__cab {
   width: min(92vw, 760px);

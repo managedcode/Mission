@@ -8,7 +8,7 @@ import { tiers } from '../data/site';
 const meterCells = (fill: number) =>
   Array.from(
     { length: tiers.meterTotal },
-    (_, i) => `<i class="plan__cell"${i < fill ? ' data-on' : ''}></i>`
+    (_, i) => `<i class="plan__cell"${i < fill ? ' data-on' : ''} style="--i:${i}"></i>`
   ).join('');
 ---
 
@@ -383,11 +383,34 @@ const meterCells = (fill: number) =>
     height: 0.62rem;
     border: 1.5px solid color-mix(in srgb, var(--plan-tone) 32%, transparent);
     background: color-mix(in srgb, var(--plan-tone) 8%, transparent);
+    transition:
+      background-color 0.32s var(--ease-out),
+      border-color 0.32s var(--ease-out);
   }
   .plan__meter-bar :global(.plan__cell[data-on]) {
     border-color: var(--plan-tone);
     background: var(--plan-tone);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bg) 30%, transparent);
+  }
+  /* Signature motion: the capacity meter "charges" left→right as the card
+     reveals — motion that communicates the reserved band filling up. Gated on
+     :root.js so a no-JS / crawler paint shows the meter already full; the
+     visual-test helper reveals every card, so frames settle on the lit state. */
+  :root.js .tiers__plan[data-reveal]:not(.is-visible) .plan__meter-bar :global(.plan__cell[data-on]) {
+    border-color: color-mix(in srgb, var(--plan-tone) 30%, transparent);
+    background: color-mix(in srgb, var(--plan-tone) 8%, transparent);
+    box-shadow: none;
+  }
+  .tiers__plan.is-visible .plan__meter-bar :global(.plan__cell[data-on]) {
+    transition-delay: calc(0.22s + var(--i, 0) * 0.055s);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .plan__meter-bar :global(.plan__cell) {
+      transition: none;
+    }
+    .tiers__plan.is-visible .plan__meter-bar :global(.plan__cell[data-on]) {
+      transition-delay: 0s;
+    }
   }
 
   .plan__rule {

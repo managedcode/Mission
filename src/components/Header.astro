@@ -62,6 +62,7 @@ import Logo from './Logo.astro';
       </button>
     </div>
   </div>
+  <div class="nav-scrim" data-nav-scrim aria-hidden="true"></div>
 </header>
 
 <style>
@@ -225,6 +226,36 @@ import Logo from './Logo.astro';
     display: block;
   }
 
+  /* Backdrop scrim behind the mobile drawer — gives the open menu a real modal
+     affordance and a click-away target. Sits below the header bar (so the close
+     button stays tappable) and below the drawer, above the page. Desktop: off. */
+  .nav-scrim {
+    display: none;
+    position: fixed;
+    inset: 4.25rem 0 0 0;
+    z-index: 1;
+    background: color-mix(in srgb, var(--bg) 55%, transparent);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.35s var(--ease-out),
+      visibility 0s linear 0.35s;
+  }
+  .nav-scrim[data-open='true'] {
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity 0.35s var(--ease-out),
+      visibility 0s;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nav-scrim {
+      transition: none;
+    }
+  }
+
   .nav-toggle {
     display: none;
   }
@@ -260,6 +291,9 @@ import Logo from './Logo.astro';
     .nav-toggle {
       display: inline-grid;
     }
+    .nav-scrim {
+      display: block;
+    }
     .brand {
       gap: 0;
       min-width: 0;
@@ -272,6 +306,7 @@ import Logo from './Logo.astro';
       top: 4.25rem;
       right: 0;
       left: 0;
+      z-index: 2;
       width: auto;
       flex-direction: column;
       align-items: stretch;
@@ -344,6 +379,9 @@ import Logo from './Logo.astro';
     .primary-nav {
       top: 4rem;
       max-height: calc(100svh - 4rem);
+    }
+    .nav-scrim {
+      top: 4rem;
     }
   }
 

@@ -69,6 +69,8 @@ import { sla } from '../data/site';
         ))
       }
     </ul>
+
+    <p class="sla__sources font-mono" data-reveal>{sla.sources}</p>
   </div>
 </section>
 
@@ -266,6 +268,15 @@ import { sla } from '../data/site';
   :global(:root[data-theme='dark']) .sla__colh--patron,
   :global(:root[data-theme='dark']) .sla__block--patron .sla__label {
     color: var(--accent);
+  }
+
+  /* ---- Source footnote (matches the stat-card rigor elsewhere) ---- */
+  .sla__sources {
+    margin-top: clamp(1rem, 0.7rem + 1vw, 1.6rem);
+    max-width: 70ch;
+    font-size: var(--step--2);
+    line-height: 1.6;
+    color: var(--fg-faint);
   }
 
   /* =========================================================

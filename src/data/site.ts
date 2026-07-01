@@ -584,6 +584,8 @@ export const sla = {
       patron: 'folded into your patronage',
     },
   ],
+  sources:
+    'Response figures: a study of 111,094 PRs across ten mature OSS projects (43–83% first human response within a working day). Security: median 4 days patch-to-release; npm vulnerability-lifetime study (17.4% still open after a year). Cost: Linux Foundation OSS ROI survey.',
 } as const;
 
 export const join = {
@@ -756,8 +758,11 @@ export const apply = {
   successHeading: 'Got it.',
   successBody:
     'We’ll read your stack and come back within two business days with a scoped proposal — a capacity band, an SLA, and a named maintainer.',
-  errorBody:
-    'That didn’t send. Try again in a moment, or email us directly at opensource@managed-code.com and we’ll pick it up.',
+  errorBody: 'That didn’t send. Try again in a moment, or:',
+  // On failure (script-blocked / reCAPTCHA down / offline) the highest-intent
+  // CTO still gets a one-tap escape hatch: a mailto pre-filled with what they typed.
+  errorMailtoLabel: 'Email it instead — your details are pre-filled →',
+  errorMailtoSubject: 'Open-source patronage',
   noscriptNote: 'Enable JavaScript to pass reCAPTCHA and send this form.',
   recaptchaNotice: {
     before: 'This site is protected by reCAPTCHA and the Google ',

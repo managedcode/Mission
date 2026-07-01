@@ -1,6 +1,6 @@
 ---
-import { hero, motto } from '../data/site';
-import GitHubMark from './GitHubMark.astro';
+import { hero, motto, miniGame } from '../data/site';
+import Logo from './Logo.astro';
 
 // Precompute the headline as a trusted HTML string. Keep the H1 visible at
 // first paint: this text is the LCP candidate, so it must not wait for JS reveal.
@@ -64,11 +64,18 @@ const mottoHalf = Array.from({ length: 4 })
         <ul class="hero__badges" role="list" data-reveal style="--reveal-delay:720ms">
           {hero.badges.map((badge) => <li class="chip chip--dot">{badge}</li>)}
         </ul>
+
+        <button class="hero__play" type="button" data-game-launch data-reveal style="--reveal-delay:820ms">
+          <span class="hero__play-glyph" aria-hidden="true">▶</span>
+          <span class="hero__play-text font-pixel">{miniGame.launchCta}</span>
+          <span class="hero__play-tag font-mono" aria-hidden="true">{miniGame.footerLabel} · 60s</span>
+          <span class="visually-hidden"> — {miniGame.footerLabel}, {miniGame.launchHint}</span>
+        </button>
       </div>
 
       <aside class="hero__crest" data-reveal style="--reveal-delay:320ms">
         <div class="crest">
-          <GitHubMark size={160} class="crest__github-mark" />
+          <Logo size={160} decorative class="crest__mark" />
         </div>
         <pre
           class="crest__status terminal__body font-mono"
@@ -212,6 +219,51 @@ const mottoHalf = Array.from({ length: 4 })
     gap: 0.5rem;
     margin-top: var(--space-m);
   }
+
+  /* Arcade launcher — surfaces the signature mini-game in the first viewport
+     without competing with the primary CTAs. "Insert coin" energy. */
+  .hero__play {
+    margin-top: var(--space-m);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7em;
+    padding: 0.55em 0.9em;
+    background: transparent;
+    color: var(--fg);
+    border: var(--border-px) solid var(--hairline-strong);
+    box-shadow: var(--shadow-px-sm);
+    cursor: pointer;
+    transition:
+      transform 0.12s var(--ease-out),
+      box-shadow 0.12s var(--ease-out),
+      border-color 0.2s;
+  }
+  .hero__play:hover,
+  .hero__play:focus-visible {
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 var(--fg);
+    border-color: var(--fg);
+  }
+  .hero__play-glyph {
+    color: var(--accent);
+    font-size: 0.8em;
+    animation: blink 1.1s steps(2, start) infinite;
+  }
+  .hero__play-text {
+    font-size: clamp(0.5rem, 0.42rem + 0.35vw, 0.6rem);
+    color: var(--fg);
+  }
+  .hero__play-tag {
+    font-size: var(--step--2);
+    color: var(--fg-faint);
+    padding-left: 0.7em;
+    border-left: 1.5px solid var(--hairline-strong);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero__play-glyph {
+      animation: none;
+    }
+  }
   .chip--dot::before {
     content: '';
     width: 7px;
@@ -220,8 +272,9 @@ const mottoHalf = Array.from({ length: 4 })
     flex: none;
   }
 
-  /* ── The hero emblem — the GitHub octocat mark on a soft gold halo, with a
-     slim 3-line mono "mission status" caption below it. */
+  /* ── The hero emblem — the ManagedCode `< >` brand mark on a soft gold halo,
+     with a slim 3-line mono "mission status" caption below it. Using our own
+     mark (not GitHub's) keeps the most-judged frame authored and on-brand. */
   .hero__crest {
     --reveal-y: 0px;
     align-self: center;
@@ -237,20 +290,29 @@ const mottoHalf = Array.from({ length: 4 })
     max-width: clamp(13rem, 21vw, 18rem);
     margin-inline: auto;
   }
-  :global(.crest__github-mark) {
+  :global(.crest__mark) {
     position: absolute;
     top: 50%;
     left: 50%;
     z-index: 2;
-    width: 54%;
+    width: 70%;
     height: auto;
     color: var(--fg);
     transform: translate(-50%, -50%);
     pointer-events: none;
     filter: drop-shadow(0 6px 16px color-mix(in srgb, var(--gold) 30%, transparent));
+    /* smooths the desktop cursor-magnet parallax (app.ts initMagnetic) */
+    transition: transform 0.3s var(--ease-out);
+    will-change: transform;
   }
-  /* a faint patron-gold halo BEHIND the canvas — a separate layer, so it never
-     blurs the pixel emblem itself */
+  @media (prefers-reduced-motion: reduce) {
+    :global(.crest__mark) {
+      transition: none;
+    }
+  }
+  /* a faint patron-gold halo BEHIND the mark — a separate layer, so it never
+     blurs the emblem itself. It breathes slowly (composited scale/opacity only):
+     "the lights are on" — the one subtle, on-brand kinetic beat on the hero. */
   .crest::before {
     content: '';
     position: absolute;
@@ -262,6 +324,24 @@ const mottoHalf = Array.from({ length: 4 })
       transparent 68%
     );
     pointer-events: none;
+    will-change: transform, opacity;
+    animation: crest-breathe 5s ease-in-out infinite;
+  }
+  @keyframes crest-breathe {
+    0%,
+    100% {
+      transform: scale(0.94);
+      opacity: 0.7;
+    }
+    50% {
+      transform: scale(1.06);
+      opacity: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .crest::before {
+      animation: none;
+    }
   }
   :global(:root[data-theme='dark']) .crest::before {
     background: radial-gradient(
@@ -356,8 +436,8 @@ const mottoHalf = Array.from({ length: 4 })
       max-width: none;
       margin-inline: 0;
     }
-    :global(.crest__github-mark) {
-      width: 66%;
+    :global(.crest__mark) {
+      width: 78%;
     }
     .crest__status {
       flex: 1 1 auto;
