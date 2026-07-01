@@ -412,7 +412,9 @@ function initTerminal() {
   };
   (window as Window & { __finishTerminal?: () => void }).__finishTerminal = finish;
 
-  if (reduceMotion) {
+  const compactTerminal = window.matchMedia('(max-width: 30rem)').matches;
+  if (reduceMotion || compactTerminal) {
+    finish();
     void prepareTerminal();
     return; // keep the static, fully-typed terminal
   }

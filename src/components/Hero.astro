@@ -400,6 +400,7 @@ const mottoHalf = Array.from({ length: 4 })
     padding: 0;
     max-width: 18rem;
     margin-inline: auto;
+    min-width: 0;
     font-size: clamp(0.66rem, 0.6rem + 0.28vw, 0.78rem);
     line-height: 1.75;
     letter-spacing: 0.01em;
@@ -493,9 +494,18 @@ const mottoHalf = Array.from({ length: 4 })
   }
   @media (max-width: 26rem) {
     .hero__crest {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.85rem;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .crest {
+      width: clamp(3.35rem, 17vw, 4rem);
+    }
+    .crest__status {
+      max-width: min(100%, 17rem);
+      font-size: clamp(0.6rem, 0.54rem + 0.35vw, 0.68rem);
+      line-height: 1.55;
+      min-block-size: calc(var(--terminal-lines, 4) * 1.55em);
     }
   }
 </style>

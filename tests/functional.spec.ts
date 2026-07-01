@@ -209,6 +209,86 @@ test.describe('Home page · structure & SEO', () => {
     expect(typedDelta).toBeGreaterThan(10);
   });
 
+  test('hero crest stays compact and fully typed on narrow phones @mobile-audit', async ({
+    page,
+  }) => {
+    for (const width of [320, 360, 390, 414] as const) {
+      await page.setViewportSize({ width, height: MOBILE_AUDIT_HEIGHT });
+      await page.goto('/', { waitUntil: 'networkidle' });
+
+      await page.locator('.hero__crest').scrollIntoViewIfNeeded();
+      await expect(page.locator('.hero__crest'), `${width}px crest`).toBeVisible();
+      await expect
+        .poll(
+          () =>
+            page
+              .locator('.hero__crest')
+              .evaluate((el) => Number.parseFloat(getComputedStyle(el).opacity)),
+          { message: `${width}px crest should finish its reveal transition` }
+        )
+        .toBeGreaterThan(0.95);
+      await expect(page.locator('.crest__status'), `${width}px mission status`).toContainText(
+        'mission: we staff them'
+      );
+
+      const metrics = await page.evaluate(() => {
+        const wrap = document.querySelector<HTMLElement>('.hero__crest');
+        const crest = document.querySelector<HTMLElement>('.crest');
+        const status = document.querySelector<HTMLElement>('.crest__status');
+        const code = document.querySelector<HTMLElement>('.crest__status code');
+        if (!wrap || !crest || !status || !code) return null;
+
+        const wrapRect = wrap.getBoundingClientRect();
+        const crestRect = crest.getBoundingClientRect();
+        const statusRect = status.getBoundingClientRect();
+        const wrapStyle = getComputedStyle(wrap);
+
+        return {
+          flexDirection: wrapStyle.flexDirection,
+          wrapHeight: wrapRect.height,
+          wrapLeft: wrapRect.left,
+          wrapRight: wrapRect.right,
+          crestRight: crestRect.right,
+          crestBottom: crestRect.bottom,
+          statusLeft: statusRect.left,
+          statusTop: statusRect.top,
+          statusRight: statusRect.right,
+          text: code.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+        };
+      });
+
+      expect(metrics, `${width}px metrics should exist`).not.toBeNull();
+      if (!metrics) continue;
+
+      expect(metrics.flexDirection, `${width}px crest/status should stay in one row`).toBe('row');
+      expect(
+        metrics.statusLeft,
+        `${width}px status should sit to the right of the mark`
+      ).toBeGreaterThan(metrics.crestRight);
+      expect(
+        metrics.statusTop,
+        `${width}px status should vertically overlap the mark row`
+      ).toBeLessThan(metrics.crestBottom);
+      expect(metrics.wrapLeft, `${width}px crest should not overflow left`).toBeGreaterThanOrEqual(
+        0
+      );
+      expect(metrics.wrapRight, `${width}px crest should not overflow right`).toBeLessThanOrEqual(
+        width
+      );
+      expect(
+        metrics.statusRight,
+        `${width}px status should not overflow right`
+      ).toBeLessThanOrEqual(width);
+      expect(
+        metrics.wrapHeight,
+        `${width}px crest should not become a tall empty column`
+      ).toBeLessThanOrEqual(96);
+      expect(metrics.text, `${width}px terminal should not be caught mid-type`).toContain(
+        '> open source in your stack: 98%'
+      );
+    }
+  });
+
   test('hero emblem cursor parallax stays subtle on desktop @desktop', async ({ page }) => {
     await useDesktopAuditViewport(page);
     await page.goto('/');
