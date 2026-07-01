@@ -265,6 +265,9 @@ const recaptchaNotice = apply.recaptchaNotice;
     display: grid;
     gap: var(--space-m);
   }
+  .apply__form[hidden] {
+    display: none;
+  }
   .apply__grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -801,6 +804,16 @@ const recaptchaNotice = apply.recaptchaNotice;
 
       const payload = buildPayload();
       const restore = submit ? submit.innerHTML : '';
+      const restoreSubmit = () => {
+        if (!submit) return;
+        submit.disabled = false;
+        submit.innerHTML = restore;
+      };
+      const clearStatus = () => {
+        if (!status) return;
+        delete status.dataset.state;
+        status.textContent = '';
+      };
       if (submit) {
         submit.disabled = true;
         submit.textContent = sendingLabel;
@@ -816,6 +829,8 @@ const recaptchaNotice = apply.recaptchaNotice;
         const recaptchaSiteKey = form.dataset.recaptchaSiteKey || '';
         const recaptchaAction = form.dataset.recaptchaAction || '';
         await postPayload(payload, recaptchaSiteKey, recaptchaAction);
+        restoreSubmit();
+        clearStatus();
         form.hidden = true;
         if (success) {
           success.hidden = false;
@@ -858,10 +873,7 @@ const recaptchaNotice = apply.recaptchaNotice;
             status.append(document.createElement('br'), link);
           }
         }
-        if (submit) {
-          submit.disabled = false;
-          submit.innerHTML = restore;
-        }
+        restoreSubmit();
       }
     });
   })();

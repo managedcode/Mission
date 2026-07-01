@@ -71,6 +71,10 @@ test.describe('Apply form retry behaviour', () => {
     await page.getByRole('button', { name: /send it to the maintainers/i }).click();
 
     await expect(page.locator('[data-apply-success]')).toBeVisible();
+    await expect(page.locator('[data-apply-form]')).toBeHidden();
+    await expect(page.locator('[data-apply-submit]')).toBeEnabled();
+    await expect(page.locator('[data-apply-submit]')).toContainText('Send it to the maintainers');
+    await expect(page.locator('[data-apply-status]')).toBeEmpty();
     await expect(page.locator('[data-apply-form]')).toHaveAttribute(
       'data-recaptcha-state',
       'ready'
