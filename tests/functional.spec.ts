@@ -289,6 +289,51 @@ test.describe('Home page · structure & SEO', () => {
     }
   });
 
+  test('Konami reveals the hero shader power-of-two easter egg @desktop', async ({ page }) => {
+    await useDesktopAuditViewport(page);
+    await page.goto('/');
+
+    const crest = page.locator('[data-hero-field]');
+    await expect(crest).toBeVisible();
+    await expect(crest).not.toHaveAttribute('data-field-egg', '2^15');
+
+    for (const key of [
+      'ArrowUp',
+      'ArrowUp',
+      'ArrowDown',
+      'ArrowDown',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowLeft',
+      'ArrowRight',
+      'b',
+      'a',
+    ]) {
+      await page.keyboard.press(key);
+    }
+
+    await expect(page.locator('html')).toHaveClass(/konami/);
+    await expect(crest).toHaveAttribute('data-field-egg', '2^15');
+
+    for (const key of [
+      'ArrowUp',
+      'ArrowUp',
+      'ArrowDown',
+      'ArrowDown',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowLeft',
+      'ArrowRight',
+      'b',
+      'a',
+    ]) {
+      await page.keyboard.press(key);
+    }
+
+    await expect(page.locator('html')).not.toHaveClass(/konami/);
+    await expect(crest).not.toHaveAttribute('data-field-egg', '2^15');
+  });
+
   test('hero emblem cursor parallax stays subtle on desktop @desktop', async ({ page }) => {
     await useDesktopAuditViewport(page);
     await page.goto('/');

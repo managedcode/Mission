@@ -624,12 +624,20 @@ function initKonami() {
     'a',
   ];
   let idx = 0;
+  const syncHeroFieldEgg = (active: boolean) => {
+    const crest = document.querySelector<HTMLElement>('[data-hero-field]');
+    if (!crest) return;
+    if (active) crest.dataset.fieldEgg = '2^15';
+    else delete crest.dataset.fieldEgg;
+  };
   document.addEventListener('keydown', (e) => {
     const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if (key === seq[idx]) {
       idx += 1;
       if (idx === seq.length) {
-        document.documentElement.classList.toggle('konami');
+        const active = document.documentElement.classList.toggle('konami');
+        syncHeroFieldEgg(active);
+        document.dispatchEvent(new CustomEvent('mission:konami', { detail: { active } }));
         (window as Window & { __missionArpeggio?: () => void }).__missionArpeggio?.();
         idx = 0;
       }
