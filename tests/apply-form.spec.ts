@@ -1,8 +1,152 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 test.describe('Apply form retry behaviour', () => {
   const missionEndpoint =
     'https://func-managed-code-form-crm.azurewebsites.net/api/managed-code/mission';
+  const missionRecaptchaApi = 'https://www.google.com/recaptcha/api.js**';
+  const missionSiteKey = '6LdrND8tAAAAAEEkXmLbIGEbv50_bb7DyKqEJ-X_';
+  const crmCorsHeaders = {
+    'access-control-allow-origin': '*',
+    'access-control-allow-headers': 'content-type, accept',
+    'access-control-allow-methods': 'POST, OPTIONS',
+  };
+
+  const fillApplyForm = async (page: Page) => {
+    await page.locator('#apply-company').fill('Example SaaS');
+    await page.locator('#apply-email').fill('cto@example.com');
+    await page.locator('#apply-name').fill('Alex CTO');
+    await page.locator('#apply-grade').selectOption('Mid');
+    await page.locator('#apply-stack').fill('ManagedCode.Storage and Orleans.SignalR');
+    await page.locator('#apply-budget').selectOption('Recommended operating lane');
+    await page.locator('#apply-timeline').selectOption('This quarter');
+    await page.locator('#apply-notes').fill('We want a written SLA for the packages we depend on.');
+  };
+
+  test('loads and executes reCAPTCHA after submit before posting to the CRM', async ({ page }) => {
+    let recaptchaApiRequests = 0;
+    let capturedPayload: Record<string, unknown> | undefined;
+
+    await page.route(missionRecaptchaApi, async (route) => {
+      recaptchaApiRequests += 1;
+      expect(route.request().url()).toContain(`render=${encodeURIComponent(missionSiteKey)}`);
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: `
+          window.__missionRecaptchaExecuted = [];
+          window.grecaptcha = {
+            ready: function(cb) { cb(); },
+            execute: async function(siteKey, options) {
+              window.__missionRecaptchaExecuted.push({ siteKey: siteKey, action: options.action });
+              return 'loaded-recaptcha-token';
+            }
+          };
+        `,
+      });
+    });
+
+    await page.route(missionEndpoint, async (route) => {
+      if (route.request().method() === 'OPTIONS') {
+        await route.fulfill({ status: 204, headers: crmCorsHeaders });
+        return;
+      }
+
+      capturedPayload = JSON.parse(route.request().postData() ?? '{}');
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: crmCorsHeaders,
+        body: JSON.stringify({ ok: true, submissionId: 'web_test' }),
+      });
+    });
+
+    await page.goto('/');
+    await expect(page.locator('[data-apply-form]')).toHaveAttribute(
+      'data-recaptcha-site-key',
+      missionSiteKey
+    );
+    await expect(page.locator('[data-apply-form]')).toHaveAttribute('data-recaptcha-state', 'idle');
+
+    await fillApplyForm(page);
+    await page.getByRole('button', { name: /send it to the maintainers/i }).click();
+
+    await expect(page.locator('[data-apply-success]')).toBeVisible();
+    await expect(page.locator('[data-apply-form]')).toHaveAttribute(
+      'data-recaptcha-state',
+      'ready'
+    );
+
+    const executeCalls = await page.evaluate(
+      () =>
+        (
+          window as Window & {
+            __missionRecaptchaExecuted?: Array<{ siteKey: string; action: string }>;
+          }
+        ).__missionRecaptchaExecuted ?? []
+    );
+
+    expect(recaptchaApiRequests).toBe(1);
+    expect(executeCalls).toEqual([{ siteKey: missionSiteKey, action: 'mission_patronage' }]);
+    expect(capturedPayload?.recaptchaToken).toBe('loaded-recaptcha-token');
+    expect(capturedPayload?.recaptchaAction).toBe('mission_patronage');
+  });
+
+  test('retries reCAPTCHA script loading after a failed script request', async ({ page }) => {
+    let recaptchaApiRequests = 0;
+
+    await page.route(missionRecaptchaApi, async (route) => {
+      recaptchaApiRequests += 1;
+      if (recaptchaApiRequests === 1) {
+        await route.abort('failed');
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: `
+          window.grecaptcha = {
+            ready: function(cb) { cb(); },
+            execute: async function() { return 'second-load-recaptcha-token'; }
+          };
+        `,
+      });
+    });
+
+    await page.route(missionEndpoint, async (route) => {
+      if (route.request().method() === 'OPTIONS') {
+        await route.fulfill({ status: 204, headers: crmCorsHeaders });
+        return;
+      }
+
+      const payload = JSON.parse(route.request().postData() ?? '{}') as {
+        recaptchaToken?: string;
+      };
+      expect(payload.recaptchaToken).toBe('second-load-recaptcha-token');
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: crmCorsHeaders,
+        body: JSON.stringify({ ok: true, submissionId: 'web_test' }),
+      });
+    });
+
+    await page.goto('/');
+    await fillApplyForm(page);
+
+    await page.getByRole('button', { name: /send it to the maintainers/i }).click();
+    await expect(page.locator('[data-apply-form]')).toHaveAttribute(
+      'data-recaptcha-state',
+      'error'
+    );
+    await expect(page.locator('[data-apply-submit]')).toBeEnabled();
+
+    await page.getByRole('button', { name: /send it to the maintainers/i }).click();
+    await expect.poll(() => recaptchaApiRequests).toBe(2);
+    await expect(page.locator('[data-apply-success]')).toBeVisible({ timeout: 15000 });
+
+    expect(recaptchaApiRequests).toBe(2);
+  });
 
   test('retries with a fresh reCAPTCHA token when the CRM reports browser-error', async ({
     page,
@@ -73,14 +217,7 @@ test.describe('Apply form retry behaviour', () => {
     });
 
     await page.goto('/');
-    await page.locator('#apply-company').fill('Example SaaS');
-    await page.locator('#apply-email').fill('cto@example.com');
-    await page.locator('#apply-name').fill('Alex CTO');
-    await page.locator('#apply-grade').selectOption('Mid');
-    await page.locator('#apply-stack').fill('ManagedCode.Storage and Orleans.SignalR');
-    await page.locator('#apply-budget').selectOption('Recommended operating lane');
-    await page.locator('#apply-timeline').selectOption('This quarter');
-    await page.locator('#apply-notes').fill('We want a written SLA for the packages we depend on.');
+    await fillApplyForm(page);
 
     await page.getByRole('button', { name: /send it to the maintainers/i }).click();
 

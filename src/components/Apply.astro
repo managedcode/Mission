@@ -49,6 +49,7 @@ const recaptchaNotice = apply.recaptchaNotice;
         data-recaptcha-api-url={recaptchaApiUrl}
         data-recaptcha-site-key={recaptchaSiteKey}
         data-recaptcha-action={recaptchaAction}
+        data-recaptcha-state="idle"
         data-form-type={apply.crm.formType}
         data-service-interest={apply.crm.serviceInterest}
         data-contact-reason={apply.crm.contactReason}
@@ -467,10 +468,12 @@ const recaptchaNotice = apply.recaptchaNotice;
     };
 
     const grecaptchaReadyTimeoutMs = 8000;
+    const grecaptchaScriptLoadTimeoutMs = 8000;
     const grecaptchaPollMs = 100;
     const recaptchaBrowserErrorCode = 'browser-error';
     const recaptchaSubmitAttempts = 3;
     const recaptchaRetryDelayMs = 450;
+    const recaptchaScriptSelector = 'script[data-apply-recaptcha]';
     let recaptchaScriptPromise: Promise<void> | null = null;
 
     const form = document.querySelector<HTMLFormElement>('[data-apply-form]');
@@ -487,6 +490,15 @@ const recaptchaNotice = apply.recaptchaNotice;
     form.dataset.formVisibleStartedAt = String(Date.now());
 
     const currentGrecaptcha = () => (window as GrecaptchaWindow).grecaptcha;
+
+    const setRecaptchaState = (state: 'idle' | 'loading' | 'ready' | 'error') => {
+      form.dataset.recaptchaState = state;
+    };
+
+    const resetRecaptchaScript = () => {
+      recaptchaScriptPromise = null;
+      document.querySelector<HTMLScriptElement>(recaptchaScriptSelector)?.remove();
+    };
 
     const waitForGrecaptcha = async (): Promise<Grecaptcha | null> => {
       const current = currentGrecaptcha();
@@ -510,29 +522,68 @@ const recaptchaNotice = apply.recaptchaNotice;
     };
 
     const loadRecaptchaScript = async (apiUrl: string, siteKey: string): Promise<void> => {
-      if (currentGrecaptcha()?.execute) return;
+      if (currentGrecaptcha()?.execute) {
+        setRecaptchaState('ready');
+        return;
+      }
       if (recaptchaScriptPromise) return recaptchaScriptPromise;
 
       recaptchaScriptPromise = new Promise((resolve, reject) => {
-        const existing = document.querySelector<HTMLScriptElement>('script[data-apply-recaptcha]');
-        if (existing) {
-          existing.addEventListener('load', () => resolve(), { once: true });
-          existing.addEventListener('error', () => reject(new Error('reCAPTCHA failed to load')), {
-            once: true,
-          });
+        setRecaptchaState('loading');
+        const existing = document.querySelector<HTMLScriptElement>(recaptchaScriptSelector);
+        const script = existing ?? document.createElement('script');
+        let settled = false;
+
+        const cleanup = () => {
+          window.clearTimeout(timeout);
+          script.removeEventListener('load', handleLoad);
+          script.removeEventListener('error', handleError);
+        };
+
+        const fail = () => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          resetRecaptchaScript();
+          setRecaptchaState('error');
+          reject(new Error('reCAPTCHA failed to load'));
+        };
+
+        const complete = () => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          script.dataset.applyRecaptchaLoaded = 'true';
+          setRecaptchaState('ready');
+          resolve();
+        };
+
+        function handleLoad() {
+          complete();
+        }
+
+        function handleError() {
+          fail();
+        }
+
+        const timeout = window.setTimeout(fail, grecaptchaScriptLoadTimeoutMs);
+        script.addEventListener('load', handleLoad, { once: true });
+        script.addEventListener('error', handleError, {
+          once: true,
+        });
+
+        if (existing?.dataset.applyRecaptchaLoaded === 'true') {
+          complete();
           return;
         }
 
-        const script = document.createElement('script');
-        script.async = true;
-        script.defer = true;
-        script.dataset.applyRecaptcha = 'true';
-        script.src = `${apiUrl}?render=${encodeURIComponent(siteKey)}`;
-        script.addEventListener('load', () => resolve(), { once: true });
-        script.addEventListener('error', () => reject(new Error('reCAPTCHA failed to load')), {
-          once: true,
-        });
-        document.head.appendChild(script);
+        if (!existing) {
+          script.async = true;
+          script.defer = true;
+          script.dataset.applyRecaptcha = 'true';
+          script.src = `${apiUrl}?render=${encodeURIComponent(siteKey)}`;
+          document.head.appendChild(script);
+        }
       });
 
       return recaptchaScriptPromise;
@@ -547,13 +598,21 @@ const recaptchaNotice = apply.recaptchaNotice;
       }
 
       const grecaptcha = await waitForGrecaptcha();
-      if (!grecaptcha) return null;
+      if (!grecaptcha) {
+        resetRecaptchaScript();
+        setRecaptchaState('error');
+        return null;
+      }
 
       return await new Promise((resolve) => {
         grecaptcha.ready(async () => {
           try {
-            resolve(await grecaptcha.execute(siteKey, { action }));
+            const token = await grecaptcha.execute(siteKey, { action });
+            setRecaptchaState('ready');
+            resolve(token);
           } catch {
+            resetRecaptchaScript();
+            setRecaptchaState('error');
             resolve(null);
           }
         });

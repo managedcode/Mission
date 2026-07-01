@@ -1,4 +1,4 @@
-const defaultRecaptchaSiteKey = '6LdBL-0sAAAAALzGQYFqNoRPzTe9GMObm0kr-Lpv';
+const defaultRecaptchaSiteKey = '6LdrND8tAAAAAEEkXmLbIGEbv50_bb7DyKqEJ-X_';
 
 /* =================================================================
    MISSION · content & data — single source of truth.
