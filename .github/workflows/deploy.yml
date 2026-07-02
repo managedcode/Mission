@@ -51,6 +51,7 @@ jobs:
         with:
           name: deploy-test-results
           path: test-results/
+          if-no-files-found: ignore
           retention-days: 14
 
   build:
@@ -90,3 +91,6 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+        with:
+          timeout: 1800000
+          reporting_interval: 15000

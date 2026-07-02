@@ -65,4 +65,5 @@ jobs:
         with:
           name: test-results
           path: test-results/
+          if-no-files-found: ignore
           retention-days: 14
