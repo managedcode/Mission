@@ -131,7 +131,9 @@ FCP/LCP on the uncompressed local preview run ~2s; on production (CDN + Brotli +
 `.github/workflows/deploy.yml` builds and publishes to GitHub Pages on every push to `main`
 (Pages → Source must be "GitHub Actions"). `public/CNAME` = `mission.managed-code.com`, so once the DNS is
 pointed the site serves at the custom domain (base `/`). The full Playwright matrix is part of this deploy
-pipeline and gates publishing.
+pipeline and gates publishing. The deploy job uses `.github/scripts/deploy-pages.cjs` instead of
+`actions/deploy-pages` because the official action hard-caps status polling at 10 minutes and cancels queued
+Pages deployments.
 
 ## SEO / AEO / GEO
 

@@ -11,6 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -88,9 +89,16 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Checkout deployment script
+        uses: actions/checkout@v7
+
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/github-script@v9
+        env:
+          PAGES_DEPLOY_TIMEOUT_MS: '2700000'
+          PAGES_DEPLOY_POLL_INTERVAL_MS: '15000'
         with:
-          timeout: 1800000
-          reporting_interval: 15000
+          script: |
+            const deployPages = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/deploy-pages.cjs`);
+            await deployPages({ github, context, core });
