@@ -1,5 +1,5 @@
 # =============================================================================
-# Playwright Tests — functional + pixel-by-pixel visual regression.
+# Playwright Baseline Artifact — manual Linux snapshot generation.
 #
 # BASELINE STRATEGY (macOS dev vs. Linux CI):
 #   Rendering differs between operating systems, so visual baselines are
@@ -7,36 +7,25 @@
 #   `...-{projectName}-{platform}{ext}`). Locally on macOS you generate
 #   `-darwin` snapshots; they are NOT the source of truth for CI.
 #
-#   The authoritative `-linux` baselines are committed by humans. CI must not
-#   write back to `main`:
-#     * push to main / pull_request -> strict compare against committed Linux
-#       baselines; a real visual diff fails the build.
-#     * manual dispatch with `update_snapshots=true` -> generate Linux baselines
-#       in the official Playwright container and upload them as an artifact only.
+#   The authoritative `-linux` baselines are committed by humans. The deploy
+#   workflow runs the strict compare before publishing. This workflow is a
+#   manual helper only: it generates Linux baselines in the official Playwright
+#   container and uploads them as an artifact without committing.
 #
 #   The container image is pinned to the installed @playwright/test version
 #   (1.61.1) so the browser binaries and the test runner stay in lockstep.
 # =============================================================================
 
-name: Playwright Tests
+name: Playwright Baselines
 
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
-    inputs:
-      update_snapshots:
-        description: Generate Linux baselines and upload them as an artifact without committing.
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: read
 
 jobs:
-  test:
+  generate-linux-baselines:
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.61.1-jammy
@@ -51,25 +40,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # ---- Normal CI: strict compare against committed Linux baselines ----
-      - name: Run Playwright tests (strict compare)
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.update_snapshots != 'true' }}
-        run: npx playwright test
-
-      # ---- Manual helper: generate Linux baselines, but never commit/push ----
       - name: Generate Linux baselines
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.update_snapshots == 'true' }}
         run: npx playwright test --update-snapshots
 
       - name: Upload generated Linux baselines
-        if: ${{ always() && github.event_name == 'workflow_dispatch' && github.event.inputs.update_snapshots == 'true' }}
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: linux-visual-baselines
           path: tests/__screenshots__/
           retention-days: 14
 
-      # ---- Always publish the report + raw results for inspection ----
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v7

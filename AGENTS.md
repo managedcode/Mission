@@ -119,15 +119,16 @@ FCP/LCP on the uncompressed local preview run ~2s; on production (CDN + Brotli +
 - After any intentional visual change: `npm run test:update`, then a clean `npm test` to confirm stability,
   and commit the new baselines yourself. For Linux baselines, use the manual Playwright workflow artifact or
   run the update inside the pinned Playwright container; CI must not commit back to `main`.
-- CI: `.github/workflows/playwright.yml` runs in the official Playwright container and strictly compares on
-  PRs and pushes to `main`. Manual dispatch can generate Linux baselines as an artifact, but never pushes.
+- CI: `.github/workflows/deploy.yml` runs the full Playwright matrix in the official Playwright container
+  before build/deploy. `.github/workflows/playwright.yml` is manual-only for Linux baseline artifacts and
+  never pushes.
 
 ## Deploy (GitHub Pages)
 
 `.github/workflows/deploy.yml` builds and publishes to GitHub Pages on every push to `main`
 (Pages → Source must be "GitHub Actions"). `public/CNAME` = `mission.managed-code.com`, so once the DNS is
-pointed the site serves at the custom domain (base `/`). `.github/workflows/playwright.yml` runs the test
-matrix separately.
+pointed the site serves at the custom domain (base `/`). The full Playwright matrix is part of this deploy
+pipeline and gates publishing.
 
 ## SEO / AEO / GEO
 
