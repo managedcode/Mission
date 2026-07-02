@@ -12,7 +12,7 @@ export type Theme = 'light' | 'dark';
  * Call AFTER the page has loaded (the elements must exist in the DOM).
  */
 export async function prepareForVisual(page: Page): Promise<void> {
-  await page.evaluate(() => {
+  await page.evaluate(async () => {
     // 1. Reveal everything.
     document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
       el.classList.add('is-visible');
@@ -29,8 +29,12 @@ export async function prepareForVisual(page: Page): Promise<void> {
     });
 
     // 3. Finish the hero terminal typewriter instantly (deterministic frames).
-    const w = window as Window & { __finishTerminal?: () => void };
+    const w = window as Window & {
+      __finishTerminal?: () => void;
+      __missionPaintHeroField?: () => Promise<void>;
+    };
     if (typeof w.__finishTerminal === 'function') w.__finishTerminal();
+    if (typeof w.__missionPaintHeroField === 'function') await w.__missionPaintHeroField();
 
     // 4. Freeze motion and remove the overlay so frames are stable.
     const style = document.createElement('style');
@@ -43,9 +47,6 @@ export async function prepareForVisual(page: Page): Promise<void> {
       'body::after,.grain::before{display:none!important;}' +
       '.scroll-progress{display:none!important;}' +
       '.cursor,.cursor__ring{display:none!important;}' +
-      // the generative crest (canvas + its glow/idle shimmer) is non-deterministic
-      // pixel-to-pixel — keep its reserved box for layout, hide it for stable diffs
-      'canvas,.crest{visibility:hidden!important;}' +
       // decorative JS-driven chrome — hide so diffs track content, not sprites
       '.mascot,[data-mascot],.sound-toggle,.intro,[data-intro],.mgame{display:none!important;}' +
       // Un-stick the header so it never floats over section-locator screenshots

@@ -1,9 +1,8 @@
 ---
 import { hero, motto, miniGame, funding } from '../data/site';
-import Logo from './Logo.astro';
 
 // The WebGL commons field reflects real state: the share of the launch goal
-// funded biases how many gold "patron" nodes/beams light into the < > core.
+// funded biases how many language satellites glow around the open-source planet.
 const fundedPct = Math.round((funding.committed / funding.goal) * 100);
 
 // Precompute the headline as a trusted HTML string. Keep the H1 visible at
@@ -88,7 +87,21 @@ const mottoHalf = Array.from({ length: 4 })
       <aside class="hero__crest" data-reveal style="--reveal-delay:320ms">
         <div class="crest" data-hero-field data-fund={fundedPct}>
           <canvas class="crest__field" aria-hidden="true"></canvas>
-          <Logo size={160} decorative class="crest__mark" />
+          <div class="crest__planet" aria-hidden="true"></div>
+          <ul class="crest__languages" aria-hidden="true">
+            {
+              hero.languageSatellites.map((language, index) => (
+                <li
+                  class="crest__language"
+                  data-language-satellite
+                  style={`--x:${language.x};--y:${language.y};--dx:${language.dx};--dy:${language.dy};--delay:${index * -0.42}s`}
+                  title={language.name}
+                >
+                  <span>{language.label}</span>
+                </li>
+              ))
+            }
+          </ul>
         </div>
         <pre
           class="crest__status terminal__body font-mono"
@@ -190,9 +203,6 @@ const mottoHalf = Array.from({ length: 4 })
     display: inline-block;
     vertical-align: bottom;
   }
-  :global(.hero__word:not(:last-child)) {
-    margin-right: 0.22em;
-  }
   :global(.hero__word-inner) {
     display: inline-block;
   }
@@ -285,9 +295,8 @@ const mottoHalf = Array.from({ length: 4 })
     flex: none;
   }
 
-  /* ── The hero emblem — the ManagedCode `< >` brand mark on a soft gold halo,
-     with a slim 3-line mono "mission status" caption below it. Using our own
-     mark (not GitHub's) keeps the most-judged frame authored and on-brand. */
+  /* ── The hero emblem — a pixel open-source planet with programming-language
+     satellites, plus a slim 3-line mono "mission status" caption below it. */
   .hero__crest {
     --reveal-y: 0px;
     align-self: center;
@@ -297,59 +306,227 @@ const mottoHalf = Array.from({ length: 4 })
   .crest {
     position: relative;
     width: 100%;
-    /* Reserve the box up-front (8 : 9 logical pixel grid) so the canvas
-       can never shift layout while it builds in. */
-    aspect-ratio: 8 / 9;
-    max-width: clamp(13rem, 21vw, 18rem);
+    /* Reserve a square brand object up-front so the animated field reads as an
+       intentional crest instead of a tall, thin canvas artifact. */
+    aspect-ratio: 1;
+    max-width: clamp(17.5rem, 27vw, 25rem);
     margin-inline: auto;
   }
-  /* The lazy WebGL "digital commons" field (app.ts). Sits between the halo and
-     the mark; bleeds a little past the crest box (its shader vignette fades the
-     edges). Transparent until the field starts, so no-WebGL / reduced-motion /
-     no-JS keep the clean static emblem. */
+  /* The lazy WebGL "digital commons" field (app.ts). It paints atmosphere,
+     orbit rails, dependency texture and commit sparks. Transparent until the
+     field starts, so no-WebGL / no-JS keep the CSS planet + language satellites. */
   .crest__field {
     position: absolute;
-    top: -42%;
-    left: -42%;
-    width: 184%;
-    height: 184%;
+    top: -24%;
+    left: -18%;
+    width: 136%;
+    height: 136%;
+    max-width: none;
     z-index: 1;
     pointer-events: none;
     opacity: 0;
+    image-rendering: auto;
+    filter: contrast(1.16) saturate(0.92);
+    transform-origin: 50% 50%;
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, black 54%, transparent 82%);
+    mask-image: radial-gradient(circle at 50% 50%, black 54%, transparent 82%);
     transition: opacity 1.1s var(--ease-out);
   }
   .crest.is-live .crest__field {
-    opacity: 1;
+    opacity: 0.68;
   }
   /* when the field is live it supplies the glow + motion — stop the halo breathe
      and quiet it so they don't double up into mush */
   .crest.is-live::before {
     animation: none;
-    opacity: 0.4;
+    opacity: 0.24;
   }
   @media (prefers-reduced-motion: reduce) {
     .crest__field {
       display: none;
     }
   }
-  :global(.crest__mark) {
+  .crest__planet {
     position: absolute;
     top: 50%;
     left: 50%;
     z-index: 2;
-    width: 70%;
-    height: auto;
-    color: var(--fg);
+    width: 42%;
+    aspect-ratio: 1;
+    border: var(--border-px) solid color-mix(in srgb, var(--fg) 72%, transparent);
+    background:
+      linear-gradient(
+        138deg,
+        transparent 0 28%,
+        color-mix(in srgb, var(--accent) 18%, transparent) 29% 35%,
+        transparent 36% 100%
+      ),
+      linear-gradient(
+        24deg,
+        transparent 0 48%,
+        color-mix(in srgb, var(--gold) 28%, transparent) 49% 55%,
+        transparent 56% 100%
+      ),
+      radial-gradient(
+        circle at 38% 34%,
+        color-mix(in srgb, var(--fg) 20%, transparent) 0 5%,
+        transparent 6%
+      ),
+      radial-gradient(
+        circle at 62% 58%,
+        color-mix(in srgb, var(--fg) 18%, transparent) 0 4%,
+        transparent 5%
+      ),
+      radial-gradient(
+        circle at 48% 46%,
+        color-mix(in srgb, var(--bg) 74%, var(--gold) 26%) 0 58%,
+        color-mix(in srgb, var(--gold) 40%, transparent) 59% 68%,
+        transparent 69%
+      );
+    clip-path: polygon(
+      38% 0,
+      62% 0,
+      62% 6%,
+      78% 6%,
+      78% 15%,
+      90% 15%,
+      90% 28%,
+      98% 28%,
+      98% 72%,
+      90% 72%,
+      90% 85%,
+      78% 85%,
+      78% 94%,
+      62% 94%,
+      62% 100%,
+      38% 100%,
+      38% 94%,
+      22% 94%,
+      22% 85%,
+      10% 85%,
+      10% 72%,
+      2% 72%,
+      2% 28%,
+      10% 28%,
+      10% 15%,
+      22% 15%,
+      22% 6%,
+      38% 6%
+    );
     transform: translate(-50%, -50%);
     pointer-events: none;
-    filter: drop-shadow(0 6px 16px color-mix(in srgb, var(--gold) 30%, transparent));
+    box-shadow:
+      inset 0 0 0 0.18rem color-mix(in srgb, var(--bg) 48%, transparent),
+      inset -0.85rem -0.7rem 0 color-mix(in srgb, var(--fg) 10%, transparent),
+      0.35rem 0.35rem 0 color-mix(in srgb, var(--fg) 22%, transparent),
+      0 0 1.4rem color-mix(in srgb, var(--gold) 16%, transparent);
+    image-rendering: pixelated;
     /* smooths the desktop cursor-magnet parallax (app.ts initMagnetic) */
     transition: transform 0.3s var(--ease-out);
     will-change: transform;
   }
+  .crest__planet::before,
+  .crest__planet::after {
+    content: '';
+    position: absolute;
+    background: color-mix(in srgb, var(--accent) 52%, var(--fg) 18%);
+    box-shadow:
+      0.55rem 0.1rem 0 color-mix(in srgb, var(--accent) 44%, transparent),
+      1.1rem 0.26rem 0 color-mix(in srgb, var(--gold) 36%, transparent),
+      -0.6rem 1.35rem 0 color-mix(in srgb, var(--fg) 18%, transparent),
+      0.2rem 1.58rem 0 color-mix(in srgb, var(--accent) 38%, transparent);
+  }
+  .crest__planet::before {
+    top: 28%;
+    left: 20%;
+    width: 14%;
+    height: 11%;
+  }
+  .crest__planet::after {
+    right: 22%;
+    bottom: 29%;
+    width: 11%;
+    height: 9%;
+    opacity: 0.72;
+  }
   @media (prefers-reduced-motion: reduce) {
-    :global(.crest__mark) {
+    .crest__planet {
       transition: none;
+    }
+  }
+
+  .crest__languages {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    pointer-events: none;
+    transform-origin: 50% 50%;
+    animation: language-orbit 26s linear infinite;
+  }
+  .crest__language {
+    position: absolute;
+    top: calc(50% + var(--y));
+    left: calc(50% + var(--x));
+    transform: translate(-50%, -50%);
+    animation: language-satellite 5.6s ease-in-out infinite;
+    animation-delay: var(--delay);
+    will-change: transform;
+  }
+  .crest__language span {
+    display: grid;
+    min-width: clamp(1.55rem, 1.16rem + 1.2vw, 2.15rem);
+    min-height: clamp(1.05rem, 0.86rem + 0.6vw, 1.35rem);
+    place-items: center;
+    padding: 0.18rem 0.3rem;
+    border: 2px solid color-mix(in srgb, var(--fg) 58%, transparent);
+    background: color-mix(in srgb, var(--bg) 84%, var(--gold) 16%);
+    color: var(--fg);
+    box-shadow:
+      0.18rem 0.18rem 0 color-mix(in srgb, var(--fg) 34%, transparent),
+      inset 0.22rem 0 0 color-mix(in srgb, var(--accent) 64%, transparent);
+    font-family: var(--font-pixel);
+    font-size: clamp(0.42rem, 0.34rem + 0.24vw, 0.56rem);
+    line-height: 1;
+    letter-spacing: 0;
+    white-space: nowrap;
+    transform-origin: 50% 50%;
+    animation: language-label-counter 26s linear infinite;
+  }
+  .crest__language:nth-child(2n) span {
+    background: color-mix(in srgb, var(--bg) 82%, var(--accent) 18%);
+  }
+  .crest__language:nth-child(3n) span {
+    border-color: color-mix(in srgb, var(--gold) 64%, var(--fg) 22%);
+  }
+  @keyframes language-satellite {
+    0%,
+    100% {
+      transform: translate(-50%, -50%);
+    }
+    50% {
+      transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy)));
+    }
+  }
+  @keyframes language-orbit {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes language-label-counter {
+    to {
+      transform: rotate(-360deg);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .crest__languages,
+    .crest__language span {
+      animation: none;
+    }
+    .crest__language {
+      animation: none;
     }
   }
   /* a faint patron-gold halo BEHIND the mark — a separate layer, so it never
@@ -358,12 +535,12 @@ const mottoHalf = Array.from({ length: 4 })
   .crest::before {
     content: '';
     position: absolute;
-    inset: 6%;
+    inset: -4%;
     z-index: 0;
     background: radial-gradient(
       circle at 50% 46%,
-      color-mix(in srgb, var(--gold) 26%, transparent),
-      transparent 68%
+      color-mix(in srgb, var(--gold) 18%, transparent),
+      transparent 66%
     );
     pointer-events: none;
     will-change: transform, opacity;
@@ -388,15 +565,59 @@ const mottoHalf = Array.from({ length: 4 })
   :global(:root[data-theme='dark']) .crest::before {
     background: radial-gradient(
       circle at 50% 46%,
-      color-mix(in srgb, var(--gold-glow) 24%, transparent),
-      transparent 68%
+      color-mix(in srgb, var(--gold-glow) 18%, transparent),
+      transparent 66%
     );
+  }
+  :global(:root[data-theme='dark']) .crest__planet {
+    border-color: color-mix(in srgb, var(--fg) 54%, transparent);
+    background:
+      linear-gradient(
+        138deg,
+        transparent 0 28%,
+        color-mix(in srgb, var(--accent) 20%, transparent) 29% 35%,
+        transparent 36% 100%
+      ),
+      linear-gradient(
+        24deg,
+        transparent 0 48%,
+        color-mix(in srgb, var(--gold-glow) 24%, transparent) 49% 55%,
+        transparent 56% 100%
+      ),
+      radial-gradient(
+        circle at 38% 34%,
+        color-mix(in srgb, var(--fg) 22%, transparent) 0 5%,
+        transparent 6%
+      ),
+      radial-gradient(
+        circle at 62% 58%,
+        color-mix(in srgb, var(--fg) 18%, transparent) 0 4%,
+        transparent 5%
+      ),
+      radial-gradient(
+        circle at 48% 46%,
+        color-mix(in srgb, var(--fg) 13%, var(--bg) 87%) 0 58%,
+        color-mix(in srgb, var(--gold-glow) 32%, transparent) 59% 68%,
+        transparent 69%
+      );
+    box-shadow:
+      inset 0 0 0 0.18rem color-mix(in srgb, var(--bg) 40%, transparent),
+      inset -0.85rem -0.7rem 0 color-mix(in srgb, var(--fg) 8%, transparent),
+      0.35rem 0.35rem 0 color-mix(in srgb, var(--fg) 14%, transparent),
+      0 0 1.35rem color-mix(in srgb, var(--gold-glow) 18%, transparent);
+  }
+  :global(:root[data-theme='dark']) .crest__language span {
+    background: color-mix(in srgb, var(--bg) 84%, var(--gold-glow) 16%);
+    border-color: color-mix(in srgb, var(--fg) 48%, transparent);
+    box-shadow:
+      0.18rem 0.18rem 0 color-mix(in srgb, var(--fg) 18%, transparent),
+      inset 0.22rem 0 0 color-mix(in srgb, var(--accent) 58%, transparent);
   }
 
   /* Slim mono status caption — factual "mission status" without the
      generic-terminal chrome. Small, faint, last line keeps the caret. */
   .crest__status {
-    margin: 1.1rem 0 0;
+    margin: clamp(2.1rem, 1.3rem + 1.2vw, 3rem) 0 0;
     padding: 0;
     max-width: 18rem;
     margin-inline: auto;
@@ -463,8 +684,8 @@ const mottoHalf = Array.from({ length: 4 })
       grid-template-columns: 1fr;
       gap: 1.5rem;
     }
-    /* Stacked: the emblem + status read as ONE compact, left-aligned signature
-       row — no more octocat floating in a tall reserved box with empty gaps. */
+    /* Stacked: the planet + status read as ONE compact, left-aligned signature
+       row — no tall reserved canvas box with empty gaps. */
     .hero__crest {
       order: 2;
       max-width: 100%;
@@ -474,13 +695,26 @@ const mottoHalf = Array.from({ length: 4 })
     }
     .crest {
       flex: none;
-      width: clamp(4rem, 13vw, 5.5rem);
+      width: clamp(4.75rem, 15vw, 6.5rem);
       aspect-ratio: 1;
       max-width: none;
       margin-inline: 0;
     }
-    :global(.crest__mark) {
-      width: 78%;
+    .crest__planet {
+      width: 58%;
+    }
+    .crest__language {
+      animation-duration: 6.8s;
+    }
+    .crest__language span {
+      min-width: 1.25rem;
+      min-height: 0.9rem;
+      padding: 0.12rem 0.2rem;
+      border-width: 1.5px;
+      box-shadow:
+        0.12rem 0.12rem 0 color-mix(in srgb, var(--fg) 30%, transparent),
+        inset 0.16rem 0 0 color-mix(in srgb, var(--accent) 58%, transparent);
+      font-size: 0.34rem;
     }
     .crest__status {
       flex: 1 1 auto;
@@ -499,7 +733,10 @@ const mottoHalf = Array.from({ length: 4 })
       gap: 0.75rem;
     }
     .crest {
-      width: clamp(3.35rem, 17vw, 4rem);
+      width: clamp(3.85rem, 19vw, 4.6rem);
+    }
+    .crest__planet {
+      width: 58%;
     }
     .crest__status {
       max-width: min(100%, 17rem);

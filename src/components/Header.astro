@@ -92,16 +92,20 @@ import Logo from './Logo.astro';
   .brand {
     display: inline-flex;
     align-items: center;
-    gap: 0.7rem;
+    gap: 0;
     min-width: max-content;
+    position: relative;
   }
   .brand:hover :global(.brand__logo) {
     color: var(--accent-deep);
   }
   :global(.brand__logo) {
+    position: absolute;
+    top: 50%;
+    right: calc(100% + 0.7rem);
     width: 2.125rem;
     height: 2.125rem;
-    flex: 0 0 2.125rem;
+    transform: translateY(-50%);
     color: var(--fg);
     transition: color 0.2s var(--ease-out);
   }

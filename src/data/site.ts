@@ -262,6 +262,14 @@ export const hero = {
     'A named maintainer',
     'Cancel on notice',
   ],
+  languageSatellites: [
+    { label: 'TS', name: 'TypeScript', x: '-36%', y: '-31%', dx: '0.18rem', dy: '-0.22rem' },
+    { label: 'PY', name: 'Python', x: '31%', y: '-35%', dx: '-0.2rem', dy: '0.14rem' },
+    { label: 'GO', name: 'Go', x: '42%', y: '4%', dx: '0.16rem', dy: '-0.18rem' },
+    { label: 'C#', name: 'C#', x: '24%', y: '35%', dx: '-0.18rem', dy: '0.2rem' },
+    { label: 'JS', name: 'JavaScript', x: '-33%', y: '33%', dx: '0.24rem', dy: '0.12rem' },
+    { label: 'RS', name: 'Rust', x: '-45%', y: '0%', dx: '-0.14rem', dy: '-0.2rem' },
+  ],
 } as const;
 
 export const motto = {

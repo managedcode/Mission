@@ -20,7 +20,7 @@ const signoffParts = manifesto.signoff
 <section class="section manifesto invert" id="manifesto" aria-labelledby="manifesto-h">
   <div class="manifesto__scanlines" aria-hidden="true"></div>
 
-  <span class="manifesto__ghost font-pixel" aria-hidden="true">COMMONS</span>
+  <div class="manifesto__sigil" aria-hidden="true"></div>
 
   <div class="wrap manifesto__inner">
     <header class="manifesto__head">
@@ -87,32 +87,64 @@ const signoffParts = manifesto.signoff
     /* deep ink band — generous, but not page-filling */
     position: relative;
     padding-block: clamp(4rem, 2.2rem + 6vw, 7.25rem);
-    padding-block-end: clamp(7rem, 4rem + 10vw, 15rem);
-    /* clip both the scanlines and the bleeding ghost word so neither
-       can ever introduce horizontal scroll */
+    padding-block-end: clamp(5.5rem, 3rem + 7vw, 10rem);
+    /* clip decorative atmosphere so it can never introduce horizontal scroll */
     overflow: clip;
     border-block: var(--border-px) solid var(--fg);
   }
 
-  /* ---- Giant ghosted pixel word bleeding off the right edge ---- */
-  .manifesto__ghost {
+  /* ---- Decorative pixel wash, no readable ghost words ---- */
+  .manifesto__sigil {
     position: absolute;
-    right: -0.12em;
-    bottom: -0.04em;
-    margin: 0;
-    font-size: clamp(20vw, 16vw + 4rem, 28vw);
-    line-height: 0.78;
-    letter-spacing: -0.02em;
-    color: color-mix(in srgb, var(--fg) 38%, var(--bg));
+    right: clamp(-8rem, -7vw, -3rem);
+    bottom: clamp(-2.5rem, -2vw, -1rem);
+    width: clamp(18rem, 34vw, 36rem);
+    aspect-ratio: 16 / 9;
+    background-image:
+      radial-gradient(
+        circle at 62% 44%,
+        color-mix(in srgb, var(--tier-gold) 42%, transparent) 0 0.42rem,
+        transparent 0.46rem
+      ),
+      radial-gradient(
+        circle at 42% 62%,
+        color-mix(in srgb, var(--accent) 28%, transparent) 0 0.34rem,
+        transparent 0.38rem
+      ),
+      linear-gradient(
+        90deg,
+        transparent 0 calc(50% - 1px),
+        color-mix(in srgb, var(--fg) 18%, transparent) calc(50% - 1px) calc(50% + 1px),
+        transparent calc(50% + 1px) 100%
+      ),
+      linear-gradient(
+        0deg,
+        transparent 0 calc(50% - 1px),
+        color-mix(in srgb, var(--fg) 14%, transparent) calc(50% - 1px) calc(50% + 1px),
+        transparent calc(50% + 1px) 100%
+      ),
+      repeating-linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--fg) 12%, transparent) 0 1px,
+        transparent 1px 1.4rem
+      ),
+      repeating-linear-gradient(
+        0deg,
+        color-mix(in srgb, var(--fg) 10%, transparent) 0 1px,
+        transparent 1px 1.4rem
+      );
+    -webkit-mask-image: radial-gradient(ellipse at 62% 52%, black 0 48%, transparent 74%);
+    mask-image: radial-gradient(ellipse at 62% 52%, black 0 48%, transparent 74%);
+    opacity: 0.48;
     pointer-events: none;
-    user-select: none;
-    white-space: nowrap;
     z-index: 0;
   }
   @media (max-width: 48rem) {
-    .manifesto__ghost {
-      bottom: auto;
-      top: 0.2em;
+    .manifesto__sigil {
+      width: clamp(14rem, 72vw, 25rem);
+      right: -6rem;
+      bottom: -1.5rem;
+      opacity: 0.22;
     }
   }
 

@@ -13,6 +13,9 @@ import { prepareForVisual, setTheme, waitForStableLocatorBox } from './helpers';
 
 const SETTLE_MS = 300;
 const SECTION_SCREENSHOT_TIMEOUT_MS = 20_000;
+// Hero carries the WebGL crest; the global 2% budget is too soft here and can
+// let a wrong symbol pass as "small" pixel noise.
+const HERO_MAX_DIFF_PIXEL_RATIO = 0.005;
 
 test.describe('Home · full page', () => {
   test('light theme', async ({ page }) => {
@@ -50,6 +53,7 @@ test.describe('Home · hero region', () => {
     await waitForStableLocatorBox(page, hero);
     await expect(hero).toHaveScreenshot('hero-light.png', {
       timeout: SECTION_SCREENSHOT_TIMEOUT_MS,
+      maxDiffPixelRatio: HERO_MAX_DIFF_PIXEL_RATIO,
     });
   });
 
@@ -62,6 +66,7 @@ test.describe('Home · hero region', () => {
     await waitForStableLocatorBox(page, hero);
     await expect(hero).toHaveScreenshot('hero-dark.png', {
       timeout: SECTION_SCREENSHOT_TIMEOUT_MS,
+      maxDiffPixelRatio: HERO_MAX_DIFF_PIXEL_RATIO,
     });
   });
 });

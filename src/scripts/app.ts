@@ -27,11 +27,13 @@ declare global {
     __missionMascotRoamingTest?: boolean;
     __missionMascotQuipTest?: boolean;
     __missionMascotQuips?: string[];
+    __missionMascotAdvanceQuip?: () => void;
     __missionSound?: {
       play: (name: MissionSoundName) => void;
       isOn: () => boolean;
     };
     __missionHashResync?: boolean;
+    __missionPaintHeroField?: (options?: { animate?: boolean; timeSec?: number }) => Promise<void>;
   }
 }
 
@@ -674,13 +676,13 @@ function initMagnetic() {
     });
   });
 
-  // Hero emblem — a subtle cursor-magnetic parallax: the `< >` mark leans toward
-  // the pointer within the hero, so the most-judged frame feels alive and
-  // responsive. Composited (transform only), rAF-throttled, fine-pointer +
-  // motion-OK gated above; the mark's base centering is `translate(-50%,-50%)`.
+  // Hero emblem — a subtle cursor-magnetic parallax: the pixel planet leans
+  // toward the pointer within the hero, so the most-judged frame feels alive
+  // and responsive. Composited (transform only), fine-pointer + motion-OK
+  // gated above; the planet's base centering is `translate(-50%,-50%)`.
   const hero = document.querySelector<HTMLElement>('.hero');
-  const mark = document.querySelector<HTMLElement>('.crest__mark');
-  if (hero && mark) {
+  const planet = document.querySelector<HTMLElement>('.crest__planet');
+  if (hero && planet) {
     let hr: DOMRect | null = null;
     hero.addEventListener('pointerenter', () => {
       hr = hero.getBoundingClientRect();
@@ -689,11 +691,11 @@ function initMagnetic() {
       hr ??= hero.getBoundingClientRect();
       const tx = ((e.clientX - hr.left) / hr.width - 0.5) * 5;
       const ty = ((e.clientY - hr.top) / hr.height - 0.5) * 5;
-      mark.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px))`;
+      planet.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px))`;
     });
     hero.addEventListener('pointerleave', () => {
       hr = null;
-      mark.style.transform = '';
+      planet.style.transform = '';
     });
   }
 }
@@ -1154,9 +1156,10 @@ function initMascot() {
     !navigator.webdriver ||
     window.__missionMascotRoamingTest === true ||
     window.__missionMascotQuipTest === true;
+  const quipTestMode = navigator.webdriver && window.__missionMascotQuipTest === true;
   const autoQuips = [firstQuip, ...idleQuips].filter(Boolean);
   if (navigator.webdriver) window.__missionMascotQuips = autoQuips;
-  const speechHoldMs = window.__missionMascotQuipTest === true ? 1000 : 5600;
+  const speechHoldMs = quipTestMode ? 60000 : window.__missionMascotQuipTest === true ? 1000 : 5600;
   const firstQuipDelayMs = window.__missionMascotQuipTest === true ? 120 : 900;
   const autoQuipDelayMs = window.__missionMascotQuipTest === true ? 760 : 4600;
 
@@ -1208,6 +1211,14 @@ function initMascot() {
       scheduleAutoQuip();
     }, delay);
   };
+  if (quipTestMode) {
+    speak(autoQuips[0] ?? '');
+    autoQuipIndex = 1;
+    window.__missionMascotAdvanceQuip = () => {
+      speak(autoQuips[autoQuipIndex % autoQuips.length] ?? '');
+      autoQuipIndex++;
+    };
+  }
 
   // --- click launches the MISSION RUN mini-game (with a little hop) ---
   let hopStart = -1;
@@ -1286,9 +1297,10 @@ function initMascot() {
       mascot.style.removeProperty('--my');
       sprite?.style.removeProperty('--face');
       mascot.removeEventListener('click', onMascotClick);
+      window.__missionMascotAdvanceQuip = undefined;
     },
   ];
-  scheduleAutoQuip(firstQuipDelayMs);
+  if (!quipTestMode) scheduleAutoQuip(firstQuipDelayMs);
 
   if (canRoam) {
     const mascotWidth = 52;
@@ -1441,40 +1453,67 @@ function initTabEgg() {
 }
 
 /* ---------- Hero "digital commons" WebGL spectacle (lazy, gated) ----------
-   The one deliberate spectacle. Enhancement only: never under reduced-motion or
-   automation, lazy-imported + started only while the hero is on screen, paused
-   off-screen. If WebGL or the chunk fails, the static < > mark + halo remain. */
-function initHeroFieldSpectacle() {
-  if (reduceMotion) return;
-  if (navigator.webdriver) return;
+   The one deliberate spectacle. Enhancement only: reduced-motion and automated
+   test runs get a deterministic poster frame; regular browsers get the live
+   field while the hero is on screen. If WebGL or the chunk fails, the static
+   CSS planet + halo remain. */
+type HeroFieldController = {
+  start: () => void;
+  stop: () => void;
+  paintAt?: (timeSec: number) => void;
+};
+let heroFieldController: HeroFieldController | null = null;
+let heroFieldLoad: Promise<HeroFieldController | null> | null = null;
+
+function paintHeroField({ animate }: { animate: boolean }): Promise<HeroFieldController | null> {
   const crest = document.querySelector<HTMLElement>('[data-hero-field]');
   const canvas = crest?.querySelector<HTMLCanvasElement>('.crest__field');
-  if (!crest || !canvas) return;
-  let controller: { start: () => void; stop: () => void } | null = null;
-  let loading = false;
+  if (!crest || !canvas) return Promise.resolve(null);
+
+  if (heroFieldController) {
+    crest.classList.add('is-live');
+    if (animate && !reduceMotion) heroFieldController.start();
+    else heroFieldController.stop();
+    return Promise.resolve(heroFieldController);
+  }
+
+  heroFieldLoad ??= import('./hero-field')
+    .then((m) => {
+      heroFieldController = m.initHeroField(canvas);
+      if (heroFieldController) {
+        crest.classList.add('is-live');
+        if (animate && !reduceMotion) heroFieldController.start();
+        else heroFieldController.stop();
+      }
+      return heroFieldController;
+    })
+    .catch(() => {
+      heroFieldLoad = null;
+      return null;
+    });
+
+  return heroFieldLoad;
+}
+
+function initHeroFieldSpectacle() {
+  window.__missionPaintHeroField = (options) =>
+    paintHeroField({ animate: options?.animate === true }).then((controller) => {
+      if (typeof options?.timeSec === 'number') controller?.paintAt?.(options.timeSec);
+    });
+
+  if (navigator.webdriver || reduceMotion) {
+    void paintHeroField({ animate: false });
+    return;
+  }
+  const crest = document.querySelector<HTMLElement>('[data-hero-field]');
+  if (!crest) return;
   const io = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
         if (entry.isIntersecting) {
-          if (controller) {
-            controller.start();
-            crest.classList.add('is-live');
-          } else if (!loading) {
-            loading = true;
-            import('./hero-field')
-              .then((m) => {
-                controller = m.initHeroField(canvas);
-                if (controller) {
-                  controller.start();
-                  crest.classList.add('is-live');
-                }
-              })
-              .catch(() => {
-                /* WebGL unavailable or chunk failed → keep the static emblem */
-              });
-          }
-        } else if (controller) {
-          controller.stop();
+          void paintHeroField({ animate: true });
+        } else if (heroFieldController) {
+          heroFieldController.stop();
         }
       }
     },

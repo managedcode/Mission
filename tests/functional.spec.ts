@@ -76,7 +76,7 @@ async function collectMobileLayoutIssues(page: import('@playwright/test').Page):
       if (rect.bottom < 0 || rect.top > viewportHeight * 4) continue;
       if (
         el.closest(
-          '.hero__marquee,.starfield,.hero__grid-bg,.scroll-progress,.cursor,.cursor__ring,.manifesto__ghost'
+          '.hero__marquee,.starfield,.hero__grid-bg,.scroll-progress,.cursor,.cursor__ring,.manifesto__sigil'
         )
       ) {
         continue;
@@ -209,6 +209,217 @@ test.describe('Home page · structure & SEO', () => {
     expect(typedDelta).toBeGreaterThan(10);
   });
 
+  test('hero animated crest has desktop visual weight without stretching @desktop', async ({
+    page,
+  }) => {
+    await useDesktopAuditViewport(page);
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await prepareForResponsiveAudit(page);
+
+    const metrics = await page.evaluate(() => {
+      const crest = document.querySelector<HTMLElement>('.crest');
+      const field = document.querySelector<HTMLElement>('.crest__field');
+      const planet = document.querySelector<HTMLElement>('.crest__planet');
+      const satellites = Array.from(
+        document.querySelectorAll<HTMLElement>('[data-language-satellite]')
+      );
+      const status = document.querySelector<HTMLElement>('.crest__status');
+      if (!crest || !field || !planet || !status) return null;
+
+      const crestRect = crest.getBoundingClientRect();
+      const fieldRect = field.getBoundingClientRect();
+      const planetRect = planet.getBoundingClientRect();
+      const statusRect = status.getBoundingClientRect();
+      const satelliteRects = satellites.map((satellite) => {
+        const rect = satellite.getBoundingClientRect();
+        return {
+          label: satellite.textContent?.trim() ?? '',
+          left: rect.left,
+          right: rect.right,
+          top: rect.top,
+          bottom: rect.bottom,
+        };
+      });
+
+      return {
+        crestWidth: crestRect.width,
+        crestAspect: crestRect.width / crestRect.height,
+        fieldWidthRatio: fieldRect.width / crestRect.width,
+        fieldHeightRatio: fieldRect.height / crestRect.height,
+        planetWidthRatio: planetRect.width / crestRect.width,
+        satelliteLabels: satelliteRects.map((satellite) => satellite.label),
+        satellitesInsideCrest: satelliteRects.every(
+          (satellite) =>
+            satellite.left >= crestRect.left - 4 &&
+            satellite.right <= crestRect.right + 4 &&
+            satellite.top >= crestRect.top - 4 &&
+            satellite.bottom <= crestRect.bottom + 4
+        ),
+        statusGap: statusRect.top - crestRect.bottom,
+      };
+    });
+
+    expect(metrics).not.toBeNull();
+    if (!metrics) return;
+
+    expect(metrics.crestWidth).toBeGreaterThanOrEqual(300);
+    expect(metrics.crestAspect).toBeGreaterThanOrEqual(0.98);
+    expect(metrics.crestAspect).toBeLessThanOrEqual(1.02);
+    expect(metrics.fieldWidthRatio).toBeGreaterThanOrEqual(1.32);
+    expect(metrics.fieldWidthRatio).toBeLessThanOrEqual(1.45);
+    expect(metrics.fieldHeightRatio).toBeGreaterThanOrEqual(1.32);
+    expect(metrics.fieldHeightRatio).toBeLessThanOrEqual(1.45);
+    expect(metrics.planetWidthRatio).toBeGreaterThanOrEqual(0.36);
+    expect(metrics.planetWidthRatio).toBeLessThanOrEqual(0.5);
+    expect(metrics.satelliteLabels.sort()).toEqual(['C#', 'GO', 'JS', 'PY', 'RS', 'TS']);
+    expect(metrics.satellitesInsideCrest).toBe(true);
+    expect(metrics.statusGap).toBeGreaterThanOrEqual(12);
+  });
+
+  test('hero animated crest paints a deterministic nonblank pixel field @desktop', async ({
+    page,
+  }) => {
+    await useDesktopAuditViewport(page);
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    const metrics = await page.evaluate(async () => {
+      const w = window as Window & {
+        __missionPaintHeroField?: () => Promise<void>;
+      };
+      await w.__missionPaintHeroField?.();
+
+      const crest = document.querySelector<HTMLElement>('.crest');
+      const canvas = document.querySelector<HTMLCanvasElement>('.crest__field');
+      const gl = canvas?.getContext('webgl');
+      if (!crest || !canvas || !gl) return null;
+
+      const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+      gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+
+      let painted = 0;
+      let goldOrGreen = 0;
+      const sampleStep = 37 * 4;
+      for (let i = 0; i < pixels.length; i += sampleStep) {
+        const red = pixels[i] ?? 0;
+        const green = pixels[i + 1] ?? 0;
+        const blue = pixels[i + 2] ?? 0;
+        const alpha = pixels[i + 3] ?? 0;
+        if (alpha > 12) painted += 1;
+        if (alpha > 12 && green > blue && (green > 32 || red > 32)) goldOrGreen += 1;
+      }
+
+      const samples = Math.ceil(pixels.length / sampleStep);
+      return {
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        fieldLive: crest.classList.contains('is-live'),
+        paintedRatio: painted / samples,
+        signalRatio: goldOrGreen / Math.max(1, painted),
+      };
+    });
+
+    expect(metrics).not.toBeNull();
+    if (!metrics) return;
+
+    expect(metrics.fieldLive).toBe(true);
+    expect(metrics.canvasWidth).toBeGreaterThanOrEqual(180);
+    expect(metrics.canvasHeight).toBeGreaterThanOrEqual(180);
+    expect(metrics.paintedRatio).toBeGreaterThan(0.04);
+    expect(metrics.paintedRatio).toBeLessThan(0.75);
+    expect(metrics.signalRatio).toBeGreaterThan(0.15);
+  });
+
+  test('hero animated crest changes frames as shader time advances @desktop', async ({ page }) => {
+    await useDesktopAuditViewport(page);
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    const metrics = await page.evaluate(async () => {
+      const w = window as Window & {
+        __missionPaintHeroField?: (options?: {
+          animate?: boolean;
+          timeSec?: number;
+        }) => Promise<void>;
+      };
+
+      const canvas = document.querySelector<HTMLCanvasElement>('.crest__field');
+      const gl = canvas?.getContext('webgl');
+      if (!canvas || !gl) return null;
+
+      const read = () => {
+        const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+        gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+        return pixels;
+      };
+
+      await w.__missionPaintHeroField?.({ timeSec: 1 });
+      const first = read();
+      await w.__missionPaintHeroField?.({ timeSec: 3 });
+      const second = read();
+
+      let changed = 0;
+      let sampled = 0;
+      const sampleStep = 53 * 4;
+      for (let i = 0; i < first.length; i += sampleStep) {
+        const delta =
+          Math.abs((first[i] ?? 0) - (second[i] ?? 0)) +
+          Math.abs((first[i + 1] ?? 0) - (second[i + 1] ?? 0)) +
+          Math.abs((first[i + 2] ?? 0) - (second[i + 2] ?? 0)) +
+          Math.abs((first[i + 3] ?? 0) - (second[i + 3] ?? 0));
+        if (delta > 16) changed += 1;
+        sampled += 1;
+      }
+
+      return {
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        changedRatio: changed / Math.max(1, sampled),
+      };
+    });
+
+    expect(metrics).not.toBeNull();
+    if (!metrics) return;
+
+    expect(metrics.canvasWidth).toBeGreaterThanOrEqual(240);
+    expect(metrics.canvasHeight).toBeGreaterThanOrEqual(240);
+    expect(metrics.changedRatio).toBeGreaterThan(0.008);
+    expect(metrics.changedRatio).toBeLessThan(0.85);
+  });
+
+  test('hero headline keeps natural word spacing on desktop @desktop', async ({ page }) => {
+    await useDesktopAuditViewport(page);
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await prepareForResponsiveAudit(page);
+
+    const metrics = await page.evaluate(() => {
+      const headline = document.querySelector<HTMLElement>('.hero__headline');
+      const fontSize = headline ? Number.parseFloat(getComputedStyle(headline).fontSize) : 0;
+      const lines = Array.from(document.querySelectorAll<HTMLElement>('.hero__line')).map(
+        (line) => {
+          const words = Array.from(line.querySelectorAll<HTMLElement>('.hero__word')).map(
+            (word) => {
+              const rect = word.getBoundingClientRect();
+              return { left: rect.left, right: rect.right };
+            }
+          );
+          const gaps = words.slice(1).map((word, index) => word.left - words[index].right);
+          return {
+            text: line.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+            maxGap: gaps.length ? Math.max(...gaps) : 0,
+          };
+        }
+      );
+      return { fontSize, lines };
+    });
+
+    expect(metrics.fontSize).toBeGreaterThan(0);
+    for (const line of metrics.lines) {
+      expect(
+        line.maxGap / metrics.fontSize,
+        `${line.text} should use normal word spacing`
+      ).toBeLessThanOrEqual(0.3);
+    }
+  });
+
   test('hero crest stays compact and fully typed on narrow phones @mobile-audit', async ({
     page,
   }) => {
@@ -267,7 +478,7 @@ test.describe('Home page · structure & SEO', () => {
       ).toBeGreaterThan(metrics.crestRight);
       expect(
         metrics.statusTop,
-        `${width}px status should vertically overlap the mark row`
+        `${width}px status should vertically overlap the planet row`
       ).toBeLessThan(metrics.crestBottom);
       expect(metrics.wrapLeft, `${width}px crest should not overflow left`).toBeGreaterThanOrEqual(
         0
@@ -338,13 +549,13 @@ test.describe('Home page · structure & SEO', () => {
     await useDesktopAuditViewport(page);
     await page.goto('/');
 
-    const mark = page.locator('.crest__mark');
-    await expect(mark).toBeVisible();
+    const planet = page.locator('.crest__planet');
+    await expect(planet).toBeVisible();
 
     const sampleTransform = async (x: number, y: number) => {
       await page.mouse.move(x, y);
       await page.waitForTimeout(50);
-      return await mark.evaluate((el) => (el as HTMLElement).style.transform);
+      return await planet.evaluate((el) => (el as HTMLElement).style.transform);
     };
 
     const transforms = [
@@ -679,32 +890,39 @@ test.describe('Home page · structure & SEO', () => {
     expect(Math.abs(metrics.cardLeft - metrics.headingLeft)).toBeLessThanOrEqual(1);
   });
 
-  test('manifesto keeps breathing room above the bottom pixel word @desktop', async ({ page }) => {
+  test('manifesto decorative layer stays non-textual @desktop', async ({ page }) => {
     await useDesktopAuditViewport(page);
 
     await page.goto('/#manifesto');
     await prepareForResponsiveAudit(page);
     await page.locator('#manifesto').scrollIntoViewIfNeeded();
 
-    const spacing = await page.evaluate(() => {
-      const lastParagraph = document.querySelector<HTMLElement>(
-        '#manifesto .manifesto__prose .manifesto__p:last-child'
-      );
-      const stamp = document.querySelector<HTMLElement>('#manifesto .manifesto__stamp');
-      const ghost = document.querySelector<HTMLElement>('#manifesto .manifesto__ghost');
-
-      const lastParagraphRect = lastParagraph?.getBoundingClientRect();
-      const stampRect = stamp?.getBoundingClientRect();
-      const ghostRect = ghost?.getBoundingClientRect();
-
+    const decorative = await page.evaluate(() => {
+      const sigil = document.querySelector<HTMLElement>('#manifesto .manifesto__sigil');
+      const sigilRect = sigil?.getBoundingClientRect();
+      const hiddenText = Array.from(
+        document.querySelectorAll<HTMLElement>('#manifesto [aria-hidden="true"]')
+      )
+        .map((el) => {
+          const text = el.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+          const fontSize = Number.parseFloat(getComputedStyle(el).fontSize);
+          return { className: String(el.className), text, fontSize };
+        })
+        .filter((item) => item.text.length > 1 && item.fontSize > 80);
       return {
-        paragraphToGhost: Math.round((ghostRect?.top ?? 0) - (lastParagraphRect?.bottom ?? 0)),
-        stampToGhost: Math.round((ghostRect?.top ?? 0) - (stampRect?.bottom ?? 0)),
+        ghostCount: document.querySelectorAll('#manifesto .manifesto__ghost').length,
+        literalCommonsCount: Array.from(
+          document.querySelectorAll<HTMLElement>('#manifesto *')
+        ).filter((el) => el.textContent?.replace(/\s+/g, ' ').trim() === 'COMMONS').length,
+        sigilArea: Math.round((sigilRect?.width ?? 0) * (sigilRect?.height ?? 0)),
+        hiddenText,
       };
     });
 
-    expect(spacing.paragraphToGhost).toBeGreaterThanOrEqual(240);
-    expect(spacing.stampToGhost).toBeGreaterThanOrEqual(48);
+    expect(decorative.ghostCount).toBe(0);
+    expect(decorative.literalCommonsCount).toBe(0);
+    expect(decorative.sigilArea).toBeGreaterThan(10_000);
+    expect(decorative.hiddenText).toEqual([]);
   });
 
   test('mascot speech bubble and sprite keep readable contrast on inverted sections @desktop', async ({
@@ -884,17 +1102,9 @@ test.describe('Home page · structure & SEO', () => {
     await expect(bubble).toHaveText('click me');
     await expect(bubble).toHaveAttribute('data-show', 'true');
 
-    await expect
-      .poll(
-        async () =>
-          page.evaluate(() => {
-            const quip = document.querySelector<HTMLElement>('.mascot__say');
-            const text = quip?.textContent?.trim() ?? '';
-            return quip?.dataset.show === 'true' && text.length > 0 && text !== 'click me';
-          }),
-        { timeout: 3000 }
-      )
-      .toBe(true);
+    await page.evaluate(() => window.__missionMascotAdvanceQuip?.());
+    await expect(bubble).not.toHaveText('click me');
+    await expect(bubble).toHaveAttribute('data-show', 'true');
   });
 
   test('corner mascot opens with a visible maintainer quip when roaming is enabled @desktop', async ({
@@ -979,10 +1189,8 @@ test.describe('Theme toggle', () => {
 });
 
 test.describe('Mobile navigation', () => {
-  test('compact header wordmark aligns with the hero content edge @mobile-audit', async ({
-    page,
-  }) => {
-    for (const width of [360, 430, 600, 900, 1024, 1200] as const) {
+  test('header wordmark aligns with the hero content edge @mobile-audit', async ({ page }) => {
+    for (const width of [360, 430, 600, 900, 1024, 1200, 1280, 1440, 1920] as const) {
       await page.setViewportSize({ width, height: MOBILE_AUDIT_HEIGHT });
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       await prepareForResponsiveAudit(page);
@@ -992,10 +1200,13 @@ test.describe('Mobile navigation', () => {
         const logo = document.querySelector<HTMLElement>('.site-header .brand__logo');
         const headline = document.querySelector<HTMLElement>('.hero__headline');
         const nameRect = name?.getBoundingClientRect();
+        const logoRect = logo?.getBoundingClientRect();
         const headlineRect = headline?.getBoundingClientRect();
         return {
           nameLeft: nameRect?.left ?? null,
           headlineLeft: headlineRect?.left ?? null,
+          logoLeft: logoRect?.left ?? null,
+          logoRight: logoRect?.right ?? null,
           logoDisplay: logo ? getComputedStyle(logo).display : null,
         };
       });
@@ -1006,9 +1217,23 @@ test.describe('Mobile navigation', () => {
         Math.abs((metrics.nameLeft ?? 0) - (metrics.headlineLeft ?? 0)),
         `${width}px ManagedCode text should align with hero content`
       ).toBeLessThanOrEqual(1);
-      expect(metrics.logoDisplay, `${width}px compact logo should not offset wordmark`).toBe(
-        'none'
-      );
+      if (width <= 1200) {
+        expect(metrics.logoDisplay, `${width}px compact logo should not offset wordmark`).toBe(
+          'none'
+        );
+      } else {
+        expect(metrics.logoDisplay, `${width}px desktop logo should remain visible`).not.toBe(
+          'none'
+        );
+        expect(
+          metrics.logoLeft,
+          `${width}px desktop logo should stay inside the viewport`
+        ).toBeGreaterThanOrEqual(0);
+        expect(
+          metrics.logoRight,
+          `${width}px desktop logo should sit before the wordmark`
+        ).toBeLessThanOrEqual(metrics.nameLeft ?? 0);
+      }
     }
   });
 
@@ -1187,6 +1412,28 @@ test.describe('Mission Run mini-game', () => {
     messageText?: string;
   };
 
+  async function settleMissionRunOnGround(
+    page: import('@playwright/test').Page,
+    readGame: () => Promise<MissionRunState | null>
+  ): Promise<void> {
+    await page.waitForFunction(
+      () =>
+        typeof (
+          window as Window & {
+            __mgameAdvancePlay?: unknown;
+          }
+        ).__mgameAdvancePlay === 'function'
+    );
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __mgameAdvancePlay?: (frames?: number) => void;
+        }
+      ).__mgameAdvancePlay?.(120);
+    });
+    await expect.poll(async () => (await readGame())?.onGround, { timeout: 1000 }).toBe(true);
+  }
+
   test('expense enemies are household bills and regular bricks can be bumped @desktop', async ({
     page,
   }) => {
@@ -1358,7 +1605,7 @@ test.describe('Mission Run mini-game', () => {
         return state ?? null;
       });
 
-    await expect.poll(async () => (await readGame())?.onGround, { timeout: 3000 }).toBe(true);
+    await settleMissionRunOnGround(page, readGame);
 
     await page.evaluate(() => {
       (
@@ -1571,7 +1818,7 @@ test.describe('Mission Run mini-game', () => {
         return state ?? null;
       });
 
-    await expect.poll(async () => (await readGame())?.onGround, { timeout: 3000 }).toBe(true);
+    await settleMissionRunOnGround(page, readGame);
     await expect.poll(async () => (await readGame())?.finaleCount, { timeout: 1000 }).toBe(10);
     const finaleCount = (await readGame())?.finaleCount ?? 0;
 
@@ -1603,7 +1850,7 @@ test.describe('Mission Run mini-game', () => {
       if (index < finaleCount - 1) {
         await page.locator('[data-mgame-again]').click();
         await expect.poll(async () => (await readGame())?.state, { timeout: 1000 }).toBe('play');
-        await expect.poll(async () => (await readGame())?.onGround, { timeout: 3000 }).toBe(true);
+        await settleMissionRunOnGround(page, readGame);
       }
     }
 
@@ -1764,7 +2011,7 @@ test.describe('Mission Run mini-game', () => {
         return state ?? null;
       });
 
-    await expect.poll(async () => (await readGame())?.onGround, { timeout: 3000 }).toBe(true);
+    await settleMissionRunOnGround(page, readGame);
 
     await page.evaluate(() => {
       (
@@ -1820,7 +2067,7 @@ test.describe('Mission Run mini-game', () => {
 
     await page.locator('[data-mgame-again]').click();
     await expect.poll(async () => (await readGame())?.state, { timeout: 1000 }).toBe('play');
-    await expect.poll(async () => (await readGame())?.onGround, { timeout: 3000 }).toBe(true);
+    await settleMissionRunOnGround(page, readGame);
 
     await page.evaluate(() => {
       (
