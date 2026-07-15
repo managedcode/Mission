@@ -798,6 +798,81 @@ test.describe('Home page · structure & SEO', () => {
     expect(audioWarnings, `AudioContext warnings: ${audioWarnings.join(' | ')}`).toHaveLength(0);
   });
 
+  test('sound and Mission Run actions keep explicit contrast in both themes @desktop', async ({
+    page,
+  }) => {
+    await useDesktopAuditViewport(page);
+    await page.goto('/');
+
+    for (const theme of ['light', 'dark'] as const) {
+      await page.evaluate((nextTheme) => {
+        localStorage.setItem('mission-theme', nextTheme);
+        localStorage.setItem('mission-sound', 'off');
+      }, theme);
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForFunction(() => document.documentElement.classList.contains('mascot-ready'));
+
+      const soundToggle = page.locator('[data-sound-toggle]');
+      const soundOff = await soundToggle.evaluate((el) => {
+        const style = getComputedStyle(el);
+        return {
+          color: style.color,
+          backgroundColor: style.backgroundColor,
+          pageForeground: getComputedStyle(document.body).color,
+        };
+      });
+      expect(soundOff.backgroundColor).not.toBe(soundOff.pageForeground);
+      expect(contrastRatio(soundOff.color, soundOff.backgroundColor)).toBeGreaterThanOrEqual(4.5);
+
+      await soundToggle.evaluate((el) => {
+        (el as HTMLElement).dataset.on = 'true';
+      });
+      const soundOn = await soundToggle.evaluate((el) => {
+        const style = getComputedStyle(el);
+        return { color: style.color, backgroundColor: style.backgroundColor };
+      });
+      expect(contrastRatio(soundOn.color, soundOn.backgroundColor)).toBeGreaterThanOrEqual(3);
+
+      await page.locator('[data-mascot]').click({ force: true });
+      await page.waitForFunction(
+        () =>
+          typeof (
+            window as Window & {
+              __mgameTriggerGameOver?: unknown;
+              __mgameAdvanceGameOver?: unknown;
+            }
+          ).__mgameTriggerGameOver === 'function'
+      );
+      await page.evaluate(() => {
+        const game = window as Window & {
+          __mgameTriggerGameOver?: () => void;
+          __mgameAdvanceGameOver?: (frames?: number) => void;
+        };
+        game.__mgameTriggerGameOver?.();
+        game.__mgameAdvanceGameOver?.();
+      });
+
+      const again = page.locator('[data-mgame-again]');
+      const patron = page.locator('[data-mgame-patron]');
+      await expect(again).toBeVisible();
+      await expect(patron).toBeVisible();
+
+      for (const control of [again, patron]) {
+        const styles = await control.evaluate((el) => {
+          const style = getComputedStyle(el);
+          return {
+            color: style.color,
+            backgroundColor: style.backgroundColor,
+            borderColor: style.borderColor,
+          };
+        });
+        expect(styles.backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+        expect(styles.borderColor).not.toBe('rgba(0, 0, 0, 0)');
+        expect(contrastRatio(styles.color, styles.backgroundColor)).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
   test('motto copy promises maintained open source instead of pass-it-on charity', async ({
     page,
   }) => {

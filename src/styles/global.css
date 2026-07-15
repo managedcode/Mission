@@ -26,6 +26,9 @@
   --blue: #2b50e0; /* electric blue — tertiary */
   --gold: #b08628; /* patron gold — Senior grade */
   --gold-glow: #e8b94a;
+  --accent-ink: #23100a; /* text/edges on warm action surfaces */
+  --game-ink: #06120a; /* fixed dark surface used by Mission Run in either theme */
+  --game-surface: #0a1410;
   --flag-fr-blue: #0055a4;
   --flag-fr-white: #ffffff;
   --flag-fr-red: #ef4135;
@@ -366,11 +369,11 @@ p {
    over-used phosphor green — green is rationed to "alive / healthy" signals */
 .btn--accent {
   --btn-bg: var(--amber);
-  --btn-fg: #23100a;
+  --btn-fg: var(--accent-ink);
 }
 :root[data-theme='dark'] .btn--accent,
 .invert .btn--accent {
-  --btn-fg: #23100a;
+  --btn-fg: var(--accent-ink);
 }
 
 /* ---------- Pixel card ---------- */
@@ -595,9 +598,9 @@ p {
   height: 2.1rem;
   padding: 0;
   border: var(--border-px) solid var(--fg);
-  background: var(--fg);
-  color: var(--bg);
-  box-shadow: var(--shadow-px-sm);
+  background: var(--bg-raised);
+  color: var(--fg);
+  box-shadow: 3px 3px 0 var(--hairline-strong);
   cursor: pointer;
   transition:
     color 0.2s,
@@ -615,13 +618,18 @@ p {
 .sound-toggle:focus-visible {
   color: var(--fg);
   border-color: var(--fg);
-  background: var(--bg-raised);
-  box-shadow: 5px 5px 0 var(--fg);
+  background: var(--bg-sunken);
+  box-shadow: 5px 5px 0 var(--hairline-strong);
   transform: translate(-1px, -1px);
 }
 .sound-toggle[data-on='true'] {
   color: var(--accent);
   border-color: var(--accent);
+  box-shadow: 3px 3px 0 color-mix(in srgb, var(--accent) 45%, var(--hairline-strong));
+}
+.sound-toggle[data-on='true']:hover,
+.sound-toggle[data-on='true']:focus-visible {
+  box-shadow: 5px 5px 0 color-mix(in srgb, var(--accent) 45%, var(--hairline-strong));
 }
 .sound-toggle .sound-toggle__wave {
   opacity: 0;
@@ -894,7 +902,7 @@ body::after {
   display: none;
   place-items: center;
   padding: 1rem;
-  background: color-mix(in srgb, #06120a 80%, transparent);
+  background: color-mix(in srgb, var(--game-ink) 80%, transparent);
   backdrop-filter: blur(6px);
 }
 .mgame[data-open='true'] {
@@ -1055,7 +1063,7 @@ body::after {
 }
 .mgame__close:hover {
   background: var(--accent-2);
-  color: #23100a;
+  color: var(--accent-ink);
 }
 .mgame__screen {
   position: relative;
@@ -1066,7 +1074,7 @@ body::after {
   height: auto;
   aspect-ratio: 320 / 176;
   image-rendering: pixelated;
-  background: #0a1410;
+  background: var(--game-surface);
   border: var(--border-px) solid var(--fg);
 }
 /* on-screen touch controls — only shown on a coarse pointer while playing */
@@ -1111,13 +1119,13 @@ body::after {
   width: 4.4rem;
   height: 4.4rem;
   font-size: 0.62rem;
-  color: #23100a;
+  color: var(--accent-ink);
   background: color-mix(in srgb, var(--accent) 82%, transparent);
 }
 .mgame__tbtn[data-on='true'] {
   opacity: 1;
   background: var(--accent-2);
-  color: #23100a;
+  color: var(--accent-ink);
   transform: translateY(1px);
 }
 .mgame__msg {
@@ -1129,7 +1137,7 @@ body::after {
   gap: 0.9rem;
   padding: 1rem;
   text-align: center;
-  background: color-mix(in srgb, #06120a 72%, transparent);
+  background: color-mix(in srgb, var(--game-ink) 72%, transparent);
   animation: mgame-msg-in 360ms steps(4, end) both;
 }
 .mgame__msg[hidden] {
@@ -1153,23 +1161,38 @@ body::after {
    canvas curtain) so the finale text is crisp and never fights the sprites. The
    win card keeps the lighter base so its fireworks still show through. */
 .mgame__msg[data-win='false'] {
-  background: color-mix(in srgb, #06120a 96%, transparent);
+  background: color-mix(in srgb, var(--game-ink) 96%, transparent);
 }
 .mgame__msg[data-win='false'] .mgame__msg-text {
   color: color-mix(in srgb, var(--accent-2) 72%, var(--paper) 28%);
   text-shadow: none;
 }
 :root[data-theme='dark'] .mgame__msg[data-win='false'] .mgame__msg-text {
-  text-shadow: 0.12em 0.12em 0 #06120a;
+  text-shadow: 0.12em 0.12em 0 var(--game-ink);
 }
-.mgame__msg[data-win='false'] .mgame__again {
-  color: color-mix(in srgb, var(--accent-2) 72%, var(--paper) 28%);
-  background: color-mix(in srgb, #06120a 72%, transparent);
-  border-color: currentColor;
+.mgame__again {
+  --btn-bg: var(--game-ink);
+  --btn-fg: var(--paper);
+  border-color: var(--paper);
+  box-shadow: 5px 5px 0 var(--paper);
 }
-.mgame__msg[data-win='false'] .mgame__again:hover {
-  color: #23100a;
-  background: var(--accent-2);
+.mgame__again:hover {
+  --btn-bg: var(--paper);
+  --btn-fg: var(--game-ink);
+  box-shadow: 7px 7px 0 var(--paper);
+}
+.mgame__again:active {
+  box-shadow: 1px 1px 0 var(--paper);
+}
+.mgame__patron {
+  border-color: var(--accent-ink);
+  box-shadow: 5px 5px 0 var(--accent-ink);
+}
+.mgame__patron:hover {
+  box-shadow: 7px 7px 0 var(--accent-ink);
+}
+.mgame__patron:active {
+  box-shadow: 1px 1px 0 var(--accent-ink);
 }
 .mgame__msg-actions {
   display: flex;
